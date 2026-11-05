@@ -26,29 +26,49 @@
 
 * {
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
 }
 html {
   min-width: 320px;
   min-height: 100%;
   background: var(--color-canvas);
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+  scrollbar-width: none;
 }
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  min-height: 100svh;
+  overscroll-behavior: none;
 }
 button,
-input {
+input,
+select,
+textarea,
+a {
   font: inherit;
+  -webkit-tap-highlight-color: transparent;
 }
 button {
   color: inherit;
+  touch-action: manipulation;
 }
 button:focus-visible,
 a:focus-visible,
-input:focus-visible {
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
   outline: 3px solid #7db9a8;
   outline-offset: 3px;
+}
+@media (hover: none) and (pointer: coarse) {
+  button:focus:not(:focus-visible),
+  a:focus:not(:focus-visible) {
+    outline: none;
+  }
 }
 ::selection {
   background: #cce6dd;

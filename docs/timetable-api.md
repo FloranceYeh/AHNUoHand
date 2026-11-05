@@ -21,7 +21,7 @@
 ```
 1. GET  /student/login-salt          → 一串 UUID 盐
 2. password = SHA1(salt + "-" + 明文密码)
-3. POST /student/login               
+3. POST /student/login
        {"username":"<学号>","password":"<上一步结果>","captcha":"<验证码>"}
        → {"result": true}  成功后跳 /student/home
 4. 会话靠 cookie 维持，浏览器/WebView 自动携带
@@ -44,9 +44,14 @@
 
 ```html
 <table>
-  <thead><tr>
-    <th></th><th>星期一</th> … <th>星期日</th>
-  </tr></thead>
+  <thead>
+    <tr>
+      <th></th>
+      <th>星期一</th>
+      …
+      <th>星期日</th>
+    </tr>
+  </thead>
   <tbody>
     <tr class="1">
       <td class="timeArea" rowspan="5">08:00 …</td>
@@ -87,11 +92,11 @@
 
 ## 4. 其他数据来源（不可用）
 
-| 来源 | 情况 |
-| ---- | ---- |
-| `ybt.ahnu.edu.cn` 的「我的课表」 | 接口存在（`applets/week/timetable/studentTimetable`），但学校未往该模块灌数据，`get/nowTerm` 返回「未设置学年学期」，页面空白 |
-| `mjwgl.ahnu.edu.cn`（旧版移动端教务） | 校外访问返回 403，按来源 IP 限制 |
-| WebVPN 代理 | 可用但没必要，`jw` 本身公网可达 |
+| 来源                                  | 情况                                                                                                                          |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `ybt.ahnu.edu.cn` 的「我的课表」      | 接口存在（`applets/week/timetable/studentTimetable`），但学校未往该模块灌数据，`get/nowTerm` 返回「未设置学年学期」，页面空白 |
+| `mjwgl.ahnu.edu.cn`（旧版移动端教务） | 校外访问返回 403，按来源 IP 限制                                                                                              |
+| WebVPN 代理                           | 可用但没必要，`jw` 本身公网可达                                                                                               |
 
 网上广泛流传的 `mjwgl` + `PHPSESSID` 方案（如 [abersheeran/Ahnu](https://github.com/abersheeran/Ahnu)）在 2018 年有效，现在校外已不可用。
 
@@ -99,15 +104,15 @@
 
 ## 5. 项目内的实现
 
-| 文件 | 职责 |
-| ---- | ---- |
-| `src/lib/timetable.ts` | 课程数据结构、单元格文本解析、配色 |
-| `src/lib/timetableExtract.ts` | 注入目标页面的抽取脚本 |
-| `src/lib/timetableSession.ts` | 登录窗口、轮询登录状态、跳打印视图取数 |
-| `src/lib/semester.ts` | 首周、当前周、周与日期互转（与校历共用） |
-| `src/lib/periodSchedule.ts` | 夏令时 / 冬令时作息时间表 |
-| `src/pages/TimetablePage.tsx` | 周视图，滑动切周，课程卡片与详情 |
-| `src-tauri/src/windows.rs` | 开窗、执行脚本取回结果、跳转、关闭 |
+| 文件                          | 职责                                     |
+| ----------------------------- | ---------------------------------------- |
+| `src/lib/timetable.ts`        | 课程数据结构、单元格文本解析、配色       |
+| `src/lib/timetableExtract.ts` | 注入目标页面的抽取脚本                   |
+| `src/lib/timetableSession.ts` | 登录窗口、轮询登录状态、跳打印视图取数   |
+| `src/lib/semester.ts`         | 首周、当前周、周与日期互转（与校历共用） |
+| `src/lib/periodSchedule.ts`   | 夏令时 / 冬令时作息时间表                |
+| `src/pages/TimetablePage.tsx` | 周视图，滑动切周，课程卡片与详情         |
+| `src-tauri/src/windows.rs`    | 开窗、执行脚本取回结果、跳转、关闭       |
 
 ### 两个踩过的坑
 

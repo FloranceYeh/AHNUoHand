@@ -21,10 +21,13 @@ pub async fn classroom_login(app: tauri::AppHandle) -> Result<(), String> {
     let url = CAS_LOGIN.parse().map_err(|_| "登录地址无效".to_string())?;
 
     let handle = app.clone();
-    tauri::WebviewWindowBuilder::new(&app, LOGIN_WINDOW, tauri::WebviewUrl::External(url))
+    let builder = tauri::WebviewWindowBuilder::new(&app, LOGIN_WINDOW, tauri::WebviewUrl::External(url))
         .title("统一身份认证")
-        .inner_size(520.0, 760.0)
-        .center()
+        .inner_size(520.0, 760.0);
+    #[cfg(not(mobile))]
+    let builder = builder.center();
+
+    builder
         .on_navigation(move |target| {
             let full = target.as_str();
             if let Some(index) = full.find("ticket=") {

@@ -79,7 +79,32 @@ export function TimetablePage({
   const [selected, setSelected] = useState<CourseSlot | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const cancelledRef = useRef(false);
-  const swipeRef = useRef<{ x: number; y: number } | null>(null);
+  const swipeRef = useRef<{
+    pointerId: number;
+    x: number;
+    y: number;
+    lastX: number;
+    lastAt: number;
+    horizontal: boolean;
+  } | null>(null);
+  const didSwipeRef = useRef(false);
+  const sheetDidDragRef = useRef(false);
+  const weekStripRef = useRef<HTMLDivElement>(null);
+  const sheetRef = useRef<HTMLElement | null>(null);
+  const sheetCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sheetDragRef = useRef<{
+    pointerId: number;
+    y: number;
+    lastY: number;
+    lastAt: number;
+  } | null>(null);
+
+  const closeOverlay = () => {
+    if (sheetCloseTimerRef.current) clearTimeout(sheetCloseTimerRef.current);
+    sheetCloseTimerRef.current = null;
+    setSelected(null);
+    setSettingsOpen(false);
+  };
 
   useEffect(() => {
     try {
@@ -101,6 +126,32 @@ export function TimetablePage({
     },
     [],
   );
+
+  useEffect(() => {
+    document.documentElement.classList.add("tt-page-active");
+    document.body.classList.add("tt-page-active");
+    return () => {
+      document.documentElement.classList.remove("tt-page-active");
+      document.body.classList.remove("tt-page-active");
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!selected && !settingsOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" || event.key === "Back") {
+        event.preventDefault();
+        closeOverlay();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [selected, settingsOpen]);
 
   const applyResult = (result: GridResult) => {
     const cached: CachedGrid = { ...result, savedAt: Date.now() };
@@ -291,19 +342,132 @@ export function TimetablePage({
     setWeek((value) => Math.min(maxWeek, Math.max(1, value + delta)));
   };
 
-  // 横向滑动切换周
+  useEffect(() => {
+    const strip = weekStripRef.current;
+    const active = strip?.querySelector<HTMLElement>(
+      ".tt-weekstrip-item.active",
+    );
+    if (!strip || !active) return;
+    const left =
+      active.offsetLeft - (strip.clientWidth - active.clientWidth) / 2;
+    strip.scrollTo({
+      left,
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth",
+    });
+  }, [week]);
+
+  // Preserve vertical page scrolling while recognizing a deliberate horizontal swipe.
   const onPointerDown = (event: React.PointerEvent) => {
-    swipeRef.current = { x: event.clientX, y: event.clientY };
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    swipeRef.current = {
+      pointerId: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      lastX: event.clientX,
+      lastAt: event.timeStamp,
+      horizontal: false,
+    };
+    didSwipeRef.current = false;
   };
-  const onPointerUp = (event: React.PointerEvent) => {
-    const start = swipeRef.current;
-    swipeRef.current = null;
-    if (!start) return;
-    const dx = event.clientX - start.x;
-    const dy = event.clientY - start.y;
-    if (Math.abs(dx) > 56 && Math.abs(dx) > Math.abs(dy) * 1.4) {
-      goWeek(dx < 0 ? 1 : -1);
+  const onPointerMove = (event: React.PointerEvent) => {
+    const gesture = swipeRef.current;
+    if (!gesture || gesture.pointerId !== event.pointerId) return;
+    const dx = event.clientX - gesture.x;
+    const dy = event.clientY - gesture.y;
+    if (
+      !gesture.horizontal &&
+      Math.abs(dx) > 10 &&
+      Math.abs(dx) > Math.abs(dy) * 1.2
+    ) {
+      gesture.horizontal = true;
+      didSwipeRef.current = true;
     }
+    if (gesture.horizontal) event.preventDefault();
+    gesture.lastX = event.clientX;
+    gesture.lastAt = event.timeStamp;
+  };
+  const finishSwipe = (event: React.PointerEvent, cancelled = false) => {
+    const gesture = swipeRef.current;
+    if (!gesture || gesture.pointerId !== event.pointerId) return;
+    swipeRef.current = null;
+    if (cancelled || !gesture.horizontal) return;
+    const dx = event.clientX - gesture.x;
+    const elapsed = Math.max(1, event.timeStamp - gesture.lastAt);
+    const velocity = (event.clientX - gesture.lastX) / elapsed;
+    if (Math.abs(dx) > 48 || Math.abs(velocity) > 0.45) {
+      goWeek(dx < 0 || velocity < -0.45 ? 1 : -1);
+    }
+  };
+
+  const onSheetPointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    if (sheetCloseTimerRef.current) clearTimeout(sheetCloseTimerRef.current);
+    sheetCloseTimerRef.current = null;
+    sheetRef.current?.style.setProperty("transition", "none");
+    sheetRef.current?.style.removeProperty("--tt-sheet-drag");
+    sheetDidDragRef.current = false;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    sheetDragRef.current = {
+      pointerId: event.pointerId,
+      y: event.clientY,
+      lastY: event.clientY,
+      lastAt: event.timeStamp,
+    };
+  };
+  const onSheetPointerMove = (event: React.PointerEvent<HTMLButtonElement>) => {
+    const drag = sheetDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId || event.clientY < drag.y)
+      return;
+    event.preventDefault();
+    if (event.clientY - drag.y > 8) sheetDidDragRef.current = true;
+    sheetRef.current?.style.setProperty(
+      "--tt-sheet-drag",
+      `${event.clientY - drag.y}px`,
+    );
+    drag.lastY = event.clientY;
+    drag.lastAt = event.timeStamp;
+  };
+  const finishSheetDrag = (
+    event: React.PointerEvent<HTMLButtonElement>,
+    cancelled = false,
+  ) => {
+    const drag = sheetDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    sheetDragRef.current = null;
+    const distance = Math.max(0, event.clientY - drag.y);
+    const velocity =
+      (event.clientY - drag.lastY) / Math.max(1, event.timeStamp - drag.lastAt);
+    const sheet = sheetRef.current;
+    if (!cancelled && (distance > 96 || velocity > 0.55) && sheet) {
+      sheet.style.setProperty(
+        "transition",
+        "transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1)",
+      );
+      sheet.style.setProperty(
+        "--tt-sheet-drag",
+        `${sheet.offsetHeight + 24}px`,
+      );
+      sheetCloseTimerRef.current = setTimeout(closeOverlay, 185);
+      return;
+    }
+    if (sheet) {
+      sheet.style.setProperty(
+        "transition",
+        "transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1)",
+      );
+      requestAnimationFrame(() =>
+        sheet.style.removeProperty("--tt-sheet-drag"),
+      );
+    }
+  };
+  const onSheetHandleClick = (close: () => void) => {
+    if (sheetDidDragRef.current) {
+      sheetDidDragRef.current = false;
+      return;
+    }
+    close();
   };
 
   const template = `46px repeat(${days.length}, minmax(0, 1fr))`;
@@ -410,7 +574,11 @@ export function TimetablePage({
             </div>
           </header>
 
-          <div className="tt-weekstrip" aria-label="选择周次">
+          <div
+            className="tt-weekstrip"
+            aria-label="选择周次"
+            ref={weekStripRef}
+          >
             {Array.from({ length: maxWeek }, (_, index) => index + 1).map(
               (value) => (
                 <button
@@ -433,7 +601,9 @@ export function TimetablePage({
               ["--tt-rows" as string]: `30px repeat(${maxPeriod}, minmax(46px, auto))`,
             }}
             onPointerDown={onPointerDown}
-            onPointerUp={onPointerUp}
+            onPointerMove={onPointerMove}
+            onPointerUp={finishSwipe}
+            onPointerCancel={(event) => finishSwipe(event, true)}
           >
             <div className="tt-corner" />
             {days.map((day) => {
@@ -510,7 +680,13 @@ export function TimetablePage({
                     background: color.bg,
                     color: color.fg,
                   }}
-                  onClick={() => setSelected(slot)}
+                  onClick={() => {
+                    if (didSwipeRef.current) {
+                      didSwipeRef.current = false;
+                      return;
+                    }
+                    setSelected(slot);
+                  }}
                 >
                   <span className="tt-course-name">{slot.name}</span>
                   {slot.place && (
@@ -533,12 +709,32 @@ export function TimetablePage({
             >
               <section
                 className="tt-settings"
+                ref={(node) => {
+                  sheetRef.current = node;
+                }}
                 onClick={(event) => event.stopPropagation()}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="tt-settings-title"
               >
+                <button
+                  className="tt-sheet-handle"
+                  type="button"
+                  aria-label="下滑关闭设置"
+                  onClick={() =>
+                    onSheetHandleClick(() => setSettingsOpen(false))
+                  }
+                  onPointerDown={onSheetPointerDown}
+                  onPointerMove={onSheetPointerMove}
+                  onPointerUp={finishSheetDrag}
+                  onPointerCancel={(event) => finishSheetDrag(event, true)}
+                >
+                  <span />
+                </button>
                 <header className="tt-settings-head">
                   <div>
                     <p className="eyebrow">课程表</p>
-                    <h2>课表设置</h2>
+                    <h2 id="tt-settings-title">课表设置</h2>
                   </div>
                   <button
                     className="tt-icon-button tt-icon-button-muted"
@@ -678,16 +874,30 @@ export function TimetablePage({
       )}
 
       {selected && (
-        <div className="tt-sheet-mask" onClick={() => setSelected(null)}>
+        <div className="tt-sheet-mask" onClick={closeOverlay}>
           <div
             className="tt-sheet"
+            ref={(node) => {
+              sheetRef.current = node;
+            }}
             onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="tt-course-title"
           >
-            <span
-              className="tt-sheet-bar"
-              style={{ background: courseColor(selected.name).bg }}
-            />
-            <h2>{selected.name}</h2>
+            <button
+              className="tt-sheet-handle"
+              type="button"
+              aria-label="下滑关闭课程详情"
+              onClick={() => onSheetHandleClick(() => setSelected(null))}
+              onPointerDown={onSheetPointerDown}
+              onPointerMove={onSheetPointerMove}
+              onPointerUp={finishSheetDrag}
+              onPointerCancel={(event) => finishSheetDrag(event, true)}
+            >
+              <span style={{ background: courseColor(selected.name).bg }} />
+            </button>
+            <h2 id="tt-course-title">{selected.name}</h2>
             <dl className="tt-detail">
               <div>
                 <dt>教师</dt>

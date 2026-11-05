@@ -1,7 +1,3 @@
-* {
-  margin: 0;
-  padding: 0;
-}
 #root {
   min-height: 100vh;
 }
@@ -59,13 +55,17 @@
 }
 .page-content {
   padding-bottom: calc(86px + env(safe-area-inset-bottom));
+  overscroll-behavior: none;
 }
 .page {
   width: 100%;
   max-width: 680px;
-  min-height: calc(100vh - 148px);
+  /* 内容撑多高就多高，不再用固定最小高度去凑满屏幕，
+     否则内容不足时也会生出一段可滚动区域，滑动即露出回弹拉伸 */
+  min-height: 0;
   margin: 0 auto;
-  padding: 29px 20px 34px;
+  /* 底部留白由 .page-content 统一给固定底栏让位，这里不再重复加 */
+  padding: 29px 20px 0;
   animation: page-enter 0.28s ease both;
 }
 @keyframes page-enter {
@@ -822,6 +822,7 @@
   width: 100%;
   height: 46px;
   padding: 0 14px;
+  margin: 12px 0;
   border: 1px solid #e1e8e3;
   border-radius: 14px;
   background: #fbfcfb;
@@ -1392,6 +1393,7 @@
   padding: 2px 0 4px;
   overflow-x: auto;
   scrollbar-width: none;
+  overscroll-behavior-x: none;
 }
 .tt-weekstrip::-webkit-scrollbar {
   display: none;
@@ -1523,13 +1525,19 @@
   display: flex;
   align-items: flex-end;
   background: rgba(12, 24, 20, 0.38);
+  overscroll-behavior: none;
 }
 .tt-sheet {
   width: 100%;
-  padding: 18px 18px 22px;
+  max-height: min(82dvh, 720px);
+  overflow-y: auto;
+  overscroll-behavior: none;
+  padding: 8px 18px calc(22px + env(safe-area-inset-bottom));
   border-radius: 22px 22px 0 0;
   background: #fff;
   animation: tt-rise 0.22s ease-out;
+  transform: translateY(var(--tt-sheet-drag, 0px));
+  touch-action: pan-y;
 }
 @keyframes tt-rise {
   from {
@@ -1541,12 +1549,26 @@
     opacity: 1;
   }
 }
-.tt-sheet-bar {
+.tt-sheet-handle {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 34px;
+  margin: 0 auto 6px;
+  border: 0;
+  background: transparent;
+  cursor: grab;
+  touch-action: none;
+}
+.tt-sheet-handle:active {
+  cursor: grabbing;
+}
+.tt-sheet-handle span {
   display: block;
-  width: 34px;
+  width: 36px;
   height: 4px;
-  margin: 0 auto 14px;
   border-radius: 999px;
+  background: #c6cbd3;
 }
 .tt-sheet h2 {
   margin: 0 0 12px;
@@ -1576,8 +1598,28 @@
 }
 
 /* WakeU 风格课表：浅色日期头、紧凑周条和从底部出现的设置面板。 */
+html.tt-page-active,
+body.tt-page-active,
+html.tt-page-active *,
+body.tt-page-active * {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+html.tt-page-active::-webkit-scrollbar,
+body.tt-page-active::-webkit-scrollbar,
+html.tt-page-active *::-webkit-scrollbar,
+body.tt-page-active *::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
 .tt-page {
   background: linear-gradient(180deg, #f4f5fb 0%, #f8f8fb 42%, #f5f7f4 100%);
+}
+.tt-page button {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 .tt-view {
   gap: 8px;
@@ -1723,14 +1765,19 @@
   align-items: flex-end;
   background: rgba(27, 34, 48, 0.28);
   backdrop-filter: blur(5px);
+  overscroll-behavior: none;
 }
 .tt-settings {
   width: 100%;
-  padding: 21px 18px 26px;
+  max-height: calc(100dvh - env(safe-area-inset-top) - 12px);
+  overflow-y: auto;
+  overscroll-behavior: none;
+  padding: 7px 18px calc(26px + env(safe-area-inset-bottom));
   border-radius: 25px 25px 0 0;
   background: rgba(250, 250, 253, 0.96);
   box-shadow: 0 -15px 40px rgba(34, 43, 64, 0.16);
   animation: tt-rise 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  transform: translateY(var(--tt-sheet-drag, 0px));
 }
 .tt-settings-head {
   display: flex;

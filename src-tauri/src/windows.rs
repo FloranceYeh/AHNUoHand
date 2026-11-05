@@ -30,34 +30,44 @@ pub async fn open_login_window(
     let target = url.parse().map_err(|_| "窗口地址无效".to_string())?;
     let event_name = format!("{label}-url");
     let handle = app.clone();
+    #[cfg(not(mobile))]
     let popup_label = label.clone();
+    #[cfg(not(mobile))]
     let popup_handle = app.clone();
 
-    let window = tauri::WebviewWindowBuilder::new(&app, &label, tauri::WebviewUrl::External(target))
+    let builder = tauri::WebviewWindowBuilder::new(&app, &label, tauri::WebviewUrl::External(target))
         .title(title.unwrap_or_else(|| "登录".to_string()))
-        .inner_size(720.0, 900.0)
-        .center()
-        // 代码创建的窗口默认不抢焦点，无边框主窗口下会表现为「页面看得见但点不动」
-        .focused(true)
+        .inner_size(720.0, 900.0);
+    #[cfg(not(mobile))]
+    let builder = builder.center().focused(true);
+
+    let builder = builder
         .visible(true)
         .on_navigation(move |next| {
             // 能触发时顺手发一次，前端可据此立刻反应；轮询作为兜底
             let _ = handle.emit(&event_name, next.as_str().to_string());
             true
-        })
-        // 教务系统的菜单是 window.open / target=_blank，默认会被丢弃，
-        // 表现为「登录后点什么都没反应」。这里改成在同一个窗口内打开。
+        });
+
+    #[cfg(not(mobile))]
+    let builder = builder
         .on_new_window(move |next, _features| {
             if let Some(webview) = popup_handle.get_webview_window(&popup_label) {
                 let _ = webview.navigate(next);
             }
             tauri::webview::NewWindowResponse::Deny
-        })
+        });
+
+    let window = builder
         .build()
         .map_err(|error| format!("无法打开窗口：{error}"))?;
 
-    let _ = window.set_focus();
-    let _ = window.unminimize();
+    #[cfg(not(mobile))]
+    {
+        // 代码创建的桌面窗口需要显式抢焦点，并从最小化状态恢复。
+        let _ = window.set_focus();
+        let _ = window.unminimize();
+    }
 
     Ok(())
 }
