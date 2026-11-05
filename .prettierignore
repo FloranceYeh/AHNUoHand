@@ -1,0 +1,19 @@
+node_modules
+dist
+src-tauri/target
+
+# Generated dependency metadata
+pnpm-lock.yaml
+src-tauri/Cargo.lock
+
+# Rust sources are formatted by rustfmt
+src-tauri/**/*.rs
+src-tauri/Cargo.toml
+
+# Binary and scaffold assets are not application source
+public
+src/assets
+src-tauri/icons
+*.png
+*.ico
+*.icns

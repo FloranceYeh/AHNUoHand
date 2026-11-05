@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "ahnuohand",
+  "productName": "AHNUoHand",
   "version": "0.1.0",
   "identifier": "top.florance.ahnuohand",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "ahnuohand",
+        "title": "AHNUoHand · 校园助手",
         "width": 800,
         "height": 600
       }

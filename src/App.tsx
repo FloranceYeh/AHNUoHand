@@ -1,51 +1,40 @@
 import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
+import { AppShell } from "./components/layout/AppShell";
+import { HomePage } from "./pages/HomePage";
+import { ServicesPage } from "./pages/ServicesPage";
+import { ProfilePage } from "./pages/ProfilePage";
+import { FeaturePage } from "./pages/FeaturePage";
+import type { FeatureId, MainTab } from "./types";
+import "./styles/tokens.css";
 import "./App.css";
 
-function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+export default function App() {
+  const [tab, setTab] = useState<MainTab>("home");
+  const [feature, setFeature] = useState<FeatureId | null>(null);
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
+  const openFeature = (id: FeatureId) => setFeature(id);
+  const closeFeature = () => setFeature(null);
 
   return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
-
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
+    <AppShell
+      activeTab={tab}
+      onTabChange={(next) => {
+        setFeature(null);
+        setTab(next);
+      }}
+    >
+      {feature ? (
+        <FeaturePage featureId={feature} onBack={closeFeature} />
+      ) : tab === "home" ? (
+        <HomePage
+          onOpenFeature={openFeature}
+          onBrowseServices={() => setTab("services")}
         />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-    </main>
+      ) : tab === "services" ? (
+        <ServicesPage onOpenFeature={openFeature} />
+      ) : (
+        <ProfilePage />
+      )}
+    </AppShell>
   );
 }
-
-export default App;

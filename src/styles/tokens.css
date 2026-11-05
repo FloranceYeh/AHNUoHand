@@ -1,0 +1,56 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap");
+
+:root {
+  font-family: "DM Sans", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  color: #192725;
+  background: #f5f7f4;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  --color-primary: #166d5f;
+  --color-primary-dark: #10594e;
+  --color-primary-soft: #dcefe9;
+  --color-ink: #192725;
+  --color-muted: #77827f;
+  --color-line: #e5eae6;
+  --color-surface: #ffffff;
+  --color-canvas: #f5f7f4;
+  --color-peach: #f8e6d8;
+  --color-sky: #e0ebf4;
+  --color-lilac: #eee8f5;
+  --color-amber: #f5ecd5;
+  --radius-card: 22px;
+  --radius-control: 16px;
+  --shadow-card: 0 8px 26px rgba(27, 59, 48, 0.045);
+}
+
+* {
+  box-sizing: border-box;
+}
+html {
+  min-width: 320px;
+  min-height: 100%;
+  background: var(--color-canvas);
+}
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+button,
+input {
+  font: inherit;
+}
+button {
+  color: inherit;
+}
+button:focus-visible,
+a:focus-visible,
+input:focus-visible {
+  outline: 3px solid #7db9a8;
+  outline-offset: 3px;
+}
+::selection {
+  background: #cce6dd;
+  color: #143f37;
+}
