@@ -13,6 +13,9 @@ import {
   Search,
   School,
   Sparkles,
+  Settings2,
+  X,
+  RefreshCw,
 } from "lucide-react";
 
 const icons = {
@@ -30,6 +33,9 @@ const icons = {
   search: Search,
   spark: Sparkles,
   clock: Clock3,
+  settings: Settings2,
+  close: X,
+  refresh: RefreshCw,
 };
 
 interface IconProps {
