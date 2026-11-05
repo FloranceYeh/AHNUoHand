@@ -1,4 +1,5 @@
 import { Icon } from "../components/Icon";
+import type { PersonalInfo } from "../lib/profile";
 
 const settings = [
   { icon: "chat", title: "关于与反馈", description: "了解应用并提出建议" },
@@ -7,9 +8,13 @@ const settings = [
 export function ProfilePage({
   onOpenAuth,
   onOpenAppearance,
+  profile,
+  onOpenPersonalInfo,
 }: {
   onOpenAuth?: () => void;
   onOpenAppearance: () => void;
+  profile: PersonalInfo;
+  onOpenPersonalInfo: () => void;
 }) {
   return (
     <div className="page profile-page">
@@ -18,14 +23,25 @@ export function ProfilePage({
         <h1>我的</h1>
         <p>个人设置与校园信息</p>
       </div>
-      <section className="profile-card">
-        <span className="profile-avatar">同</span>
+      <button className="profile-card" onClick={onOpenPersonalInfo}>
+        <span className={`profile-avatar${profile.avatar ? " has-image" : ""}`}>
+          {profile.avatar ? (
+            <img src={profile.avatar} alt="个人头像" />
+          ) : (
+            profile.nickname.slice(0, 1) || "同"
+          )}
+        </span>
         <div>
-          <strong>师大学子</strong>
-          <p>校园身份尚未关联</p>
+          <strong>{profile.nickname}</strong>
+          <p>
+            {profile.studentId
+              ? `学号 ${profile.studentId}`
+              : "点击编辑个人资料"}
+          </p>
         </div>
-        <span className="profile-tag">访客模式</span>
-      </section>
+        <span className="profile-tag">编辑</span>
+        <Icon name="chevron" size={18} className="service-chevron" />
+      </button>
       <section className="settings-list">
         <button className="settings-row" onClick={onOpenAuth}>
           <span className="settings-icon">

@@ -20,6 +20,7 @@ import {
   getSavedOperator,
   forgetOperator,
 } from "../lib/electricity";
+import { getStudentId, saveStudentId } from "../lib/profile";
 
 /**
  * 登录管理：校园平台的**唯一登录入口**。
@@ -34,7 +35,9 @@ export function AuthPage({ onBack }: { onBack: () => void }) {
   const [busy, setBusy] = useState<PlatformId | null>(null);
   const [error, setError] = useState("");
   const [confirmAll, setConfirmAll] = useState(false);
-  const [operatorInput, setOperatorInput] = useState(() => getSavedOperator());
+  const [operatorInput, setOperatorInput] = useState(
+    () => getSavedOperator() || getStudentId(),
+  );
   const [binding, setBinding] = useState(false);
 
   const refresh = useCallback(() => setStatuses(allStatuses()), []);
@@ -95,6 +98,7 @@ export function AuthPage({ onBack }: { onBack: () => void }) {
       return;
     }
     saveOperator(value);
+    saveStudentId(value);
     setBinding(false);
     setError("");
     refresh();

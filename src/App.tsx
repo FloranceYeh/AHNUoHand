@@ -5,6 +5,7 @@ import { HomePage } from "./pages/HomePage";
 import { ServicesPage } from "./pages/ServicesPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { AppearancePage } from "./pages/AppearancePage";
+import { PersonalInfoPage } from "./pages/PersonalInfoPage";
 import { FeaturePage } from "./pages/FeaturePage";
 import { ElectricityPage } from "./pages/ElectricityPage";
 import { ClassroomPage } from "./pages/ClassroomPage";
@@ -27,6 +28,11 @@ import {
   resumeMobileTimetableLogin,
 } from "./lib/timetableSession";
 import type { FeatureId, MainTab } from "./types";
+import {
+  readPersonalInfo,
+  savePersonalInfo,
+  type PersonalInfo,
+} from "./lib/profile";
 import "./styles/tokens.css";
 import "./App.css";
 
@@ -43,13 +49,21 @@ export default function App() {
   const [tab, setTab] = useState<MainTab>("home");
   const [feature, setFeature] = useState<FeatureId | null>(null);
   const [appearanceOpen, setAppearanceOpen] = useState(false);
+  const [personalInfoOpen, setPersonalInfoOpen] = useState(false);
   const [semester, setSemester] = useState<SemesterInfo>({});
   const [targetWeek, setTargetWeek] = useState<number | undefined>(undefined);
   const [themeSettings, setThemeSettings] = useState(readThemeSettings);
+  const [personalInfo, setPersonalInfo] =
+    useState<PersonalInfo>(readPersonalInfo);
 
   const changeThemeSettings = (settings: ThemeSettings) => {
     saveThemeSettings(settings);
     setThemeSettings(settings);
+  };
+  const changePersonalInfo = (info: PersonalInfo) => {
+    savePersonalInfo(info);
+    setPersonalInfo(info);
+    setPersonalInfoOpen(false);
   };
 
   // 移动端登录会跳去 CAS 再跳回来，整个应用会重新加载。
@@ -84,6 +98,7 @@ export default function App() {
 
   const openFeature = (id: FeatureId) => {
     setAppearanceOpen(false);
+    setPersonalInfoOpen(false);
     if (id !== "schedule") setTargetWeek(undefined);
     setFeature(id);
   };
@@ -146,6 +161,12 @@ export default function App() {
         <span>正在恢复登录状态…</span>
       </div>
     </div>
+  ) : personalInfoOpen ? (
+    <PersonalInfoPage
+      info={personalInfo}
+      onSave={changePersonalInfo}
+      onBack={() => setPersonalInfoOpen(false)}
+    />
   ) : appearanceOpen ? (
     <AppearancePage
       settings={themeSettings}
@@ -165,16 +186,20 @@ export default function App() {
     <ProfilePage
       onOpenAuth={() => setFeature("auth")}
       onOpenAppearance={() => setAppearanceOpen(true)}
+      profile={personalInfo}
+      onOpenPersonalInfo={() => setPersonalInfoOpen(true)}
     />
   );
 
   const contentKey = restoring
     ? "restoring"
-    : appearanceOpen
-      ? "appearance"
-      : feature
-        ? `feature:${feature}`
-        : `tab:${tab}`;
+    : personalInfoOpen
+      ? "personal-info"
+      : appearanceOpen
+        ? "appearance"
+        : feature
+          ? `feature:${feature}`
+          : `tab:${tab}`;
   const pageTransition = reduceMotion
     ? { duration: 0 }
     : { type: "spring" as const, stiffness: 360, damping: 32, mass: 0.8 };
@@ -182,8 +207,16 @@ export default function App() {
   return (
     <AppShell
       activeTab={tab}
+      profile={personalInfo}
+      onOpenProfile={() => {
+        setAppearanceOpen(false);
+        setPersonalInfoOpen(false);
+        setFeature(null);
+        setTab("profile");
+      }}
       onTabChange={(next) => {
         setAppearanceOpen(false);
+        setPersonalInfoOpen(false);
         setFeature(null);
         setTab(next);
       }}

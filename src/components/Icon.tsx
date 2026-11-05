@@ -16,6 +16,7 @@ import {
   Settings2,
   X,
   RefreshCw,
+  Upload,
 } from "lucide-react";
 
 const icons = {
@@ -36,6 +37,7 @@ const icons = {
   settings: Settings2,
   close: X,
   refresh: RefreshCw,
+  upload: Upload,
 };
 
 interface IconProps {

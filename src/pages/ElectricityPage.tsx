@@ -19,8 +19,9 @@ type Phase = "setup" | "loading" | "ready" | "error";
 const OPERATOR_PATTERN = /^[0-9]{6,20}$/;
 
 export function ElectricityPage({ onBack }: { onBack: () => void }) {
-  const [operatorNo, setOperatorNo] = useState(() => getSavedOperator());
-  const [draft, setDraft] = useState(() => getSavedOperator());
+  const initialStudentId = () => getSavedOperator();
+  const [operatorNo, setOperatorNo] = useState(initialStudentId);
+  const [draft, setDraft] = useState(initialStudentId);
   const [phase, setPhase] = useState<Phase>(() =>
     getSavedOperator() ? "loading" : "setup",
   );

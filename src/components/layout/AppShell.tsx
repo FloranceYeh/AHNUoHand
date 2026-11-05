@@ -5,10 +5,18 @@ import { BottomNavigation } from "./BottomNavigation";
 interface AppShellProps {
   activeTab: MainTab;
   onTabChange: (tab: MainTab) => void;
+  profile: { nickname: string; avatar: string };
+  onOpenProfile: () => void;
   children: ReactNode;
 }
 
-export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
+export function AppShell({
+  activeTab,
+  onTabChange,
+  profile,
+  onOpenProfile,
+  children,
+}: AppShellProps) {
   return (
     <div className="app-shell">
       <header className="app-topbar">
@@ -26,11 +34,15 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
           </span>
         </a>
         <button
-          className="avatar-button"
+          className={`avatar-button${profile.avatar ? " has-image" : ""}`}
           aria-label="个人中心"
-          onClick={() => onTabChange("profile")}
+          onClick={onOpenProfile}
         >
-          同
+          {profile.avatar ? (
+            <img src={profile.avatar} alt="个人头像" />
+          ) : (
+            profile.nickname.slice(0, 1) || "同"
+          )}
         </button>
       </header>
       <main className="page-content" key={activeTab}>
