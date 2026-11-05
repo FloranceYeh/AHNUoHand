@@ -2,6 +2,9 @@ import { featureDetails } from "../data/services";
 import type { FeatureId } from "../types";
 import { Icon } from "../components/Icon";
 
+/** 有占位页的功能：从 featureDetails 的键里排除掉独立实现的页面。 */
+type PlaceholderFeatureId = Exclude<FeatureId, "auth">;
+
 export function FeaturePage({
   featureId,
   onBack,
@@ -9,7 +12,7 @@ export function FeaturePage({
   featureId: FeatureId;
   onBack: () => void;
 }) {
-  const detail = featureDetails[featureId];
+  const detail = featureDetails[featureId as PlaceholderFeatureId];
   return (
     <div className="page feature-page">
       <button className="back-button" onClick={onBack}>

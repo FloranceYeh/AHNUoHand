@@ -6,7 +6,7 @@ const settings = [
   { icon: "chat", title: "关于与反馈", description: "了解应用并提出建议" },
 ];
 
-export function ProfilePage() {
+export function ProfilePage({ onOpenAuth }: { onOpenAuth?: () => void }) {
   return (
     <div className="page profile-page">
       <div className="page-heading">
@@ -23,6 +23,16 @@ export function ProfilePage() {
         <span className="profile-tag">访客模式</span>
       </section>
       <section className="settings-list">
+        <button className="settings-row" onClick={onOpenAuth}>
+          <span className="settings-icon">
+            <Icon name="person" size={20} />
+          </span>
+          <span className="settings-copy">
+            <strong>登录管理</strong>
+            <small>查看并管理各校园平台的登录状态</small>
+          </span>
+          <Icon name="chevron" size={18} className="service-chevron" />
+        </button>
         {settings.map((item) => (
           <button className="settings-row" key={item.title}>
             <span className="settings-icon">

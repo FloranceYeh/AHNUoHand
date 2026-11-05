@@ -5,7 +5,9 @@ export type FeatureId =
   | "classroom"
   | "library"
   | "calendar"
-  | "feedback";
+  | "feedback"
+  /** 登录管理，只从「我的」页面进入，不出现在服务列表里 */
+  | "auth";
 
 export interface CampusService {
   id: FeatureId;

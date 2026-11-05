@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "./components/layout/AppShell";
 import { HomePage } from "./pages/HomePage";
 import { ServicesPage } from "./pages/ServicesPage";
@@ -8,6 +8,8 @@ import { ElectricityPage } from "./pages/ElectricityPage";
 import { ClassroomPage } from "./pages/ClassroomPage";
 import { TimetablePage } from "./pages/TimetablePage";
 import { CalendarPage } from "./pages/CalendarPage";
+import { AuthPage } from "./pages/AuthPage";
+import { resumeMobileLogin, takeReturnTo } from "./lib/classroom";
 import type { FeatureId, MainTab } from "./types";
 import "./styles/tokens.css";
 import "./App.css";
@@ -25,6 +27,16 @@ export default function App() {
   const [feature, setFeature] = useState<FeatureId | null>(null);
   const [semester, setSemester] = useState<SemesterInfo>({});
   const [targetWeek, setTargetWeek] = useState<number | undefined>(undefined);
+
+  // 移动端登录会跳去 CAS 再跳回来，应用重新加载。
+  // 启动时把上次的票据接上，并回到登录前所在的功能页。
+  useEffect(() => {
+    const back = takeReturnTo();
+    if (back) setFeature(back as FeatureId);
+    void resumeMobileLogin().catch(() => {
+      /* 没有待处理的登录，或票据已失效，忽略即可 */
+    });
+  }, []);
 
   const openFeature = (id: FeatureId) => {
     if (id !== "schedule") setTargetWeek(undefined);
@@ -60,6 +72,7 @@ export default function App() {
         />
       );
     }
+    if (id === "auth") return <AuthPage onBack={closeFeature} />;
     return <FeaturePage featureId={id} onBack={closeFeature} />;
   };
 
@@ -81,7 +94,7 @@ export default function App() {
       ) : tab === "services" ? (
         <ServicesPage onOpenFeature={openFeature} />
       ) : (
-        <ProfilePage />
+        <ProfilePage onOpenAuth={() => setFeature("auth")} />
       )}
     </AppShell>
   );

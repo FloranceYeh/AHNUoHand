@@ -22,6 +22,7 @@ import {
   validateMaxWeek,
   validateStartDate,
 } from "../lib/semesterSettings";
+import { markLoggedIn } from "../lib/authManager";
 import {
   eveningRange,
   nextSeasonChange,
@@ -157,6 +158,8 @@ export function TimetablePage({
     const cached: CachedGrid = { ...result, savedAt: Date.now() };
     setGrid(cached);
     localStorage.setItem(CACHE_KEY, JSON.stringify(cached));
+    // 教务读到了课表，说明会话可用，记入登录管理
+    markLoggedIn("jw");
     const nextSlots = result.cells.flatMap((cell) =>
       parseCellText(cell.text, cell.weekday, cell.period, cell.span),
     );

@@ -1,4 +1,5 @@
 import { md5Hex, saltedDecrypt, saltedEncrypt, swapCase } from "./crypto.ts";
+import { markLoggedIn } from "./authManager";
 
 export interface RoomInfo {
   no: string;
@@ -297,6 +298,7 @@ export function getSavedOperator(): string {
 
 export function saveOperator(operatorNo: string): void {
   safeSet(OPERATOR_KEY, operatorNo);
+  markLoggedIn("zongwu");
 }
 
 export function forgetOperator(): void {
