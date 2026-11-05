@@ -35,11 +35,11 @@ import {
 import {
   CACHE_KEY,
   closeLoginWindow,
-  openLoginWindow,
   readTimetable,
-  waitForLogin,
+  takeMobileTimetableResult,
   type GridResult,
 } from "../lib/timetableSession";
+import { rememberReturnTo } from "../lib/classroom";
 
 type Phase = "idle" | "waiting" | "reading" | "ready" | "error";
 
@@ -64,6 +64,7 @@ export function TimetablePage({
   initialWeek,
   onOpenCalendar,
   onSemesterChange,
+  onNeedLogin,
 }: {
   onBack: () => void;
   /** 从校历跳转过来时指定要看的周次 */
@@ -71,6 +72,8 @@ export function TimetablePage({
   onOpenCalendar?: () => void;
   /** 把首周与总周数上报给外层，供校历共用 */
   onSemesterChange?: (info: { startDate?: string; maxWeek?: number }) => void;
+  /** 未登录时跳到登录管理页 */
+  onNeedLogin: () => void;
 }) {
   const [phase, setPhase] = useState<Phase>("idle");
   const [error, setError] = useState("");
@@ -172,27 +175,24 @@ export function TimetablePage({
     setHint("");
   };
 
-  const startAuto = async () => {
-    setError("");
-    setPhase("waiting");
-    setHint("正在打开登录窗口…");
-    cancelledRef.current = false;
+  // Android 登录回跳时，原生主 WebView 已在教务页面完成读取，并把结果暂存。
+  useEffect(() => {
     try {
-      await openLoginWindow();
-      await waitForLogin(
-        (text) => setHint(text),
-        () => cancelledRef.current,
-      );
-      setPhase("reading");
-      setHint("正在读取课表…");
-      applyResult(await readTimetable());
+      const result = takeMobileTimetableResult();
+      if (result) applyResult(result);
     } catch (cause) {
-      const message = cause instanceof Error ? cause.message : "读取失败";
-      if (message === "已取消") return;
-      setError(message);
+      setError(cause instanceof Error ? cause.message : "读取课表失败");
       setPhase("error");
-      await closeLoginWindow();
     }
+    // 回跳数据只消费一次。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 登录统一在「登录管理」里完成；这里只做读取。
+  // 桌面端由管理页开窗口登录后，回到本页点「读取课表」即可。
+  const startAuto = () => {
+    rememberReturnTo("schedule");
+    onNeedLogin();
   };
 
   const manualRead = async () => {
@@ -206,13 +206,6 @@ export function TimetablePage({
       setPhase("error");
       await closeLoginWindow();
     }
-  };
-
-  const cancel = () => {
-    cancelledRef.current = true;
-    void closeLoginWindow();
-    setPhase(grid ? "ready" : "idle");
-    setHint("");
   };
 
   const slots: CourseSlot[] = useMemo(() => {
@@ -501,17 +494,13 @@ export function TimetablePage({
           </section>
 
           <section className="elec-card elec-setup">
-            <h2>
-              {phase === "waiting" || phase === "reading"
-                ? "正在连接"
-                : "读取课表"}
-            </h2>
+            <h2>{phase === "reading" ? "正在读取" : "需要先连接教务系统"}</h2>
             <p className="elec-desc">
-              点「开始」会打开学校教务的登录页，用学号和密码登录即可（需要输入验证码）。
-              登录后会自动跳到课表并读取，无需其他操作。
+              教务系统的登录要输入图形验证码，统一在「登录管理」里完成。
+              连接好之后回到这里，课表会自动读取。
             </p>
 
-            {phase === "waiting" || phase === "reading" ? (
+            {phase === "reading" ? (
               <div className="tt-progress">
                 <span className="tt-spinner" aria-hidden="true" />
                 <span>{hint || "处理中…"}</span>
@@ -519,37 +508,28 @@ export function TimetablePage({
             ) : (
               <div className="tt-steps">
                 <span>
-                  <b>1</b> 点「开始」并登录
+                  <b>1</b> 去「登录管理」连接教务系统
                 </span>
                 <span>
-                  <b>2</b> 自动打开课表
+                  <b>2</b> 登录并进入课表页
                 </span>
                 <span>
-                  <b>3</b> 自动读取完成
+                  <b>3</b> 回到这里读取
                 </span>
               </div>
             )}
 
             <div className="elec-actions">
-              <button
-                className="elec-primary"
-                onClick={() => void startAuto()}
-                disabled={phase === "waiting" || phase === "reading"}
-              >
-                开始
+              <button className="elec-primary" onClick={startAuto}>
+                去登录
               </button>
-              {phase === "waiting" || phase === "reading" ? (
-                <button className="elec-ghost" onClick={cancel}>
-                  取消
-                </button>
-              ) : (
-                <button
-                  className="elec-ghost"
-                  onClick={() => void manualRead()}
-                >
-                  手动读取
-                </button>
-              )}
+              <button
+                className="elec-ghost"
+                onClick={() => void manualRead()}
+                disabled={phase === "reading"}
+              >
+                手动读取
+              </button>
             </div>
             {error && <p className="elec-error-text">{error}</p>}
           </section>

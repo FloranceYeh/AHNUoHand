@@ -1,20 +1,29 @@
 /**
  * 课表读取的会话逻辑。
  *
- * 教务系统的登录要过图形验证码，无法后台静默完成，因此流程是：
- *   1. 由 Rust 打开一个 WebView 窗口，用户在窗口里自行登录；
- *   2. 每次窗口跳转都会通过 `on_navigation` 发出 `<label>-url` 事件；
- *   3. 前端监听该事件，一旦检测到已进入登录后的页面，就自动跳到课表打印视图并抓取。
+ * 教务系统的登录要过图形验证码，无法后台静默完成，因此必须由用户亲自登录。
+ * 两个平台的差异很大：
  *
- * 密码始终只在窗口里输入，本应用不保存；登录态留在 WebView 自己的 cookie 里。
+ *   桌面端：另开一个 WebView 窗口承载登录页，登录完自动跳课表并抓取。
+ *
+ *   移动端：Tauri 只能有一个 WebView，开不出第二个窗口。改为把主窗口
+ *          跳到教务登录页；用户登录后按返回/重新打开应用，应用重新加载，
+ *          此时教务的会话 cookie 还在，直接重新进入课表页读取即可。
+ *
+ * 密码始终只在学校页面里输入，本应用不保存；登录态留在 WebView 自己的 cookie 里。
  */
 
 import { invoke } from "@tauri-apps/api/core";
+import { isMobile } from "./classroom.ts";
 import { EXTRACT_SCRIPT } from "./timetableExtract.ts";
 
 export const CACHE_KEY = "ahnu.timetable.grid";
 
 export const WINDOW_LABEL = "timetable-login";
+
+/** 移动端登录后是否待重新读取课表。 */
+const MOBILE_PENDING_KEY = "ahnu.timetable.pendingLogin";
+const MOBILE_RESULT_KEY = "ahnu.timetable.mobileResult";
 
 export const LOGIN_URL = "https://jw.ahnu.edu.cn/student/login";
 /** 课表页；其打印视图（/semester/<id>/print）才渲染完整网格，最适合解析。 */
@@ -79,14 +88,90 @@ interface ExtractResult {
 }
 
 /**
- * 让用户在独立窗口里登录教务系统。
+ * 让学生登录教务系统。
+ *
+ * 桌面端另开窗口；移动端只有一个 WebView，因此由页面自己跳去教务登录页，
+ * 并记下「待读取」标记。Rust 侧的页面钩子看到登录后的教务页面时会把用户送回应用，
+ * 前端启动时再自动续上读取。
  */
 export async function openLoginWindow(): Promise<void> {
+  if (isMobile()) {
+    localStorage.setItem(MOBILE_PENDING_KEY, String(Date.now()));
+    // 先让 Rust 记下在等哪个站点登录，再跳转
+    try {
+      await invoke("mobile_watch_login", { url: LOGIN_URL });
+    } catch (cause) {
+      clearPendingTimetableLogin();
+      throw cause;
+    }
+    window.location.href = LOGIN_URL;
+    return;
+  }
+
   await invoke("open_login_window", {
     label: WINDOW_LABEL,
     url: LOGIN_URL,
     title: "教务系统登录",
   });
+}
+
+/** 是否还有一次「登录后待读取课表」没有完成。 */
+export function hasPendingTimetableLogin(): boolean {
+  try {
+    return localStorage.getItem(MOBILE_PENDING_KEY) !== null;
+  } catch {
+    return false;
+  }
+}
+
+/** 清除待读取标记（读取成功或用户放弃时调用）。 */
+export function clearPendingTimetableLogin(): void {
+  try {
+    localStorage.removeItem(MOBILE_PENDING_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** 应用从教务页返回后，取回原生 WebView 已读取的课程数据。 */
+export async function resumeMobileTimetableLogin(): Promise<boolean> {
+  if (!hasPendingTimetableLogin()) return false;
+  try {
+    const raw = await invoke<string | null>("mobile_take_timetable");
+    if (!raw) {
+      clearPendingTimetableLogin();
+      await invoke("mobile_cancel_login").catch(() => undefined);
+      return false;
+    }
+    localStorage.setItem(MOBILE_RESULT_KEY, raw);
+    clearPendingTimetableLogin();
+    return true;
+  } catch {
+    clearPendingTimetableLogin();
+    return false;
+  }
+}
+
+export function takeMobileTimetableResult(): GridResult | null {
+  try {
+    const raw = localStorage.getItem(MOBILE_RESULT_KEY);
+    if (!raw) return null;
+    localStorage.removeItem(MOBILE_RESULT_KEY);
+    const parsed = JSON.parse(raw) as GridResult & { error?: string };
+    if (parsed.error) {
+      if (parsed.error === "no-grid")
+        throw new Error("教务系统没有返回课表，请确认已选学期后重试");
+      if (parsed.error === "no-semester")
+        throw new Error("教务系统页面还没加载出学期，请稍后重试");
+      throw new Error("教务系统页面没有响应，请重新登录后重试");
+    }
+    if (!Array.isArray(parsed.cells) || parsed.cells.length === 0)
+      throw new Error("教务系统返回的课表为空");
+    return parsed;
+  } catch (cause) {
+    if (cause instanceof Error) throw cause;
+    throw new Error("无法解析教务系统返回的课表");
+  }
 }
 
 /** 关闭课表登录窗口。窗口只用于登录和读取，结果已回到主窗口后不再保留。 */

@@ -1,7 +1,6 @@
 import { Icon } from "../components/Icon";
 
 const settings = [
-  { icon: "person", title: "个人资料", description: "管理校园身份信息" },
   { icon: "spark", title: "外观设置", description: "主题与显示偏好" },
   { icon: "chat", title: "关于与反馈", description: "了解应用并提出建议" },
 ];

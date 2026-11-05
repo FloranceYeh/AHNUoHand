@@ -9,7 +9,16 @@ import { ClassroomPage } from "./pages/ClassroomPage";
 import { TimetablePage } from "./pages/TimetablePage";
 import { CalendarPage } from "./pages/CalendarPage";
 import { AuthPage } from "./pages/AuthPage";
-import { resumeMobileLogin, takeReturnTo } from "./lib/classroom";
+import {
+  hasPendingLogin,
+  resumeMobileLogin,
+  takeReturnTo,
+} from "./lib/classroom";
+import { requestLogin, type PlatformId } from "./lib/authManager";
+import {
+  hasPendingTimetableLogin,
+  resumeMobileTimetableLogin,
+} from "./lib/timetableSession";
 import type { FeatureId, MainTab } from "./types";
 import "./styles/tokens.css";
 import "./App.css";
@@ -28,14 +37,34 @@ export default function App() {
   const [semester, setSemester] = useState<SemesterInfo>({});
   const [targetWeek, setTargetWeek] = useState<number | undefined>(undefined);
 
-  // 移动端登录会跳去 CAS 再跳回来，应用重新加载。
-  // 启动时把上次的票据接上，并回到登录前所在的功能页。
+  // 移动端登录会跳去 CAS 再跳回来，整个应用会重新加载。
+  // 必须先把票据换成 token，再挂载功能页 —— 否则功能页在 token 写回前
+  // 就已完成初始化，会误判为「未登录」，用户回来还得再点一次。
+  // 桌面端没有待处理票据时立即返回，不受影响。
+  const [restoring, setRestoring] = useState(
+    () => hasPendingLogin() || hasPendingTimetableLogin(),
+  );
+
   useEffect(() => {
-    const back = takeReturnTo();
-    if (back) setFeature(back as FeatureId);
-    void resumeMobileLogin().catch(() => {
-      /* 没有待处理的登录，或票据已失效，忽略即可 */
-    });
+    if (!restoring) return;
+    void (async () => {
+      let returnedFromJw = false;
+      await resumeMobileLogin().catch(() => {
+        /* 没有待处理的登录，或票据已失效，忽略即可 */
+      });
+      try {
+        returnedFromJw = await resumeMobileTimetableLogin();
+      } catch {
+        returnedFromJw = false;
+      }
+      // 换完票再取「该回到哪一页」，避免中途重载时把标记消费掉
+      const back = takeReturnTo();
+      if (back) setFeature(back as FeatureId);
+      else if (returnedFromJw) setFeature("schedule");
+      setRestoring(false);
+    })();
+    // 只在首帧跑一次
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const openFeature = (id: FeatureId) => {
@@ -49,9 +78,25 @@ export default function App() {
     setFeature("schedule");
   }, []);
 
+  /**
+   * 功能页未登录时的统一出口：登记想登录的平台，然后跳到登录管理页。
+   * 管理页读走这条请求并自动开始登录，所以登录动作只发生在管理页。
+   */
+  const goLogin = useCallback((platform: PlatformId) => {
+    requestLogin(platform);
+    setFeature("auth");
+  }, []);
+
   const renderFeature = (id: FeatureId) => {
     if (id === "electricity") return <ElectricityPage onBack={closeFeature} />;
-    if (id === "classroom") return <ClassroomPage onBack={closeFeature} />;
+    if (id === "classroom") {
+      return (
+        <ClassroomPage
+          onBack={closeFeature}
+          onNeedLogin={() => goLogin("ybt")}
+        />
+      );
+    }
     if (id === "schedule") {
       return (
         <TimetablePage
@@ -59,6 +104,7 @@ export default function App() {
           initialWeek={targetWeek}
           onOpenCalendar={() => setFeature("calendar")}
           onSemesterChange={setSemester}
+          onNeedLogin={() => goLogin("jw")}
         />
       );
     }
@@ -69,6 +115,7 @@ export default function App() {
           semesterStart={semester.startDate}
           maxWeek={semester.maxWeek}
           onOpenTimetable={openTimetableAt}
+          onNeedLogin={() => goLogin("ybt")}
         />
       );
     }
@@ -84,7 +131,15 @@ export default function App() {
         setTab(next);
       }}
     >
-      {feature ? (
+      {restoring ? (
+        // 正在把 CAS 票据换成登录态，先别渲染功能页，免得闪一下「未登录」
+        <div className="page boot-wait">
+          <div className="tt-progress">
+            <span className="tt-spinner" aria-hidden="true" />
+            <span>正在恢复登录状态…</span>
+          </div>
+        </div>
+      ) : feature ? (
         renderFeature(feature)
       ) : tab === "home" ? (
         <HomePage

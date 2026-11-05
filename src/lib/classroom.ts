@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { markLoggedIn } from "./authManager";
+import { markLoggedIn, markLoginExpired } from "./authManager";
 
 /**
  * 空教室查询（学校「一站式服务大厅」H5 应用）。
@@ -74,6 +74,7 @@ export function clearToken(): void {
   } catch {
     /* ignore */
   }
+  markLoginExpired("ybt");
 }
 
 function saveToken(token: string): void {
@@ -129,10 +130,13 @@ export function isMobile(): boolean {
   if (typeof window === "undefined") return false;
 
   const platform = (
-    window as { __TAURI_INTERNALS__?: { metadata?: { currentPlatform?: string } } }
+    window as {
+      __TAURI_INTERNALS__?: { metadata?: { currentPlatform?: string } };
+    }
   ).__TAURI_INTERNALS__?.metadata?.currentPlatform;
   if (platform === "android" || platform === "ios") return true;
-  if (platform === "windows" || platform === "macos" || platform === "linux") return false;
+  if (platform === "windows" || platform === "macos" || platform === "linux")
+    return false;
 
   return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 }
@@ -153,6 +157,15 @@ async function mobileLogin(): Promise<string> {
   // 主窗口即将被 CAS 页面替换，这个 Promise 不会 resolve；
   // 结果由应用重新加载后的 resumeMobileLogin() 接着处理。
   return new Promise<string>(() => {});
+}
+
+/** 是否有等待处理的移动端登录（判断要不要等换票再渲染）。 */
+export function hasPendingLogin(): boolean {
+  try {
+    return localStorage.getItem(PENDING_KEY) !== null;
+  } catch {
+    return false;
+  }
 }
 
 /** 记下登录后应该回到哪个功能页。 */
@@ -281,6 +294,7 @@ export async function ybtRequest<T>(path: string, token?: string): Promise<T> {
   if (typeof data.status === "number" && data.status >= 400) {
     throw new Error(message || `查询失败（HTTP ${data.status}）`);
   }
+  if (active) markLoggedIn("ybt");
   return (data.result ?? data) as T;
 }
 

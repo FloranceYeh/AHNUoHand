@@ -9,6 +9,7 @@ src-tauri/Cargo.lock
 # Rust sources are formatted by rustfmt
 src-tauri/**/*.rs
 src-tauri/Cargo.toml
+src-tauri/gen
 
 # Binary and scaffold assets are not application source
 public

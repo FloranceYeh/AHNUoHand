@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Icon } from "../components/Icon";
-import { getToken, login, rememberReturnTo } from "../lib/classroom";
+import { getToken, rememberReturnTo } from "../lib/classroom";
 import {
   buildMonthGrid,
   loadMonth,
@@ -57,11 +57,14 @@ export function CalendarPage({
   onOpenTimetable,
   semesterStart,
   maxWeek,
+  onNeedLogin,
 }: {
   onBack: () => void;
   onOpenTimetable?: (week: number) => void;
   semesterStart?: string;
   maxWeek?: number;
+  /** 未登录时跳到登录管理页 */
+  onNeedLogin: () => void;
 }) {
   const [phase, setPhase] = useState<Phase>("loading");
   const [error, setError] = useState("");
@@ -158,18 +161,10 @@ export function CalendarPage({
     }
   };
 
-  const doLogin = async () => {
-    setPhase("loading");
-    setError("");
-    // 移动端登录会跳去 CAS 再跳回来，记下回来该落在哪一页
+  // 登录统一在「登录管理」里进行，这里只负责跳过去
+  const doLogin = () => {
     rememberReturnTo("calendar");
-    try {
-      await login();
-      await refresh();
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "登录失败");
-      setPhase("login");
-    }
+    onNeedLogin();
   };
 
   const cells = useMemo(() => buildMonthGrid(cursor, marks), [cursor, marks]);
@@ -231,12 +226,12 @@ export function CalendarPage({
 
       {phase === "login" && (
         <section className="elec-card elec-setup">
-          <h2>需要登录</h2>
+          <h2>需要先连接一站式服务大厅</h2>
           <p className="elec-desc">
-            节假日与休息日来自学校一站式服务大厅，需要统一身份认证。登录一次后与空教室功能共用。
+            节假日与休息日来自学校一站式服务大厅。登录统一在「登录管理」里完成，与空教室共用同一份。
           </p>
           <div className="elec-actions">
-            <button className="elec-primary" onClick={() => void doLogin()}>
+            <button className="elec-primary" onClick={doLogin}>
               去登录
             </button>
           </div>

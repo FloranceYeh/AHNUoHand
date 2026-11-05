@@ -1,32 +1,13 @@
-/**
- * 校园平台的统一登录管理。
- *
- * 学校的服务分散在几个互不相通的后台上，各自认证方式不同：
- *
- *   | 平台            | 域名                | 认证方式                  | 谁在用        |
- *   | --------------- | ------------------- | ------------------------- | ------------- |
- *   | 一站式服务大厅  | ybt.ahnu.edu.cn     | CAS 票据换 JWT            | 空教室、校历  |
- *   | 教务系统 EAMS   | jw.ahnu.edu.cn      | 图形验证码 + 会话 cookie  | 课程表        |
- *   | 后勤服务        | zongwu.ahnu.edu.cn  | 学号密码参与签名，无需登录 | 电费          |
- *
- * 本模块只做「记录与查询」，具体的登录动作仍由各功能自己完成，
- * 因为它们的流程差异太大（窗口登录 / 单页跳转 / 纯前端签名）。
- * 这样设置页能集中展示与清除，各功能也不必重复实现状态读取。
- */
+/** 登录信息的展示与本地会话标记。各平台的凭证仍由各自模块管理。 */
 
 export type PlatformId = "ybt" | "jw" | "zongwu";
 
 export interface PlatformInfo {
   id: PlatformId;
-  /** 展示名 */
   name: string;
-  /** 说明这个平台管哪些功能 */
   description: string;
-  /** 后台域名 */
   host: string;
-  /** 是否需要登录才能用 */
   requiresLogin: boolean;
-  /** 认证方式的一句话说明 */
   authHint: string;
 }
 
@@ -42,10 +23,10 @@ export const PLATFORMS: PlatformInfo[] = [
   {
     id: "jw",
     name: "教务系统",
-    description: "课程表",
+    description: "课程表读取",
     host: "jw.ahnu.edu.cn",
     requiresLogin: true,
-    authHint: "学号密码 + 图形验证码",
+    authHint: "教务系统会话 Cookie",
   },
   {
     id: "zongwu",
@@ -53,115 +34,188 @@ export const PLATFORMS: PlatformInfo[] = [
     description: "宿舍电费",
     host: "zongwu.ahnu.edu.cn",
     requiresLogin: false,
-    authHint: "仅需学号，无需密码",
+    authHint: "本机绑定学号，不需要密码",
   },
 ];
 
-/** 各平台用于判断登录态的存储键。 */
-const CREDENTIAL_KEYS: Record<PlatformId, string> = {
-  ybt: "ahnu.classroom.token",
-  // 教务的会话在 WebView cookie 里，本地只留课表缓存；有缓存即视为可离线查看
-  jw: "ahnu.timetable.grid",
-  // 电费不需要密码，只需绑定过学号
-  zongwu: "ahnu.electricity.operator",
-};
+const TOKEN_KEY = "ahnu.classroom.token";
+const TIMETABLE_KEY = "ahnu.timetable.grid";
+const OPERATOR_KEY = "ahnu.electricity.operator";
+const ELECTRICITY_REPORT_KEY = "ahnu.electricity.report";
+const STAMP_KEY = "ahnu.auth.stamps";
+const SESSION_KEY = "ahnu.auth.session";
 
 export type LoginState = "unknown" | "active" | "expired";
 
 export interface PlatformStatus {
   platform: PlatformInfo;
+  /** active 只表示本次应用运行期间有成功认证或成功读取的证据。 */
   state: LoginState;
-  /** 登录取到的时间（毫秒时间戳），没有记录则为空 */
   since?: number;
-  /** 凭据的粗略长度，用于判断是否为空，不展示原值 */
+  /** 凭证/绑定存在；教务的课表缓存不算凭证。 */
   hasCredential: boolean;
+  /** 可离线查看的数据，仅用于呈现，不代表当前已登录。 */
+  hasOfflineData: boolean;
 }
 
-interface Stamp {
-  at: number;
-}
-
-const STAMP_KEY = "ahnu.auth.stamps";
-
-function readStamps(): Record<string, Stamp> {
+function safeGet(key: string, storage: Storage = localStorage): string {
   try {
-    const raw = localStorage.getItem(STAMP_KEY);
-    return raw ? (JSON.parse(raw) as Record<string, Stamp>) : {};
+    return storage.getItem(key) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+function safeSet(
+  key: string,
+  value: string,
+  storage: Storage = localStorage,
+): void {
+  try {
+    storage.setItem(key, value);
+  } catch {
+    /* 存储不可用时继续工作 */
+  }
+}
+
+function readMap(
+  key: string,
+  storage: Storage = localStorage,
+): Record<string, string | number> {
+  try {
+    const parsed: unknown = JSON.parse(safeGet(key, storage));
+    return parsed && typeof parsed === "object"
+      ? (parsed as Record<string, number>)
+      : {};
   } catch {
     return {};
   }
 }
 
-function writeStamp(id: PlatformId): void {
-  try {
-    const stamps = readStamps();
-    stamps[id] = { at: Date.now() };
-    localStorage.setItem(STAMP_KEY, JSON.stringify(stamps));
-  } catch {
-    /* 隐私模式下忽略 */
-  }
+function writeMap(
+  key: string,
+  values: Record<string, string | number>,
+  storage: Storage = localStorage,
+): void {
+  safeSet(key, JSON.stringify(values), storage);
 }
 
-function dropStamp(id: PlatformId): void {
-  try {
-    const stamps = readStamps();
-    delete stamps[id];
-    localStorage.setItem(STAMP_KEY, JSON.stringify(stamps));
-  } catch {
-    /* ignore */
-  }
-}
-
-/** 登录成功时调用，记下时间供设置页展示。 */
+/** 认证/读取成功时调用。成功标记仅在本次应用运行期间作为已验证状态展示。 */
 export function markLoggedIn(id: PlatformId): void {
-  writeStamp(id);
+  const stamps = readMap(STAMP_KEY);
+  stamps[id] = Date.now();
+  writeMap(STAMP_KEY, stamps);
+  const session = readMap(SESSION_KEY);
+  session[id] = "active";
+  writeMap(SESSION_KEY, session, sessionStorage);
 }
 
-/** 判断某个平台当前是否已登录。 */
+/** 明确遇到服务器拒绝凭证时调用。 */
+export function markLoginExpired(id: PlatformId): void {
+  const session = readMap(SESSION_KEY);
+  session[id] = "expired";
+  writeMap(SESSION_KEY, session, sessionStorage);
+}
+
 export function statusOf(info: PlatformInfo): PlatformStatus {
-  let value = "";
-  try {
-    value = localStorage.getItem(CREDENTIAL_KEYS[info.id]) ?? "";
-  } catch {
-    value = "";
-  }
-
-  if (!info.requiresLogin) {
-    return { platform: info, state: "active", hasCredential: true };
-  }
-
-  const hasCredential = value.length > 0;
-  const stamp = readStamps()[info.id];
-
+  const hasCredential =
+    info.id === "ybt"
+      ? Boolean(safeGet(TOKEN_KEY))
+      : info.id === "jw"
+        ? false // Cookie 由 WebView 管理，前端无法可靠检查
+        : Boolean(safeGet(OPERATOR_KEY));
+  const session = readMap(SESSION_KEY);
+  const stamps = readMap(STAMP_KEY);
   return {
     platform: info,
-    state: hasCredential ? "active" : "unknown",
-    since: stamp?.at,
+    state:
+      info.requiresLogin &&
+      (session[info.id] === "active" || session[info.id] === "expired")
+        ? (session[info.id] as LoginState)
+        : "unknown",
+    since:
+      typeof stamps[info.id] === "number"
+        ? (stamps[info.id] as number)
+        : undefined,
     hasCredential,
+    hasOfflineData: info.id === "jw" ? Boolean(safeGet(TIMETABLE_KEY)) : false,
   };
 }
 
-/** 读取全部平台的状态。 */
 export function allStatuses(): PlatformStatus[] {
   return PLATFORMS.map(statusOf);
 }
 
-/** 清除某个平台的登录状态。 */
+/** 清本地平台凭证；教务 Cookie 不受此操作影响。 */
 export function logout(id: PlatformId): void {
+  if (id === "ybt") {
+    try {
+      localStorage.removeItem(TOKEN_KEY);
+    } catch {
+      /* ignore */
+    }
+  } else if (id === "zongwu") {
+    try {
+      localStorage.removeItem(OPERATOR_KEY);
+      localStorage.removeItem(ELECTRICITY_REPORT_KEY);
+    } catch {
+      /* ignore */
+    }
+  }
+  const stamps = readMap(STAMP_KEY);
+  delete stamps[id];
+  writeMap(STAMP_KEY, stamps);
+  const session = readMap(SESSION_KEY);
+  delete session[id];
+  writeMap(SESSION_KEY, session, sessionStorage);
+}
+
+/** 清除课表离线副本。不会伪称为教务系统退出登录。 */
+export function clearTimetableCache(): void {
   try {
-    localStorage.removeItem(CREDENTIAL_KEYS[id]);
+    localStorage.removeItem(TIMETABLE_KEY);
   } catch {
     /* ignore */
   }
-  dropStamp(id);
+  const stamps = readMap(STAMP_KEY);
+  delete stamps.jw;
+  writeMap(STAMP_KEY, stamps);
+  const session = readMap(SESSION_KEY);
+  delete session.jw;
+  writeMap(SESSION_KEY, session, sessionStorage);
 }
 
-/** 清除全部平台的登录状态。 */
 export function logoutAll(): void {
-  for (const info of PLATFORMS) logout(info.id);
+  logout("ybt");
+  logout("jw");
+  logout("zongwu");
 }
 
-/** 是否有任意平台已登录。 */
 export function anyLoggedIn(): boolean {
-  return PLATFORMS.some((info) => info.requiresLogin && statusOf(info).hasCredential);
+  return PLATFORMS.some(
+    (info) => info.requiresLogin && statusOf(info).state === "active",
+  );
+}
+
+const REQUEST_KEY = "ahnu.auth.request";
+export function requestLogin(id: PlatformId): void {
+  safeSet(REQUEST_KEY, id);
+}
+export function takeLoginRequest(): PlatformId | null {
+  try {
+    const value = localStorage.getItem(REQUEST_KEY);
+    if (value) localStorage.removeItem(REQUEST_KEY);
+    return value === "ybt" || value === "jw" || value === "zongwu"
+      ? value
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+/** 用于判断当前应用会话里是否刚成功验证过；缓存不算登录凭证。 */
+export function isLoggedIn(id: PlatformId): boolean {
+  if (!PLATFORMS.some((item) => item.id === id && item.requiresLogin))
+    return false;
+  return statusOf(PLATFORMS.find((item) => item.id === id)!).state === "active";
 }

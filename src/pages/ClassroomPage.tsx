@@ -9,7 +9,6 @@ import {
   loadCurrentTerm,
   loadWeekdays,
   loadWeeks,
-  login,
   queryEmptyRooms,
   rememberReturnTo,
   type Building,
@@ -20,7 +19,14 @@ import {
 
 type Phase = "login" | "loading" | "ready" | "error";
 
-export function ClassroomPage({ onBack }: { onBack: () => void }) {
+export function ClassroomPage({
+  onBack,
+  onNeedLogin,
+}: {
+  onBack: () => void;
+  /** 未登录时跳到登录管理页 */
+  onNeedLogin: () => void;
+}) {
   const [phase, setPhase] = useState<Phase>(() =>
     getToken() ? "loading" : "login",
   );
@@ -113,20 +119,10 @@ export function ClassroomPage({ onBack }: { onBack: () => void }) {
     setQueried(false);
   }, [phase, campus, loadBuildingList]);
 
-  const doLogin = async () => {
-    setBusy(true);
-    setError("");
-    // 移动端登录会跳去 CAS 再跳回来，记下回来该落在哪一页
+  // 登录统一在「登录管理」里进行，这里只负责跳过去
+  const doLogin = () => {
     rememberReturnTo("classroom");
-    try {
-      await login();
-      await bootstrap();
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "登录失败");
-      setPhase("login");
-    } finally {
-      setBusy(false);
-    }
+    onNeedLogin();
   };
 
   const doQuery = async () => {
@@ -182,16 +178,12 @@ export function ClassroomPage({ onBack }: { onBack: () => void }) {
 
       {phase === "login" && (
         <section className="elec-card elec-setup">
-          <h2>先登录统一身份认证</h2>
+          <h2>需要先连接一站式服务大厅</h2>
           <p className="elec-desc">
-            空教室数据需要学校账号授权。点击下方按钮会打开学校的登录窗口，登录完成后自动关闭，密码不会经过本应用。
+            空教室数据需要学校账号授权。登录统一在「登录管理」里完成，连接后这里会自动恢复。
           </p>
-          <button
-            className="elec-primary"
-            onClick={() => void doLogin()}
-            disabled={busy}
-          >
-            {busy ? "正在打开登录窗口…" : "去登录"}
+          <button className="elec-primary" onClick={doLogin}>
+            去登录
           </button>
           {error && <p className="elec-error-text">{error}</p>}
         </section>

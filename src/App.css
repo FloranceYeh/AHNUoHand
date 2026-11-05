@@ -2306,7 +2306,7 @@ body.tt-page-active *::-webkit-scrollbar {
 .auth-meta {
   display: grid;
   gap: 6px;
-  margin: 11px 0 0;
+  margin: 11px 0 11px;
 }
 .auth-meta > div {
   display: flex;
@@ -2336,6 +2336,50 @@ body.tt-page-active *::-webkit-scrollbar {
 .auth-remove:active {
   background: #fbe8e1;
 }
+.auth-actions {
+  margin-top: 12px;
+}
+.auth-login-btn {
+  width: 100%;
+}
+.auth-bind {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.auth-bind input {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 12px;
+  border: 1px solid #dfe8e3;
+  border-radius: 11px;
+  background: #fff;
+  color: #2c3d36;
+  font: inherit;
+  font-size: 13px;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.auth-bind input:focus {
+  outline: none;
+  border-color: #6cb6a0;
+}
+.auth-bind button {
+  flex: 0 0 auto;
+  padding: 0 18px;
+}
+.auth-pending {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #eef4fa;
+  color: #2b5f8a;
+  font-size: 10.5px;
+  line-height: 1.5;
+}
+.auth-error {
+  margin-bottom: 10px;
+}
 .auth-note {
   margin: 14px 4px 0;
   color: #9aa6a1;
@@ -2350,4 +2394,16 @@ body.tt-page-active *::-webkit-scrollbar {
 }
 .auth-danger {
   background: #c2542f;
+}
+
+/* 启动时恢复登录态的等待画面 */
+.boot-wait {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40vh;
+}
+.boot-wait .tt-progress {
+  margin: 0;
+  padding: 14px 18px;
 }

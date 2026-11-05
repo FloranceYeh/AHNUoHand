@@ -11,7 +11,7 @@ pub fn run() {
     #[cfg(mobile)]
     let builder = builder.on_page_load(|webview, payload| {
         use tauri::Manager;
-        if webview.label() == "main" {
+        if webview.label() == "main" && payload.event() == tauri::webview::PageLoadEvent::Finished {
             mobile_login::handle_page_load(webview.app_handle(), payload.url().as_str());
         }
     });
@@ -27,7 +27,9 @@ pub fn run() {
             windows::hide_window,
             mobile_login::mobile_begin_login,
             mobile_login::mobile_take_ticket,
-            mobile_login::mobile_cancel_login
+            mobile_login::mobile_take_timetable,
+            mobile_login::mobile_cancel_login,
+            mobile_login::mobile_watch_login
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
