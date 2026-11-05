@@ -146,16 +146,21 @@ export async function login(): Promise<string> {
 // 请求
 // ---------------------------------------------------------------------------
 
-async function request<T>(path: string, token?: string): Promise<T> {
+/**
+ * 访问一站式服务大厅的接口。
+ *
+ * 导出的目的是让校历等同类应用复用同一套鉴权与错误处理，
+ * 避免每个功能各写一份 token 逻辑。
+ */
+export async function ybtRequest<T>(path: string, token?: string): Promise<T> {
   const headers: Record<string, string> = { Accept: "application/json" };
   const active = token ?? getToken();
   if (active) headers["X-Access-Token"] = active;
-
   let response: Response;
   try {
     response = await fetch(API + path, { headers, credentials: "omit" });
   } catch {
-    throw new Error("连不上空教室服务，请检查网络");
+    throw new Error("连不上校园服务，请检查网络");
   }
 
   let data: Envelope<T> & { status?: number; error?: string };
@@ -188,15 +193,15 @@ async function request<T>(path: string, token?: string): Promise<T> {
 // ---------------------------------------------------------------------------
 
 export async function loadWeeks(): Promise<DictItem[]> {
-  return request<DictItem[]>("/sys/dict/getDictItems/school_zc");
+  return ybtRequest<DictItem[]>("/sys/dict/getDictItems/school_zc");
 }
 
 export async function loadWeekdays(): Promise<DictItem[]> {
-  return request<DictItem[]>("/sys/dict/getDictItems/school_zc_xq");
+  return ybtRequest<DictItem[]>("/sys/dict/getDictItems/school_zc_xq");
 }
 
 export async function loadPeriods(): Promise<DictItem[]> {
-  return request<DictItem[]>("/sys/dict/getDictItems/school_zc_xq_jc");
+  return ybtRequest<DictItem[]>("/sys/dict/getDictItems/school_zc_xq_jc");
 }
 
 // ---------------------------------------------------------------------------
@@ -204,7 +209,7 @@ export async function loadPeriods(): Promise<DictItem[]> {
 // ---------------------------------------------------------------------------
 
 export async function loadCurrentTerm(): Promise<CurrentTerm> {
-  const raw = await request<Record<string, string>>(
+  const raw = await ybtRequest<Record<string, string>>(
     "/rhpt-applets/kjs/api/getNowZcAndXq",
   );
   return {
@@ -218,7 +223,7 @@ export async function loadCurrentTerm(): Promise<CurrentTerm> {
 }
 
 export async function loadBuildings(campus: string): Promise<Building[]> {
-  const rows = await request<
+  const rows = await ybtRequest<
     Array<{ item_value?: string; item_text?: string }>
   >(
     `/rhpt-applets/kjs/api/getSchoolLhCode?xqName=${encodeURIComponent(campus)}`,
@@ -250,7 +255,7 @@ export async function queryEmptyRooms(
     xqCode: options.campusCode,
   });
 
-  const rows = await request<
+  const rows = await ybtRequest<
     Array<{ js_name?: string; kxjc?: string; lh_name?: string }>
   >(`/rhpt-applets/kjs/api/getDataBy?${params.toString()}`);
 
