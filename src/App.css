@@ -1,13 +1,17 @@
 #root {
-  min-height: 100vh;
+  height: 100%;
 }
 .app-shell {
-  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   max-width: 100%;
   margin: 0 auto;
+  overflow: hidden;
   background: var(--color-canvas);
 }
 .app-topbar {
+  flex: 0 0 auto;
   height: 62px;
   padding: 0 21px;
   display: flex;
@@ -54,8 +58,20 @@
   font-weight: 700;
 }
 .page-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* 关掉边缘回弹与滚动链，滚动到端点即停住，像原生列表 */
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+  /* 隐藏滚动条，只留滚动手感 */
+  scrollbar-width: none;
   padding-bottom: calc(86px + env(safe-area-inset-bottom));
-  overscroll-behavior: none;
+}
+.page-content::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 .page {
   width: 100%;
@@ -327,11 +343,9 @@
   letter-spacing: 0.05em;
 }
 .bottom-navigation {
-  position: fixed;
+  /* 作为 flex 子项固定在底部，不再 fixed 覆盖内容 */
+  flex: 0 0 auto;
   z-index: 10;
-  right: 0;
-  bottom: 0;
-  left: 0;
   display: flex;
   justify-content: center;
   padding: 8px 16px calc(8px + env(safe-area-inset-bottom));
@@ -364,7 +378,8 @@
   border-radius: 15px;
   transition:
     background 0.18s,
-    color 0.18s;
+    color 0.18s,
+    transform 0.12s ease;
 }
 .nav-item.is-active {
   color: var(--color-primary-dark);
@@ -372,6 +387,13 @@
 }
 .nav-item.is-active .nav-icon {
   background: #deeee8;
+}
+/* 按压时像原生标签栏那样轻微回缩 */
+.nav-item:active .nav-icon {
+  transform: scale(0.9);
+}
+.nav-item:active {
+  opacity: 0.72;
 }
 .page-heading {
   margin: 5px 0 23px;
@@ -716,7 +738,6 @@
 @media (min-width: 700px) {
   .app-shell {
     max-width: 1080px;
-    min-height: 100vh;
     background: transparent;
   }
   .app-topbar {
@@ -726,7 +747,6 @@
     background: transparent;
   }
   .page-content {
-    min-height: calc(100vh - 140px);
     padding: 0 20px 35px;
   }
   .page {
@@ -769,7 +789,7 @@
     font-size: 11px;
   }
   .bottom-navigation {
-    position: static;
+    flex: 0 0 auto;
     width: 390px;
     margin: 14px auto 22px;
     padding: 8px;
