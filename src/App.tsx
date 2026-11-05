@@ -4,6 +4,7 @@ import { HomePage } from "./pages/HomePage";
 import { ServicesPage } from "./pages/ServicesPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { FeaturePage } from "./pages/FeaturePage";
+import { ElectricityPage } from "./pages/ElectricityPage";
 import type { FeatureId, MainTab } from "./types";
 import "./styles/tokens.css";
 import "./App.css";
@@ -24,7 +25,11 @@ export default function App() {
       }}
     >
       {feature ? (
-        <FeaturePage featureId={feature} onBack={closeFeature} />
+        feature === "electricity" ? (
+          <ElectricityPage onBack={closeFeature} />
+        ) : (
+          <FeaturePage featureId={feature} onBack={closeFeature} />
+        )
       ) : tab === "home" ? (
         <HomePage
           onOpenFeature={openFeature}
