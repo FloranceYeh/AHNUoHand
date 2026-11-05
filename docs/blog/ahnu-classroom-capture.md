@@ -11,7 +11,7 @@
 ```
 https://ybt.ahnu.edu.cn/zhxyApi/rhpt-applets/kjs/api/getDataBy
     ?zcCode=<周次>&zcXqCode=<星期>&lhCode=<楼栋>&xqCode=<校区>
-    → {"result":[{"js_name":"教学楼1510","kxjc":"1,2,3,...,13", ...}]}
+    → {"result":[{"js_name":"<楼名><教室号>","kxjc":"1,2,3,...,13", ...}]}
 ```
 
 - 站点 `ybt.ahnu.edu.cn`（学校一站式服务大厅），**不是**网上办事大厅 `ahnu.campusphere.net`
@@ -128,10 +128,10 @@ GET https://ybt.ahnu.edu.cn/zhxyApi/...  -> 200      ← 成功解密
 
 也就是说：
 
-| 通道 | targetSdk=30 下对用户证书的态度 |
-|---|---|
-| App 原生网络栈（OkHttp） | 拒绝，握手失败 |
-| **Chromium WebView** | **接受，正常解密** |
+| 通道                     | targetSdk=30 下对用户证书的态度 |
+| ------------------------ | ------------------------------- |
+| App 原生网络栈（OkHttp） | 拒绝，握手失败                  |
+| **Chromium WebView**     | **接受，正常解密**              |
 
 这和「targetSdk≥24 一律不信任用户证书」的简化说法不一致——
 WebView 有自己的证书校验实现，实际行为要看版本。**结论应该来自实验，不是来自规则记忆**，
@@ -155,11 +155,11 @@ getDataBy?zcCode=10&zcXqCode=星期四&zcXqJcCodeBegin=&zcXqJcCodeEnd=&lhCode=10
 
 于是请用户在 App 里切两次校区各查一次，一次抓包就补齐了：
 
-| 校区 | `xqCode` | 楼栋示例 |
-|---|---|---|
-| 赭山校区 | `1` | 教学楼 `101`、田楼 `102` |
-| 花津校区 | `2` | 1号教学楼 `201` |
-| 天门山校区 | `3` | 北教学楼 `301` |
+| 校区       | `xqCode` | 楼栋示例                       |
+| ---------- | -------- | ------------------------------ |
+| 赭山校区   | `1`      | `<楼名>` `101`、`<楼名>` `102` |
+| 花津校区   | `2`      | `<楼名>` `201`                 |
+| 天门山校区 | `3`      | `<楼名>` `301`                 |
 
 规律很干净：**楼号首位 = 校区号**。
 
@@ -174,8 +174,9 @@ getDataBy?zcCode=10&zcXqCode=星期四&zcXqJcCodeBegin=&zcXqJcCodeEnd=&lhCode=10
 window.location.href = uniEnv.CAS_BASE_URL + "/login?service=" + uniEnv.APP_URL;
 
 // 回跳带 ticket 时，用它换 token
-$u.get("/cas/client/validateLogin", { ticket, service })
-   .then(e => { uni.setStorageSync("token", e.result.token) })
+$u.get("/cas/client/validateLogin", { ticket, service }).then((e) => {
+  uni.setStorageSync("token", e.result.token);
+});
 
 // 之后的每个请求
 request.header["X-Access-Token"] = uni.getStorageSync("token");
@@ -221,11 +222,11 @@ ctx.minimum_version = ssl.TLSVersion.TLSv1_2
 
 ## 10. 实现
 
-| 文件 | 职责 |
-|---|---|
-| `src/lib/classroom.ts` | 换 token、字典、楼栋、查询、节次格式化 |
-| `src/pages/ClassroomPage.tsx` | 校区/楼栋/周次/星期选择 + 教室卡片与节次色条 |
-| `src-tauri/src/classroom.rs` | 开 CAS 登录窗口，用 `on_navigation` 截获回跳票据 |
+| 文件                          | 职责                                             |
+| ----------------------------- | ------------------------------------------------ |
+| `src/lib/classroom.ts`        | 换 token、字典、楼栋、查询、节次格式化           |
+| `src/pages/ClassroomPage.tsx` | 校区/楼栋/周次/星期选择 + 教室卡片与节次色条     |
+| `src-tauri/src/classroom.rs`  | 开 CAS 登录窗口，用 `on_navigation` 截获回跳票据 |
 
 登录这块刻意做成**不开源密码**的设计：窗口由 Rust 开，用户名密码只在学校页面上输入，
 本应用只从跳转 URL 里取 `ticket`：
@@ -250,15 +251,15 @@ ctx.minimum_version = ssl.TLSVersion.TLSv1_2
 
 ## 11. 踩坑清单
 
-| 坑 | 现象 | 解法 |
-|---|---|---|
-| 连接池绕过代理 | 设了代理仍抓不到请求 | `force-stop` 后重开 App |
-| WebView 调试没开 | 只有浏览器有 devtools socket | 无 root 无法开启，换思路 |
-| 用户证书被拒 | `SSLError: cert unknown` | 原生栈拒绝，但 **WebView 接受** |
-| `requests` 报 SSL | 裸 socket 却通 | 服务器要求 ALPN，设 `http/1.1` |
-| 令牌失效 | `{"status":500,"message":"Token失效"}` | 注意返回的是 `status` 不是 `code` |
-| 校区代码不明 | 字典接口返回空数组 | 切换校区各查一次，抓包比对 |
-| 搜索跨楼栋 | 接口按楼栋查 | 先选楼栋，再在结果内筛选 |
+| 坑                | 现象                                   | 解法                              |
+| ----------------- | -------------------------------------- | --------------------------------- |
+| 连接池绕过代理    | 设了代理仍抓不到请求                   | `force-stop` 后重开 App           |
+| WebView 调试没开  | 只有浏览器有 devtools socket           | 无 root 无法开启，换思路          |
+| 用户证书被拒      | `SSLError: cert unknown`               | 原生栈拒绝，但 **WebView 接受**   |
+| `requests` 报 SSL | 裸 socket 却通                         | 服务器要求 ALPN，设 `http/1.1`    |
+| 令牌失效          | `{"status":500,"message":"Token失效"}` | 注意返回的是 `status` 不是 `code` |
+| 校区代码不明      | 字典接口返回空数组                     | 切换校区各查一次，抓包比对        |
+| 搜索跨楼栋        | 接口按楼栋查                           | 先选楼栋，再在结果内筛选          |
 
 ---
 
