@@ -17,6 +17,8 @@ import {
   X,
   RefreshCw,
   Upload,
+  MapPin,
+  Hash,
 } from "lucide-react";
 
 const icons = {
@@ -38,6 +40,8 @@ const icons = {
   close: X,
   refresh: RefreshCw,
   upload: Upload,
+  location: MapPin,
+  hash: Hash,
 };
 
 interface IconProps {

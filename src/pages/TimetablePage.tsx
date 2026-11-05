@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Icon } from "../components/Icon";
 import { DatePicker, Popup, Stepper } from "antd-mobile";
 import {
@@ -11,7 +11,6 @@ import {
 import {
   currentWeekOf,
   formatMonthDay,
-  weekEndDate,
   weekStartDate,
   weekdayIndex,
 } from "../lib/semester";
@@ -26,7 +25,6 @@ import {
 } from "../lib/semesterSettings";
 import { markLoggedIn } from "../lib/authManager";
 import {
-  eveningRange,
   nextSeasonChange,
   pairTimes,
   PERIOD_COUNT,
@@ -86,6 +84,8 @@ export function TimetablePage({
   const [selected, setSelected] = useState<CourseSlot | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [weekStripReady, setWeekStripReady] = useState(false);
+  const [weekTransitionDirection, setWeekTransitionDirection] = useState(0);
   const drawerTransition = reduceMotion
     ? { duration: 0 }
     : { type: "spring" as const, stiffness: 380, damping: 30, mass: 0.75 };
@@ -94,8 +94,7 @@ export function TimetablePage({
     pointerId: number;
     x: number;
     y: number;
-    lastX: number;
-    lastAt: number;
+    startedAt: number;
     horizontal: boolean;
   } | null>(null);
   const didSwipeRef = useRef(false);
@@ -255,6 +254,7 @@ export function TimetablePage({
     if (phase !== "ready" || initialisedRef.current) return;
     initialisedRef.current = true;
     setWeek(initialWeek ?? nowWeek);
+    setWeekStripReady(true);
   }, [phase, nowWeek, initialWeek]);
 
   const activeSlots = useMemo(
@@ -281,7 +281,6 @@ export function TimetablePage({
     ? toInputDate(semester.firstStart)
     : undefined;
   const monday = weekStartDate(startKey, week);
-  const sunday = weekEndDate(startKey, week);
   const semesterStart = semester.firstStart;
   const isThisWeek = week === nowWeek;
 
@@ -332,34 +331,44 @@ export function TimetablePage({
   };
 
   const goWeek = (delta: number) => {
-    setWeek((value) => Math.min(maxWeek, Math.max(1, value + delta)));
+    setWeek((value) => {
+      const next = Math.min(maxWeek, Math.max(1, value + delta));
+      if (next !== value) setWeekTransitionDirection(next > value ? 1 : -1);
+      return next;
+    });
   };
 
+  const lastPositionedWeekRef = useRef<number | null>(null);
   useEffect(() => {
+    if (!weekStripReady) return;
     const strip = weekStripRef.current;
     const active = strip?.querySelector<HTMLElement>(
       ".tt-weekstrip-item.active",
     );
     if (!strip || !active) return;
+    if (lastPositionedWeekRef.current === week) return;
+    const firstPosition = lastPositionedWeekRef.current === null;
+    lastPositionedWeekRef.current = week;
     const left =
       active.offsetLeft - (strip.clientWidth - active.clientWidth) / 2;
     strip.scrollTo({
       left,
-      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      behavior: firstPosition ||
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches
         ? "auto"
         : "smooth",
     });
-  }, [week]);
+  }, [week, weekStripReady]);
 
   // Preserve vertical page scrolling while recognizing a deliberate horizontal swipe.
   const onPointerDown = (event: React.PointerEvent) => {
     if (event.pointerType === "mouse" && event.button !== 0) return;
+    event.currentTarget.setPointerCapture?.(event.pointerId);
     swipeRef.current = {
       pointerId: event.pointerId,
       x: event.clientX,
       y: event.clientY,
-      lastX: event.clientX,
-      lastAt: event.timeStamp,
+      startedAt: event.timeStamp,
       horizontal: false,
     };
     didSwipeRef.current = false;
@@ -378,18 +387,18 @@ export function TimetablePage({
       didSwipeRef.current = true;
     }
     if (gesture.horizontal) event.preventDefault();
-    gesture.lastX = event.clientX;
-    gesture.lastAt = event.timeStamp;
   };
   const finishSwipe = (event: React.PointerEvent, cancelled = false) => {
     const gesture = swipeRef.current;
     if (!gesture || gesture.pointerId !== event.pointerId) return;
     swipeRef.current = null;
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
     if (cancelled || !gesture.horizontal) return;
     const dx = event.clientX - gesture.x;
-    const elapsed = Math.max(1, event.timeStamp - gesture.lastAt);
-    const velocity = (event.clientX - gesture.lastX) / elapsed;
-    if (Math.abs(dx) > 48 || Math.abs(velocity) > 0.45) {
+    const elapsed = Math.max(1, event.timeStamp - gesture.startedAt);
+    const velocity = dx / elapsed;
+    const isFlick = Math.abs(dx) > 18 && Math.abs(velocity) > 0.55;
+    if (Math.abs(dx) > 48 || isFlick) {
       goWeek(dx < 0 || velocity < -0.45 ? 1 : -1);
     }
   };
@@ -497,7 +506,12 @@ export function TimetablePage({
                   className={`tt-weekstrip-item${value === week ? " active" : ""}${
                     value === nowWeek ? " now" : ""
                   }`}
-                  onClick={() => setWeek(value)}
+                  onClick={() => {
+                    if (value !== week) {
+                      setWeekTransitionDirection(value > week ? 1 : -1);
+                      setWeek(value);
+                    }
+                  }}
                 >
                   {value}
                 </button>
@@ -505,17 +519,37 @@ export function TimetablePage({
             )}
           </div>
 
-          <div
-            className="tt-calendar tt-calendar-swipe"
-            style={{
-              ["--tt-template" as string]: template,
-              ["--tt-rows" as string]: `30px repeat(${maxPeriod}, minmax(46px, auto))`,
-            }}
-            onPointerDown={onPointerDown}
-            onPointerMove={onPointerMove}
-            onPointerUp={finishSwipe}
-            onPointerCancel={(event) => finishSwipe(event, true)}
-          >
+          <AnimatePresence initial={false} mode="popLayout">
+            <motion.div
+              key={week}
+              className="tt-calendar-stage"
+              initial={
+                reduceMotion
+                  ? false
+                  : { opacity: 0, x: weekTransitionDirection >= 0 ? 26 : -26 }
+              }
+              animate={{ opacity: 1, x: 0 }}
+              exit={
+                reduceMotion
+                  ? undefined
+                  : {
+                      opacity: 0,
+                      x: weekTransitionDirection >= 0 ? -26 : 26,
+                    }
+              }
+              transition={{ duration: 0.2, ease: "easeOut" }}
+            >
+              <div
+                className="tt-calendar tt-calendar-swipe"
+                style={{
+                  ["--tt-template" as string]: template,
+                  ["--tt-rows" as string]: `30px repeat(${maxPeriod}, minmax(46px, auto))`,
+                }}
+                onPointerDown={onPointerDown}
+                onPointerMove={onPointerMove}
+                onPointerUp={finishSwipe}
+                onPointerCancel={(event) => finishSwipe(event, true)}
+              >
             <div className="tt-corner" />
             {days.map((day) => {
               const date = monday
@@ -609,7 +643,9 @@ export function TimetablePage({
                 </button>
               );
             })}
-          </div>
+              </div>
+            </motion.div>
+          </AnimatePresence>
 
           <p className="tt-swipe-hint">左右滑动切换周次 · 点击课程查看详情</p>
 
@@ -763,16 +799,6 @@ export function TimetablePage({
                     </button>
                   </div>
                 </div>
-
-                <div className="tt-setting-note">
-                  <span className="tt-setting-dot" />
-                  <span>
-                    {monday && sunday
-                      ? `第 ${week} 周：${formatMonthDay(monday)} – ${formatMonthDay(sunday)}`
-                      : `共 ${maxWeek} 周`}
-                    {" · 晚上 " + eveningRange(season)}
-                  </span>
-                </div>
               </motion.section>
             </Popup>
           )}
@@ -805,18 +831,52 @@ export function TimetablePage({
             <div className="tt-popup-handle" aria-hidden="true">
               <span style={{ background: courseColor(selected.name).bg }} />
             </div>
-            <h2 id="tt-course-title">{selected.name}</h2>
+            <div className="tt-course-title-row">
+              <span
+                className="tt-course-title-icon"
+                style={{ background: courseColor(selected.name).bg }}
+              >
+                <Icon name="book" size={20} />
+              </span>
+              <div>
+                <p className="tt-sheet-kicker">课程详情</p>
+                <h2 id="tt-course-title">{selected.name}</h2>
+              </div>
+            </div>
+            <div className="tt-course-summary">
+              <span>
+                <Icon name="calendar" size={14} />
+                {WEEKDAY_FULL[selected.weekday]}
+              </span>
+              <span>
+                <Icon name="clock" size={14} />
+                第 {selected.period}
+                {selected.span > 1
+                  ? `–${selected.period + selected.span - 1}`
+                  : ""}{" "}
+                节
+              </span>
+            </div>
             <dl className="tt-detail">
               <div>
-                <dt>教师</dt>
+                <dt>
+                  <span className="tt-detail-icon"><Icon name="person" size={16} /></span>
+                  <span>教师</span>
+                </dt>
                 <dd>{selected.teacher || "—"}</dd>
               </div>
               <div>
-                <dt>地点</dt>
+                <dt>
+                  <span className="tt-detail-icon"><Icon name="location" size={16} /></span>
+                  <span>地点</span>
+                </dt>
                 <dd>{selected.place || "—"}</dd>
               </div>
               <div>
-                <dt>时间</dt>
+                <dt>
+                  <span className="tt-detail-icon"><Icon name="clock" size={16} /></span>
+                  <span>时间</span>
+                </dt>
                 <dd>
                   {WEEKDAY_FULL[selected.weekday]} 第 {selected.period}
                   {selected.span > 1
@@ -826,12 +886,18 @@ export function TimetablePage({
                 </dd>
               </div>
               <div>
-                <dt>周次</dt>
+                <dt>
+                  <span className="tt-detail-icon"><Icon name="calendar" size={16} /></span>
+                  <span>周次</span>
+                </dt>
                 <dd>{formatWeeks(selected.weeks)}</dd>
               </div>
               {selected.section && (
                 <div>
-                  <dt>课序号</dt>
+                  <dt>
+                    <span className="tt-detail-icon"><Icon name="hash" size={16} /></span>
+                    <span>课序号</span>
+                  </dt>
                   <dd>{selected.section}</dd>
                 </div>
               )}
@@ -845,6 +911,7 @@ export function TimetablePage({
 
       <DatePicker
         visible={datePickerOpen}
+        getContainer={() => document.body}
         value={draftStart ? new Date(`${draftStart}T00:00:00`) : undefined}
         min={new Date(2000, 0, 1)}
         max={new Date(2100, 11, 31)}

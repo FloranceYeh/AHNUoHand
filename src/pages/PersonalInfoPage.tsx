@@ -83,7 +83,9 @@ export function PersonalInfoPage({
           aria-label="更换头像"
         >
           {draft.avatar ? (
-            <img src={draft.avatar} alt="头像预览" />
+            <div className="personal-avatar">
+              <img src={draft.avatar} alt="头像预览" />
+            </div>
           ) : (
             <span>{draft.nickname.trim().slice(0, 1) || "同"}</span>
           )}

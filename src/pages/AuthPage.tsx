@@ -232,11 +232,6 @@ export function AuthPage({ onBack }: { onBack: () => void }) {
                     绑定学号
                   </button>
                 )}
-                {id === "jw" && item.hasOfflineData && (
-                  <button className="auth-remove" onClick={() => remove("jw")}>
-                    清除离线课表
-                  </button>
-                )}
                 {id === "jw" && (
                   <button
                     className="elec-primary auth-login-btn"
@@ -244,6 +239,11 @@ export function AuthPage({ onBack }: { onBack: () => void }) {
                     onClick={() => void startLogin("jw")}
                   >
                     {isBusy ? "正在打开…" : "打开教务系统"}
+                  </button>
+                )}
+                {id === "jw" && item.hasOfflineData && (
+                  <button className="auth-remove" onClick={() => remove("jw")}>
+                    清除离线课表
                   </button>
                 )}
                 {id === "ybt" && item.hasCredential && (

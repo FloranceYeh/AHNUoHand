@@ -11,6 +11,7 @@
   -webkit-tap-highlight-color: transparent;
   user-select: none;
   -webkit-touch-callout: none;
+  scrollbar-width: none;
 }
 
 html {
@@ -89,7 +90,7 @@ textarea:focus-visible {
   align-items: center;
   justify-content: space-between;
   min-height: 62px;
-  padding: env(safe-area-inset-top) 20px 0;
+  padding: calc(4px + env(safe-area-inset-top)) 20px 8px;
   border-bottom: 1px solid var(--color-line);
   background: var(--color-surface);
 }
@@ -751,7 +752,6 @@ textarea:focus-visible {
   width: 86px;
   height: 86px;
   margin-bottom: 10px;
-  overflow: hidden;
   padding: 0;
   border: 0;
   border-radius: 50%;
@@ -761,7 +761,14 @@ textarea:focus-visible {
   font-weight: 700;
   cursor: pointer;
 }
-.personal-avatar-picker img {
+.personal-avatar {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.personal-avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -1784,6 +1791,9 @@ textarea:focus-visible {
 .tt-calendar-swipe {
   touch-action: pan-y;
 }
+.tt-calendar-stage {
+  width: 100%;
+}
 .tt-corner {
   height: 100%;
 }
@@ -1880,13 +1890,34 @@ textarea:focus-visible {
   background: var(--color-overlay);
   overscroll-behavior: none;
 }
+.adm-popup-body {
+    position: fixed;
+    background-color: transparent;
+    z-index: calc(var(--z-index) + 10);
+}
+.adm-picker {
+  background: var(--color-surface);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  border: 1px solid var(--color-line);
+  border-bottom: none;
+}
+.adm-picker-header {
+  padding: 4px 12px;
+}
+.adm-picker-popup {
+  z-index: 2000 !important;
+}
+.adm-picker-popup .adm-popup-body {
+  z-index: 2010 !important;
+}
 .tt-sheet,
 .tt-settings {
   width: 100%;
   max-height: min(86dvh, 720px);
   overflow-y: auto;
-  padding: 8px 18px calc(22px + env(safe-area-inset-bottom));
+  padding: 14px 18px calc(22px + env(safe-area-inset-bottom));
   border: 1px solid var(--color-line);
+  border-bottom: none;
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   background: var(--color-surface);
   color: var(--color-ink);
@@ -1912,29 +1943,100 @@ textarea:focus-visible {
   border-radius: var(--radius-pill);
   background: var(--color-line-strong);
 }
-.tt-sheet h2 {
-  margin: 0 0 12px;
+.tt-course-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 4px 0 14px;
+}
+.tt-sheet {
+  padding: 18px 20px calc(28px + env(safe-area-inset-bottom));
+}
+.tt-course-title-icon {
+  display: grid;
+  flex: 0 0 44px;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
   color: var(--color-ink);
-  font-size: 17px;
+}
+.tt-sheet-kicker {
+  margin: 0 0 3px;
+  color: var(--color-muted);
+  font-size: var(--text-micro);
+  letter-spacing: 0.08em;
+}
+.tt-sheet h2 {
+  margin: 0;
+  color: var(--color-ink);
+  font-size: 21px;
+  line-height: 1.25;
+}
+.tt-course-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+.tt-course-summary span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 29px;
+  padding: 5px 9px;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-strong);
+  font-size: var(--text-micro);
+  font-weight: 600;
 }
 .tt-detail {
   display: grid;
-  gap: 9px;
-  margin: 0 0 16px;
+  gap: 0;
+  margin: 0 0 20px;
+  overflow: hidden;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-muted);
 }
 .tt-detail > div {
   display: flex;
+  align-items: flex-start;
+  min-height: 58px;
+  padding: 12px 14px;
   gap: 12px;
   border-bottom: 1px solid var(--color-line);
   font-size: var(--text-caption);
 }
+.tt-detail > div:last-child {
+  border-bottom: 0;
+}
 .tt-detail dt {
-  flex: 0 0 52px;
+  display: inline-flex;
+  flex: 0 0 76px;
+  align-items: center;
+  gap: 7px;
   color: var(--color-muted);
+  line-height: 1.45;
+}
+.tt-detail-icon {
+  display: grid;
+  flex: 0 0 28px;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background: var(--color-surface);
+  color: var(--color-primary);
 }
 .tt-detail dd {
+  flex: 1;
   margin: 0;
   color: var(--color-ink-secondary);
+  line-height: 1.5;
+  text-align: right;
+  overflow-wrap: anywhere;
 }
 .tt-sheet .elec-primary {
   width: 100%;
@@ -1947,8 +2049,8 @@ textarea:focus-visible {
 }
 .tt-settings {
   z-index: 70;
-  max-height: calc(100dvh - env(safe-area-inset-top) - 12px);
-  padding-bottom: calc(26px + env(safe-area-inset-bottom));
+  max-height: calc(100dvh - 12px);
+  padding-bottom: calc(26px);
 }
 .tt-settings-head {
   display: flex;
@@ -2015,10 +2117,12 @@ textarea:focus-visible {
 }
 .tt-date-picker-trigger {
   min-width: 150px;
-  min-height: 40px;
+  min-height: 35px;
   padding: 0 12px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   text-align: left;
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
 }
 .tt-setting-dot {
   width: 7px;
@@ -2084,13 +2188,46 @@ textarea:focus-visible {
   font-size: 11.5px;
 }
 .tt-field input {
-  flex: 0 0 132px;
   padding: 6px 9px;
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-sm);
   background: var(--color-surface);
   color: var(--color-ink);
-  font-size: 11.5px;
+}
+.tt-field .adm-stepper {
+  --height: 30px;
+  --input-width: 40px;
+  --button-width: 40px;
+  --input-font-size: 15px;
+  --input-font-color: var(--color-ink);
+  --input-background-color: var(--color-surface);
+  --button-font-size: 18px;
+  --button-text-color: var(--color-primary-strong);
+  --button-background-color: var(--color-surface-subtle);
+  --border-radius: var(--radius-md);
+  --border: 1px solid var(--color-line);
+  --border-inner: 1px solid var(--color-line);
+  flex: 0 0 auto;
+  width: 130px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.tt-field .adm-stepper-middle {
+  background: var(--color-surface);
+}
+.tt-field .adm-stepper-minus,
+.tt-field .adm-stepper-plus {
+  transition:
+    background-color var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard);
+}
+.tt-field .adm-stepper-minus:active,
+.tt-field .adm-stepper-plus:active {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-strong);
+}
+.tt-field .adm-stepper-minus:disabled,
+.tt-field .adm-stepper-plus:disabled {
+  background: var(--color-surface-muted);
+  color: var(--color-muted);
 }
 .tt-form-actions {
   display: flex;
