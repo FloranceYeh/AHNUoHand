@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { AppShell } from "./components/layout/AppShell";
 import { HomePage } from "./pages/HomePage";
 import { ServicesPage } from "./pages/ServicesPage";
 import { ProfilePage } from "./pages/ProfilePage";
+import { AppearancePage } from "./pages/AppearancePage";
 import { FeaturePage } from "./pages/FeaturePage";
 import { ElectricityPage } from "./pages/ElectricityPage";
 import { ClassroomPage } from "./pages/ClassroomPage";
@@ -15,6 +17,11 @@ import {
   takeReturnTo,
 } from "./lib/classroom";
 import { requestLogin, type PlatformId } from "./lib/authManager";
+import {
+  readThemeSettings,
+  saveThemeSettings,
+  type ThemeSettings,
+} from "./lib/theme";
 import {
   hasPendingTimetableLogin,
   resumeMobileTimetableLogin,
@@ -32,10 +39,18 @@ export interface SemesterInfo {
 }
 
 export default function App() {
+  const reduceMotion = useReducedMotion();
   const [tab, setTab] = useState<MainTab>("home");
   const [feature, setFeature] = useState<FeatureId | null>(null);
+  const [appearanceOpen, setAppearanceOpen] = useState(false);
   const [semester, setSemester] = useState<SemesterInfo>({});
   const [targetWeek, setTargetWeek] = useState<number | undefined>(undefined);
+  const [themeSettings, setThemeSettings] = useState(readThemeSettings);
+
+  const changeThemeSettings = (settings: ThemeSettings) => {
+    saveThemeSettings(settings);
+    setThemeSettings(settings);
+  };
 
   // 移动端登录会跳去 CAS 再跳回来，整个应用会重新加载。
   // 必须先把票据换成 token，再挂载功能页 —— 否则功能页在 token 写回前
@@ -68,6 +83,7 @@ export default function App() {
   }, []);
 
   const openFeature = (id: FeatureId) => {
+    setAppearanceOpen(false);
     if (id !== "schedule") setTargetWeek(undefined);
     setFeature(id);
   };
@@ -123,34 +139,67 @@ export default function App() {
     return <FeaturePage featureId={id} onBack={closeFeature} />;
   };
 
+  const content = restoring ? (
+    <div className="page boot-wait">
+      <div className="tt-progress">
+        <span className="tt-spinner" aria-hidden="true" />
+        <span>正在恢复登录状态…</span>
+      </div>
+    </div>
+  ) : appearanceOpen ? (
+    <AppearancePage
+      settings={themeSettings}
+      onChange={changeThemeSettings}
+      onBack={() => setAppearanceOpen(false)}
+    />
+  ) : feature ? (
+    renderFeature(feature)
+  ) : tab === "home" ? (
+    <HomePage
+      onOpenFeature={openFeature}
+      onBrowseServices={() => setTab("services")}
+    />
+  ) : tab === "services" ? (
+    <ServicesPage onOpenFeature={openFeature} />
+  ) : (
+    <ProfilePage
+      onOpenAuth={() => setFeature("auth")}
+      onOpenAppearance={() => setAppearanceOpen(true)}
+    />
+  );
+
+  const contentKey = restoring
+    ? "restoring"
+    : appearanceOpen
+      ? "appearance"
+      : feature
+        ? `feature:${feature}`
+        : `tab:${tab}`;
+  const pageTransition = reduceMotion
+    ? { duration: 0 }
+    : { type: "spring" as const, stiffness: 360, damping: 32, mass: 0.8 };
+
   return (
     <AppShell
       activeTab={tab}
       onTabChange={(next) => {
+        setAppearanceOpen(false);
         setFeature(null);
         setTab(next);
       }}
     >
-      {restoring ? (
-        // 正在把 CAS 票据换成登录态，先别渲染功能页，免得闪一下「未登录」
-        <div className="page boot-wait">
-          <div className="tt-progress">
-            <span className="tt-spinner" aria-hidden="true" />
-            <span>正在恢复登录状态…</span>
-          </div>
-        </div>
-      ) : feature ? (
-        renderFeature(feature)
-      ) : tab === "home" ? (
-        <HomePage
-          onOpenFeature={openFeature}
-          onBrowseServices={() => setTab("services")}
-        />
-      ) : tab === "services" ? (
-        <ServicesPage onOpenFeature={openFeature} />
-      ) : (
-        <ProfilePage onOpenAuth={() => setFeature("auth")} />
-      )}
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={contentKey}
+          className="app-motion-view"
+          initial={reduceMotion ? false : { opacity: 0, x: 18 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={reduceMotion ? undefined : { opacity: 0, x: -12 }}
+          transition={pageTransition}
+        >
+          {content}
+        </motion.div>
+      </AnimatePresence>
     </AppShell>
   );
 }

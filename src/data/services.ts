@@ -39,7 +39,7 @@ export const campusServices: CampusService[] = [
     description: "校历、假期与重要日期",
     icon: "event",
     category: "campus",
-    status: "coming-soon",
+    status: "testing",
   },
   {
     id: "feedback",

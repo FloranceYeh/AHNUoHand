@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Icon } from "../components/Icon";
+import { Picker, Selector } from "antd-mobile";
 import {
   CAMPUSES,
   clearToken,
@@ -42,6 +43,8 @@ export function ClassroomPage({
   const [buildingCode, setBuildingCode] = useState("");
   const [week, setWeek] = useState("");
   const [weekday, setWeekday] = useState("");
+  const [weekPickerOpen, setWeekPickerOpen] = useState(false);
+  const [weekdayPickerOpen, setWeekdayPickerOpen] = useState(false);
   const [rooms, setRooms] = useState<EmptyRoom[]>([]);
   const [queried, setQueried] = useState(false);
   const [keyword, setKeyword] = useState("");
@@ -227,64 +230,68 @@ export function ClassroomPage({
 
             <div className="cls-field">
               <label>校区</label>
-              <div className="cls-chips">
-                {CAMPUSES.map((item) => (
-                  <button
-                    key={item.code}
-                    className={`cls-chip${item.name === campus ? " active" : ""}`}
-                    onClick={() => setCampus(item.name)}
-                  >
-                    {item.name}
-                  </button>
-                ))}
-              </div>
+              <Selector
+                className="cls-selector"
+                options={CAMPUSES.map((item) => ({ label: item.name, value: item.name }))}
+                value={[campus]}
+                onChange={(values) => values[0] && setCampus(String(values[0]))}
+                showCheckMark={false}
+              />
             </div>
 
             <div className="cls-field">
               <label>楼栋</label>
-              <div className="cls-chips">
-                {buildings.length ? (
-                  buildings.map((item) => (
-                    <button
-                      key={item.code}
-                      className={`cls-chip${item.code === buildingCode ? " active" : ""}`}
-                      onClick={() => setBuildingCode(item.code)}
-                    >
-                      {item.name}
-                    </button>
-                  ))
-                ) : (
-                  <span className="elec-empty">该校区暂无楼栋数据</span>
-                )}
-              </div>
+              {buildings.length ? (
+                <Selector
+                  className="cls-selector cls-building-selector"
+                  options={buildings.map((item) => ({ label: item.name, value: item.code }))}
+                  value={[buildingCode]}
+                  onChange={(values) => values[0] && setBuildingCode(String(values[0]))}
+                  showCheckMark={false}
+                />
+              ) : (
+                <span className="elec-empty">该校区暂无楼栋数据</span>
+              )}
             </div>
 
             <div className="cls-row">
               <div className="cls-field grow">
                 <label>周次</label>
-                <select
-                  value={week}
-                  onChange={(event) => setWeek(event.target.value)}
+                <button
+                  type="button"
+                  className="cls-picker-trigger"
+                  onClick={() => setWeekPickerOpen(true)}
+                  disabled={!weekList.length}
                 >
-                  {weekList.map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.text}
-                    </option>
-                  ))}
-                </select>
+                  {weekList.find((item) => item.value === week)?.text || "选择周次"}
+                  <Icon name="arrow" size={15} />
+                </button>
+                <Picker
+                  columns={[weekList.map((item) => ({ label: item.text, value: item.value }))]}
+                  visible={weekPickerOpen}
+                  value={[week]}
+                  onClose={() => setWeekPickerOpen(false)}
+                  onConfirm={(values) => setWeek(String(values[0] ?? week))}
+                />
               </div>
               <div className="cls-field grow">
                 <label>星期</label>
-                <select
-                  value={weekday}
-                  onChange={(event) => setWeekday(event.target.value)}
+                <button
+                  type="button"
+                  className="cls-picker-trigger"
+                  onClick={() => setWeekdayPickerOpen(true)}
+                  disabled={!weekdays.length}
                 >
-                  {weekdays.map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.text}
-                    </option>
-                  ))}
-                </select>
+                  {weekdays.find((item) => item.value === weekday)?.text || "选择星期"}
+                  <Icon name="arrow" size={15} />
+                </button>
+                <Picker
+                  columns={[weekdays.map((item) => ({ label: item.text, value: item.value }))]}
+                  visible={weekdayPickerOpen}
+                  value={[weekday]}
+                  onClose={() => setWeekdayPickerOpen(false)}
+                  onConfirm={(values) => setWeekday(String(values[0] ?? weekday))}
+                />
               </div>
             </div>
 

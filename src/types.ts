@@ -15,5 +15,5 @@ export interface CampusService {
   description: string;
   icon: string;
   category: "academic" | "campus" | "life";
-  status: "available" | "coming-soon";
+  status: "available" | "coming-soon" | "testing";
 }

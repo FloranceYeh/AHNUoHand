@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { motion, useReducedMotion } from "motion/react";
 import { Icon } from "../components/Icon";
+import { DatePicker, Popup, Stepper } from "antd-mobile";
 import {
   courseColor,
   isActive,
@@ -75,6 +77,7 @@ export function TimetablePage({
   /** 未登录时跳到登录管理页 */
   onNeedLogin: () => void;
 }) {
+  const reduceMotion = useReducedMotion();
   const [phase, setPhase] = useState<Phase>("idle");
   const [error, setError] = useState("");
   const [grid, setGrid] = useState<CachedGrid | null>(null);
@@ -82,6 +85,10 @@ export function TimetablePage({
   const [hint, setHint] = useState("");
   const [selected, setSelected] = useState<CourseSlot | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const drawerTransition = reduceMotion
+    ? { duration: 0 }
+    : { type: "spring" as const, stiffness: 380, damping: 30, mass: 0.75 };
   const cancelledRef = useRef(false);
   const swipeRef = useRef<{
     pointerId: number;
@@ -92,22 +99,12 @@ export function TimetablePage({
     horizontal: boolean;
   } | null>(null);
   const didSwipeRef = useRef(false);
-  const sheetDidDragRef = useRef(false);
   const weekStripRef = useRef<HTMLDivElement>(null);
-  const sheetRef = useRef<HTMLElement | null>(null);
-  const sheetCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const sheetDragRef = useRef<{
-    pointerId: number;
-    y: number;
-    lastY: number;
-    lastAt: number;
-  } | null>(null);
 
   const closeOverlay = () => {
-    if (sheetCloseTimerRef.current) clearTimeout(sheetCloseTimerRef.current);
-    sheetCloseTimerRef.current = null;
     setSelected(null);
     setSettingsOpen(false);
+    setDatePickerOpen(false);
   };
 
   useEffect(() => {
@@ -397,75 +394,6 @@ export function TimetablePage({
     }
   };
 
-  const onSheetPointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
-    if (event.pointerType === "mouse" && event.button !== 0) return;
-    if (sheetCloseTimerRef.current) clearTimeout(sheetCloseTimerRef.current);
-    sheetCloseTimerRef.current = null;
-    sheetRef.current?.style.setProperty("transition", "none");
-    sheetRef.current?.style.removeProperty("--tt-sheet-drag");
-    sheetDidDragRef.current = false;
-    event.currentTarget.setPointerCapture(event.pointerId);
-    sheetDragRef.current = {
-      pointerId: event.pointerId,
-      y: event.clientY,
-      lastY: event.clientY,
-      lastAt: event.timeStamp,
-    };
-  };
-  const onSheetPointerMove = (event: React.PointerEvent<HTMLButtonElement>) => {
-    const drag = sheetDragRef.current;
-    if (!drag || drag.pointerId !== event.pointerId || event.clientY < drag.y)
-      return;
-    event.preventDefault();
-    if (event.clientY - drag.y > 8) sheetDidDragRef.current = true;
-    sheetRef.current?.style.setProperty(
-      "--tt-sheet-drag",
-      `${event.clientY - drag.y}px`,
-    );
-    drag.lastY = event.clientY;
-    drag.lastAt = event.timeStamp;
-  };
-  const finishSheetDrag = (
-    event: React.PointerEvent<HTMLButtonElement>,
-    cancelled = false,
-  ) => {
-    const drag = sheetDragRef.current;
-    if (!drag || drag.pointerId !== event.pointerId) return;
-    sheetDragRef.current = null;
-    const distance = Math.max(0, event.clientY - drag.y);
-    const velocity =
-      (event.clientY - drag.lastY) / Math.max(1, event.timeStamp - drag.lastAt);
-    const sheet = sheetRef.current;
-    if (!cancelled && (distance > 96 || velocity > 0.55) && sheet) {
-      sheet.style.setProperty(
-        "transition",
-        "transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1)",
-      );
-      sheet.style.setProperty(
-        "--tt-sheet-drag",
-        `${sheet.offsetHeight + 24}px`,
-      );
-      sheetCloseTimerRef.current = setTimeout(closeOverlay, 185);
-      return;
-    }
-    if (sheet) {
-      sheet.style.setProperty(
-        "transition",
-        "transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1)",
-      );
-      requestAnimationFrame(() =>
-        sheet.style.removeProperty("--tt-sheet-drag"),
-      );
-    }
-  };
-  const onSheetHandleClick = (close: () => void) => {
-    if (sheetDidDragRef.current) {
-      sheetDidDragRef.current = false;
-      return;
-    }
-    close();
-  };
-
   const template = `46px repeat(${days.length}, minmax(0, 1fr))`;
 
   const displayDate = isThisWeek ? today : monday;
@@ -686,34 +614,28 @@ export function TimetablePage({
           <p className="tt-swipe-hint">左右滑动切换周次 · 点击课程查看详情</p>
 
           {settingsOpen && (
-            <div
-              className="tt-settings-mask"
-              onClick={() => setSettingsOpen(false)}
+            <Popup
+              visible={settingsOpen}
+              position="bottom"
+              destroyOnClose={false}
+              onMaskClick={() => setSettingsOpen(false)}
+              onClose={() => setSettingsOpen(false)}
+              bodyStyle={{
+                borderRadius: "25px 25px 0 0",
+                maxHeight: "calc(100dvh - env(safe-area-inset-top) - 8px)",
+                overflowY: "auto",
+                overscrollBehavior: "contain",
+              }}
             >
-              <section
+              <motion.section
                 className="tt-settings"
-                ref={(node) => {
-                  sheetRef.current = node;
-                }}
-                onClick={(event) => event.stopPropagation()}
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="tt-settings-title"
+                initial={reduceMotion ? false : { y: "7%", opacity: 0.7 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={drawerTransition}
               >
-                <button
-                  className="tt-sheet-handle"
-                  type="button"
-                  aria-label="下滑关闭设置"
-                  onClick={() =>
-                    onSheetHandleClick(() => setSettingsOpen(false))
-                  }
-                  onPointerDown={onSheetPointerDown}
-                  onPointerMove={onSheetPointerMove}
-                  onPointerUp={finishSheetDrag}
-                  onPointerCancel={(event) => finishSheetDrag(event, true)}
-                >
-                  <span />
-                </button>
                 <header className="tt-settings-head">
                   <div>
                     <p className="eyebrow">课程表</p>
@@ -797,21 +719,22 @@ export function TimetablePage({
 
                   <label className="tt-field">
                     <span>首周日期</span>
-                    <input
-                      type="date"
-                      value={draftStart}
-                      onChange={(event) => setDraftStart(event.target.value)}
-                    />
+                    <button
+                      type="button"
+                      className="tt-date-picker-trigger"
+                      onClick={() => setDatePickerOpen(true)}
+                    >
+                      {draftStart || "选择日期"}
+                    </button>
                   </label>
 
                   <label className="tt-field">
                     <span>总周数</span>
-                    <input
-                      type="number"
+                    <Stepper
                       min={1}
                       max={30}
-                      value={draftWeek}
-                      onChange={(event) => setDraftWeek(event.target.value)}
+                      value={Number(draftWeek) || 1}
+                      onChange={(value) => setDraftWeek(String(value ?? 1))}
                     />
                   </label>
 
@@ -850,36 +773,38 @@ export function TimetablePage({
                     {" · 晚上 " + eveningRange(season)}
                   </span>
                 </div>
-              </section>
-            </div>
+              </motion.section>
+            </Popup>
           )}
         </div>
       )}
 
       {selected && (
-        <div className="tt-sheet-mask" onClick={closeOverlay}>
-          <div
+        <Popup
+          visible
+          position="bottom"
+          destroyOnClose={false}
+          onMaskClick={() => setSelected(null)}
+          onClose={() => setSelected(null)}
+          bodyStyle={{
+            borderRadius: "22px 22px 0 0",
+            maxHeight: "min(82dvh, 720px)",
+            overflowY: "auto",
+            overscrollBehavior: "contain",
+          }}
+        >
+          <motion.div
             className="tt-sheet"
-            ref={(node) => {
-              sheetRef.current = node;
-            }}
-            onClick={(event) => event.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-labelledby="tt-course-title"
+            initial={reduceMotion ? false : { y: "10%", opacity: 0.7 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={drawerTransition}
           >
-            <button
-              className="tt-sheet-handle"
-              type="button"
-              aria-label="下滑关闭课程详情"
-              onClick={() => onSheetHandleClick(() => setSelected(null))}
-              onPointerDown={onSheetPointerDown}
-              onPointerMove={onSheetPointerMove}
-              onPointerUp={finishSheetDrag}
-              onPointerCancel={(event) => finishSheetDrag(event, true)}
-            >
+            <div className="tt-popup-handle" aria-hidden="true">
               <span style={{ background: courseColor(selected.name).bg }} />
-            </button>
+            </div>
             <h2 id="tt-course-title">{selected.name}</h2>
             <dl className="tt-detail">
               <div>
@@ -914,9 +839,21 @@ export function TimetablePage({
             <button className="elec-primary" onClick={() => setSelected(null)}>
               关闭
             </button>
-          </div>
-        </div>
+          </motion.div>
+        </Popup>
       )}
+
+      <DatePicker
+        visible={datePickerOpen}
+        value={draftStart ? new Date(`${draftStart}T00:00:00`) : undefined}
+        min={new Date(2000, 0, 1)}
+        max={new Date(2100, 11, 31)}
+        onClose={() => setDatePickerOpen(false)}
+        onConfirm={(date) => {
+          setDraftStart(toInputDate(date));
+          setDatePickerOpen(false);
+        }}
+      />
     </div>
   );
 }
