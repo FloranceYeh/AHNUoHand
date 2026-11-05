@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Icon } from "../components/Icon";
-import { getToken, login } from "../lib/classroom";
+import { getToken, login, rememberReturnTo } from "../lib/classroom";
 import {
   buildMonthGrid,
   loadMonth,
@@ -161,6 +161,8 @@ export function CalendarPage({
   const doLogin = async () => {
     setPhase("loading");
     setError("");
+    // 移动端登录会跳去 CAS 再跳回来，记下回来该落在哪一页
+    rememberReturnTo("calendar");
     try {
       await login();
       await refresh();

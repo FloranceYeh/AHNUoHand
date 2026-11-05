@@ -11,6 +11,7 @@ import {
   loadWeeks,
   login,
   queryEmptyRooms,
+  rememberReturnTo,
   type Building,
   type CurrentTerm,
   type DictItem,
@@ -115,6 +116,8 @@ export function ClassroomPage({ onBack }: { onBack: () => void }) {
   const doLogin = async () => {
     setBusy(true);
     setError("");
+    // 移动端登录会跳去 CAS 再跳回来，记下回来该落在哪一页
+    rememberReturnTo("classroom");
     try {
       await login();
       await bootstrap();

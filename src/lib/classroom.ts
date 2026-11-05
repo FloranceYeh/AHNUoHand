@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { markLoggedIn } from "./authManager";
 
 /**
  * 空教室查询（学校「一站式服务大厅」H5 应用）。
@@ -78,6 +79,8 @@ export function clearToken(): void {
 function saveToken(token: string): void {
   try {
     localStorage.setItem(TOKEN_KEY, token);
+    // 通知登录管理模块记下时间，设置页据此展示
+    markLoggedIn("ybt");
   } catch {
     /* ignore */
   }
@@ -100,10 +103,103 @@ async function exchangeTicket(ticket: string): Promise<string> {
 }
 
 /**
- * 打开统一认证窗口完成登录。
- * 登录成功后由 Rust 侧截获回跳地址里的 ticket 并通过事件传回。
+ * 统一登录入口。
+ *
+ * 桌面端：另开一个窗口承载 CAS，登录完窗口自动关闭。
+ * 移动端：Tauri 只能有一个 WebView，因此把主窗口跳到 CAS；
+ *         登录后 Rust 在页面加载时截获 ticket 暂存，再把主窗口跳回应用，
+ *         应用重新加载时由 resumeMobileLogin() 取回票据换 token。
  */
 export async function login(): Promise<string> {
+  if (isMobile()) return mobileLogin();
+  return desktopLogin();
+}
+
+/**
+ * 是否运行在移动端。
+ *
+ * Tauri 在手机上只有一个 WebView：无法另开登录窗口，`WebviewWindowBuilder`
+ * 建不出第二个窗口。所以必须先正确区分平台，否则登录会走进桌面分支。
+ *
+ * 实测 Android 上 `__TAURI_INTERNALS__.metadata` 只有
+ * `currentWindow` / `currentWebview`，没有平台字段，因此用 UA 判断更可靠
+ * （WebView 的 UA 里带 `Android` / `iPhone` / `iPad`）。
+ */
+export function isMobile(): boolean {
+  if (typeof window === "undefined") return false;
+
+  const platform = (
+    window as { __TAURI_INTERNALS__?: { metadata?: { currentPlatform?: string } } }
+  ).__TAURI_INTERNALS__?.metadata?.currentPlatform;
+  if (platform === "android" || platform === "ios") return true;
+  if (platform === "windows" || platform === "macos" || platform === "linux") return false;
+
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+}
+
+const PENDING_KEY = "ahnu.classroom.pendingLogin";
+/** 登录前停留的功能页，回跳后据此还原。 */
+const RETURN_KEY = "ahnu.classroom.returnTo";
+
+/** 移动端登录：先记下"正在等回跳"，再跳去 CAS。 */
+async function mobileLogin(): Promise<string> {
+  localStorage.setItem(PENDING_KEY, String(Date.now()));
+  try {
+    await invoke("mobile_begin_login");
+  } catch (cause) {
+    localStorage.removeItem(PENDING_KEY);
+    throw cause instanceof Error ? cause : new Error(String(cause));
+  }
+  // 主窗口即将被 CAS 页面替换，这个 Promise 不会 resolve；
+  // 结果由应用重新加载后的 resumeMobileLogin() 接着处理。
+  return new Promise<string>(() => {});
+}
+
+/** 记下登录后应该回到哪个功能页。 */
+export function rememberReturnTo(feature: string): void {
+  try {
+    localStorage.setItem(RETURN_KEY, feature);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** 取出并清除待返回的功能页。 */
+export function takeReturnTo(): string | null {
+  try {
+    const value = localStorage.getItem(RETURN_KEY);
+    if (value) localStorage.removeItem(RETURN_KEY);
+    return value;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 应用启动时调用：如果上次在等 CAS 回跳，就取回票据换取 token。
+ *
+ * 票据由 Rust 在页面加载时暂存，而应用重新加载与暂存之间可能有先后差，
+ * 所以这里短暂轮询几次，拿到就立即兑换。
+ */
+export async function resumeMobileLogin(): Promise<string | null> {
+  const pending = localStorage.getItem(PENDING_KEY);
+  if (!pending) return null;
+
+  localStorage.removeItem(PENDING_KEY);
+
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    try {
+      const ticket = await invoke<string | null>("mobile_take_ticket");
+      if (ticket) return await exchangeTicket(ticket);
+    } catch {
+      return null;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 150));
+  }
+  return null;
+}
+
+function desktopLogin(): Promise<string> {
   return new Promise<string>((resolve, reject) => {
     let settled = false;
     const timer = window.setTimeout(
