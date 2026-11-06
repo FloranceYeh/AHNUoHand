@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { createPortal } from "react-dom";
 import { AppShell } from "./components/layout/AppShell";
 import { HomePage } from "./pages/HomePage";
 import { ServicesPage } from "./pages/ServicesPage";
@@ -44,17 +46,100 @@ export interface SemesterInfo {
   maxWeek?: number;
 }
 
+type AppRoute =
+  | { type: "tab"; tab: MainTab }
+  | { type: "feature"; id: FeatureId; initialWeek?: number }
+  | { type: "appearance" }
+  | { type: "personal-info" };
+
+interface StackScreen {
+  key: number;
+  route: AppRoute;
+}
+
+function createScreen(key: number, route: AppRoute): StackScreen {
+  return { key, route };
+}
+
 export default function App() {
   const reduceMotion = useReducedMotion();
-  const [tab, setTab] = useState<MainTab>("home");
-  const [feature, setFeature] = useState<FeatureId | null>(null);
-  const [appearanceOpen, setAppearanceOpen] = useState(false);
-  const [personalInfoOpen, setPersonalInfoOpen] = useState(false);
+  const [stack, setStack] = useState<StackScreen[]>([
+    createScreen(0, { type: "tab", tab: "home" }),
+  ]);
+  const nextScreenKey = useRef(1);
   const [semester, setSemester] = useState<SemesterInfo>({});
-  const [targetWeek, setTargetWeek] = useState<number | undefined>(undefined);
   const [themeSettings, setThemeSettings] = useState(readThemeSettings);
   const [personalInfo, setPersonalInfo] =
     useState<PersonalInfo>(readPersonalInfo);
+  const lastHomeBackRef = useRef(0);
+  const exitPromptTimerRef = useRef<number | null>(null);
+  const [exitPromptVisible, setExitPromptVisible] = useState(false);
+  const isAndroid = /android/i.test(navigator.userAgent);
+
+  const currentScreen = stack[stack.length - 1];
+  const currentRoute = currentScreen.route;
+  const rootRoute = stack[0].route;
+  const activeTab = rootRoute.type === "tab" ? rootRoute.tab : "home";
+
+  const pushRoute = useCallback((route: AppRoute) => {
+    const key = nextScreenKey.current++;
+    setStack((current) => [...current, createScreen(key, route)]);
+  }, []);
+
+  const setRootRoute = useCallback((route: AppRoute) => {
+    const key = nextScreenKey.current++;
+    setStack([createScreen(key, route)]);
+  }, []);
+
+  const goBack = useCallback(() => {
+    if (stack.length > 1) {
+      lastHomeBackRef.current = 0;
+      setExitPromptVisible(false);
+      if (exitPromptTimerRef.current !== null) {
+        window.clearTimeout(exitPromptTimerRef.current);
+      }
+      setStack((current) => current.slice(0, -1));
+      return;
+    }
+    if (activeTab !== "home") {
+      lastHomeBackRef.current = 0;
+      setExitPromptVisible(false);
+      setRootRoute({ type: "tab", tab: "home" });
+      return;
+    }
+    if (isAndroid) {
+      const now = Date.now();
+      if (now - lastHomeBackRef.current < 2000) {
+        lastHomeBackRef.current = 0;
+        setExitPromptVisible(false);
+        if (exitPromptTimerRef.current !== null) {
+          window.clearTimeout(exitPromptTimerRef.current);
+          exitPromptTimerRef.current = null;
+        }
+        void invoke("exit_app").catch(() => {});
+        return;
+      }
+      lastHomeBackRef.current = now;
+      setExitPromptVisible(true);
+      if (exitPromptTimerRef.current !== null) {
+        window.clearTimeout(exitPromptTimerRef.current);
+      }
+      exitPromptTimerRef.current = window.setTimeout(() => {
+        setExitPromptVisible(false);
+        lastHomeBackRef.current = 0;
+        exitPromptTimerRef.current = null;
+      }, 2000);
+    }
+  }, [activeTab, isAndroid, setRootRoute, stack.length]);
+
+  useEffect(
+    () => () => {
+      if (exitPromptTimerRef.current !== null) {
+        window.clearTimeout(exitPromptTimerRef.current);
+      }
+    },
+    [],
+  );
 
   const changeThemeSettings = (settings: ThemeSettings) => {
     saveThemeSettings(settings);
@@ -63,7 +148,7 @@ export default function App() {
   const changePersonalInfo = (info: PersonalInfo) => {
     savePersonalInfo(info);
     setPersonalInfo(info);
-    setPersonalInfoOpen(false);
+    goBack();
   };
 
   // 移动端登录会跳去 CAS 再跳回来，整个应用会重新加载。
@@ -88,52 +173,65 @@ export default function App() {
       }
       // 换完票再取「该回到哪一页」，避免中途重载时把标记消费掉
       const back = takeReturnTo();
-      if (back) setFeature(back as FeatureId);
-      else if (returnedFromJw) setFeature("schedule");
+      if (back) pushRoute({ type: "feature", id: back as FeatureId });
+      else if (returnedFromJw) pushRoute({ type: "feature", id: "schedule" });
       setRestoring(false);
     })();
     // 只在首帧跑一次
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [pushRoute]);
 
   const openFeature = (id: FeatureId) => {
-    setAppearanceOpen(false);
-    setPersonalInfoOpen(false);
-    if (id !== "schedule") setTargetWeek(undefined);
-    setFeature(id);
+    pushRoute({ type: "feature", id });
   };
-  const closeFeature = () => setFeature(null);
 
-  const openTimetableAt = useCallback((week: number) => {
-    setTargetWeek(week);
-    setFeature("schedule");
-  }, []);
+  useEffect(() => {
+    const onAppBack = () => goBack();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" && event.key !== "Back") return;
+      event.preventDefault();
+      goBack();
+    };
+    window.addEventListener("app-back", onAppBack);
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("app-back", onAppBack);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [goBack]);
+
+  const openTimetableAt = useCallback(
+    (week: number) => {
+      pushRoute({ type: "feature", id: "schedule", initialWeek: week });
+    },
+    [pushRoute],
+  );
 
   /**
    * 功能页未登录时的统一出口：登记想登录的平台，然后跳到登录管理页。
    * 管理页读走这条请求并自动开始登录，所以登录动作只发生在管理页。
    */
-  const goLogin = useCallback((platform: PlatformId) => {
-    requestLogin(platform);
-    setFeature("auth");
-  }, []);
+  const goLogin = useCallback(
+    (platform: PlatformId) => {
+      requestLogin(platform);
+      pushRoute({ type: "feature", id: "auth" });
+    },
+    [pushRoute],
+  );
 
-  const renderFeature = (id: FeatureId) => {
-    if (id === "electricity") return <ElectricityPage onBack={closeFeature} />;
+  const renderFeature = (id: FeatureId, initialWeek?: number) => {
+    if (id === "electricity") return <ElectricityPage onBack={goBack} />;
     if (id === "classroom") {
       return (
-        <ClassroomPage
-          onBack={closeFeature}
-          onNeedLogin={() => goLogin("ybt")}
-        />
+        <ClassroomPage onBack={goBack} onNeedLogin={() => goLogin("ybt")} />
       );
     }
     if (id === "schedule") {
       return (
         <TimetablePage
-          onBack={closeFeature}
-          initialWeek={targetWeek}
-          onOpenCalendar={() => setFeature("calendar")}
+          onBack={goBack}
+          initialWeek={initialWeek}
+          onOpenCalendar={() => pushRoute({ type: "feature", id: "calendar" })}
           onSemesterChange={setSemester}
           onNeedLogin={() => goLogin("jw")}
         />
@@ -142,7 +240,7 @@ export default function App() {
     if (id === "calendar") {
       return (
         <CalendarPage
-          onBack={closeFeature}
+          onBack={goBack}
           semesterStart={semester.startDate}
           maxWeek={semester.maxWeek}
           onOpenTimetable={openTimetableAt}
@@ -150,8 +248,8 @@ export default function App() {
         />
       );
     }
-    if (id === "auth") return <AuthPage onBack={closeFeature} />;
-    return <FeaturePage featureId={id} onBack={closeFeature} />;
+    if (id === "auth") return <AuthPage onBack={goBack} />;
+    return <FeaturePage featureId={id} onBack={goBack} />;
   };
 
   const content = restoring ? (
@@ -161,65 +259,49 @@ export default function App() {
         <span>正在恢复登录状态…</span>
       </div>
     </div>
-  ) : personalInfoOpen ? (
+  ) : currentRoute.type === "personal-info" ? (
     <PersonalInfoPage
       info={personalInfo}
       onSave={changePersonalInfo}
-      onBack={() => setPersonalInfoOpen(false)}
+      onBack={goBack}
     />
-  ) : appearanceOpen ? (
+  ) : currentRoute.type === "appearance" ? (
     <AppearancePage
       settings={themeSettings}
       onChange={changeThemeSettings}
-      onBack={() => setAppearanceOpen(false)}
+      onBack={goBack}
     />
-  ) : feature ? (
-    renderFeature(feature)
-  ) : tab === "home" ? (
+  ) : currentRoute.type === "feature" ? (
+    renderFeature(currentRoute.id, currentRoute.initialWeek)
+  ) : currentRoute.tab === "home" ? (
     <HomePage
       onOpenFeature={openFeature}
-      onBrowseServices={() => setTab("services")}
+      onBrowseServices={() => setRootRoute({ type: "tab", tab: "services" })}
     />
-  ) : tab === "services" ? (
+  ) : currentRoute.tab === "services" ? (
     <ServicesPage onOpenFeature={openFeature} />
   ) : (
     <ProfilePage
-      onOpenAuth={() => setFeature("auth")}
-      onOpenAppearance={() => setAppearanceOpen(true)}
+      onOpenAuth={() => pushRoute({ type: "feature", id: "auth" })}
+      onOpenAppearance={() => pushRoute({ type: "appearance" })}
       profile={personalInfo}
-      onOpenPersonalInfo={() => setPersonalInfoOpen(true)}
+      onOpenPersonalInfo={() => pushRoute({ type: "personal-info" })}
     />
   );
 
-  const contentKey = restoring
-    ? "restoring"
-    : personalInfoOpen
-      ? "personal-info"
-      : appearanceOpen
-        ? "appearance"
-        : feature
-          ? `feature:${feature}`
-          : `tab:${tab}`;
+  const contentKey = restoring ? "restoring" : currentScreen.key;
   const pageTransition = reduceMotion
     ? { duration: 0 }
     : { type: "spring" as const, stiffness: 360, damping: 32, mass: 0.8 };
 
   return (
     <AppShell
-      activeTab={tab}
+      activeTab={activeTab}
       profile={personalInfo}
       onOpenProfile={() => {
-        setAppearanceOpen(false);
-        setPersonalInfoOpen(false);
-        setFeature(null);
-        setTab("profile");
+        setRootRoute({ type: "tab", tab: "profile" });
       }}
-      onTabChange={(next) => {
-        setAppearanceOpen(false);
-        setPersonalInfoOpen(false);
-        setFeature(null);
-        setTab(next);
-      }}
+      onTabChange={(next) => setRootRoute({ type: "tab", tab: next })}
     >
       <AnimatePresence mode="wait" initial={false}>
         <motion.div
@@ -233,6 +315,21 @@ export default function App() {
           {content}
         </motion.div>
       </AnimatePresence>
+      {exitPromptVisible &&
+        createPortal(
+          <motion.div
+            className="app-exit-prompt-layer"
+            initial={{ opacity: 0, y: 10, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 6, scale: 0.98 }}
+            transition={{ duration: 0.18 }}
+          >
+            <div className="app-exit-prompt" role="status" aria-live="polite">
+              再按一次返回键退出
+            </div>
+          </motion.div>,
+          document.body,
+        )}
     </AppShell>
   );
 }

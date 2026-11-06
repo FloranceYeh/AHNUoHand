@@ -2,6 +2,11 @@ mod classroom;
 mod mobile_login;
 mod windows;
 
+#[tauri::command]
+fn exit_app(app: tauri::AppHandle) {
+    app.exit(0);
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = tauri::Builder::default().plugin(tauri_plugin_opener::init());
@@ -18,6 +23,7 @@ pub fn run() {
 
     builder
         .invoke_handler(tauri::generate_handler![
+            exit_app,
             classroom::classroom_login,
             windows::open_login_window,
             windows::read_window_page,
