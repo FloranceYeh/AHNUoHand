@@ -1,5 +1,6 @@
 import { Selector } from "antd-mobile";
 import { Icon } from "../components/Icon";
+import { BrandIcon } from "../components/BrandIcon";
 import type { AccentColor, ThemeMode, ThemeSettings } from "../lib/theme";
 
 const themeOptions = [
@@ -95,7 +96,7 @@ export function AppearancePage({
         </div>
         <div className="appearance-preview-card">
           <div className="appearance-preview-brand">
-            <span className="brand-mark">A</span>
+            <BrandIcon />
             <span>AHNUoHand</span>
           </div>
           <div className="appearance-preview-content">

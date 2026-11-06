@@ -1,5 +1,6 @@
 import { Icon } from "../components/Icon";
 import type { PersonalInfo } from "../lib/profile";
+import { APP_NAME, APP_VERSION } from "../lib/appVersion";
 
 const settings = [
   { icon: "chat", title: "关于与反馈", description: "了解应用并提出建议" },
@@ -77,7 +78,7 @@ export function ProfilePage({
         ))}
       </section>
       <div className="profile-version">
-        AHNUoHand <span>版本 0.1.0</span>
+        {APP_NAME} <span>版本 {APP_VERSION}</span>
       </div>
     </div>
   );

@@ -105,17 +105,14 @@ textarea:focus-visible {
   font-weight: 700;
 }
 
-.brand-mark {
-  display: grid;
+.brand-icon {
+  display: block;
   flex: 0 0 31px;
-  place-items: center;
   width: 31px;
   height: 31px;
-  border-radius: var(--radius-sm);
   background: var(--color-primary);
-  color: var(--color-on-primary);
-  font-family: Georgia, serif;
-  font-size: 19px;
+  -webkit-mask: url("/icon.svg") center / contain no-repeat;
+  mask: url("/icon.svg") center / contain no-repeat;
 }
 
 .brand-light {
@@ -939,11 +936,10 @@ textarea:focus-visible {
   font-size: var(--text-micro);
   font-weight: 700;
 }
-.appearance-preview-brand .brand-mark {
+.appearance-preview-brand .brand-icon {
   flex-basis: 24px;
   width: 24px;
   height: 24px;
-  font-size: 14px;
 }
 .appearance-preview-content {
   display: flex;
@@ -2479,7 +2475,7 @@ textarea:focus-visible {
   --height: 30px;
   --input-width: 42px;
   --button-width: 38px;
-  --input-font-size: 15px;
+  --input-font-size: 12px;
   --input-font-color: var(--color-ink);
   --input-background-color: var(--color-surface);
   --button-font-size: 18px;

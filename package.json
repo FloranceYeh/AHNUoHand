@@ -6,10 +6,14 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "version:sync": "node scripts/sync-version.mjs",
+    "icons": "node scripts/sync-version.mjs && tauri icon src-tauri/icons/icon-manifest.json",
+    "predev": "pnpm version:sync",
+    "prebuild": "pnpm version:sync",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "node scripts/sync-version.mjs && tauri"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",

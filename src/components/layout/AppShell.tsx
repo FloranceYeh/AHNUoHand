@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { MainTab } from "../../types";
 import { BottomNavigation } from "./BottomNavigation";
+import { BrandIcon } from "../BrandIcon";
 
 interface AppShellProps {
   activeTab: MainTab;
@@ -28,7 +29,7 @@ export function AppShell({
             onTabChange("home");
           }}
         >
-          <span className="brand-mark">A</span>
+          <BrandIcon />
           <span>
             AHNUoHand<span className="brand-light"> · 校园助手</span>
           </span>
