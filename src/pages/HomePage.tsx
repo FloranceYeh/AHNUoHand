@@ -2,15 +2,20 @@ import { campusServices } from "../data/services";
 import type { CampusServiceId, FeatureId } from "../types";
 import { Icon } from "../components/Icon";
 import { ServiceGrid } from "../components/services/ServiceGrid";
+import { DEFAULT_HOME_GREETING } from "../lib/theme";
 
 export function HomePage({
   onOpenFeature,
   onBrowseServices,
   homeServices,
+  greeting,
+  emoji,
 }: {
   onOpenFeature: (id: FeatureId) => void;
   onBrowseServices: () => void;
   homeServices: CampusServiceId[];
+  greeting: string;
+  emoji: string;
 }) {
   const featured = homeServices
     .map((id) => campusServices.find((service) => service.id === id))
@@ -20,7 +25,8 @@ export function HomePage({
       <section className="welcome-block">
         <p className="eyebrow">ANHUI NORMAL UNIVERSITY</p>
         <h1>
-          你好，同学<span className="wave">👋</span>
+          {greeting.trim() || DEFAULT_HOME_GREETING}
+          {emoji.trim() && <span className="wave">{emoji.trim()}</span>}
         </h1>
         <p className="welcome-subtitle">校园里的大小事，从这里开始。</p>
       </section>
@@ -51,7 +57,7 @@ export function HomePage({
           <ServiceGrid services={featured} onOpen={onOpenFeature} />
         ) : (
           <p className="empty-state">
-            还没有常用服务，可在“首页与导航”中添加。
+            还没有常用服务，可在“主页与导航”中添加。
           </p>
         )}
       </section>

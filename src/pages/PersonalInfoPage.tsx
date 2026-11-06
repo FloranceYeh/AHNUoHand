@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { Icon } from "../components/Icon";
+import { Input } from "antd-mobile";
 import type { PersonalInfo } from "../lib/profile";
 
 export function PersonalInfoPage({
@@ -113,35 +114,40 @@ export function PersonalInfoPage({
       </section>
 
       <section className="personal-fields" aria-label="个人资料">
-        <label className="personal-field">
-          <span>昵称</span>
-          <input
+        <div className="personal-field">
+          <label className="personal-field-label" htmlFor="personal-nickname">
+            昵称
+          </label>
+          <Input
+            id="personal-nickname"
             value={draft.nickname}
             maxLength={24}
             placeholder="输入昵称"
-            onChange={(event) =>
-              setDraft((current) => ({
-                ...current,
-                nickname: event.target.value,
-              }))
+            clearable
+            onChange={(nickname) =>
+              setDraft((current) => ({ ...current, nickname }))
             }
           />
-        </label>
-        <label className="personal-field">
-          <span>学号</span>
-          <input
+        </div>
+        <div className="personal-field">
+          <label className="personal-field-label" htmlFor="personal-student-id">
+            学号
+          </label>
+          <Input
+            id="personal-student-id"
             value={draft.studentId}
             inputMode="numeric"
             maxLength={20}
             placeholder="输入学号，供后勤服务绑定"
-            onChange={(event) =>
+            clearable
+            onChange={(value) =>
               setDraft((current) => ({
                 ...current,
-                studentId: event.target.value.replace(/\D/g, ""),
+                studentId: value.replace(/\D/g, ""),
               }))
             }
           />
-        </label>
+        </div>
         {error && <p className="elec-error-text">{error}</p>}
       </section>
       <button className="elec-primary personal-save" onClick={submit}>

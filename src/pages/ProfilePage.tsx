@@ -71,7 +71,7 @@ export function ProfilePage({
             <Icon name="layoutGrid" size={20} />
           </span>
           <span className="settings-copy">
-            <strong>首页与导航</strong>
+            <strong>主页与导航</strong>
             <small>自定义常用服务与底部菜单，拖动调整顺序</small>
           </span>
           <Icon name="chevron" size={18} className="service-chevron" />

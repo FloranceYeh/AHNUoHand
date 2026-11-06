@@ -70,14 +70,21 @@ function createScreen(key: number, route: AppRoute): StackScreen {
   return { key, route };
 }
 
+function navigationRoute(id: NavigationItemId): AppRoute {
+  const item = navigationItems.find((option) => option.id === id)!;
+  return item.kind === "feature"
+    ? { type: "menu-feature", id: item.id }
+    : { type: "tab", tab: item.id };
+}
+
 export default function App() {
   const reduceMotion = useReducedMotion();
-  const [stack, setStack] = useState<StackScreen[]>([
-    createScreen(0, { type: "tab", tab: "home" }),
+  const [themeSettings, setThemeSettings] = useState(readThemeSettings);
+  const [stack, setStack] = useState<StackScreen[]>(() => [
+    createScreen(0, navigationRoute(themeSettings.defaultNavigation)),
   ]);
   const nextScreenKey = useRef(1);
   const [semester, setSemester] = useState<SemesterInfo>({});
-  const [themeSettings, setThemeSettings] = useState(readThemeSettings);
   const [personalInfo, setPersonalInfo] =
     useState<PersonalInfo>(readPersonalInfo);
   const lastHomeBackRef = useRef(0);
@@ -88,7 +95,6 @@ export default function App() {
   const currentScreen = stack[stack.length - 1];
   const currentRoute = currentScreen.route;
   const rootRoute = stack[0].route;
-  const activeTab = rootRoute.type === "tab" ? rootRoute.tab : "home";
   const activeItem: NavigationItemId =
     rootRoute.type === "menu-feature"
       ? rootRoute.id
@@ -116,10 +122,10 @@ export default function App() {
       setStack((current) => current.slice(0, -1));
       return;
     }
-    if (rootRoute.type === "menu-feature" || activeTab !== "home") {
+    if (activeItem !== themeSettings.defaultNavigation) {
       lastHomeBackRef.current = 0;
       setExitPromptVisible(false);
-      setRootRoute({ type: "tab", tab: "home" });
+      setRootRoute(navigationRoute(themeSettings.defaultNavigation));
       return;
     }
     if (isAndroid) {
@@ -145,7 +151,13 @@ export default function App() {
         exitPromptTimerRef.current = null;
       }, 2000);
     }
-  }, [activeTab, isAndroid, rootRoute.type, setRootRoute, stack.length]);
+  }, [
+    activeItem,
+    isAndroid,
+    themeSettings.defaultNavigation,
+    setRootRoute,
+    stack.length,
+  ]);
 
   useEffect(
     () => () => {
@@ -156,8 +168,23 @@ export default function App() {
     [],
   );
 
+  useEffect(() => {
+    lastHomeBackRef.current = 0;
+    setExitPromptVisible(false);
+    if (exitPromptTimerRef.current !== null) {
+      window.clearTimeout(exitPromptTimerRef.current);
+      exitPromptTimerRef.current = null;
+    }
+  }, [currentScreen.key, themeSettings.defaultNavigation]);
+
   const changeThemeSettings = useCallback((changes: Partial<ThemeSettings>) => {
-    setThemeSettings((current) => ({ ...current, ...changes }));
+    setThemeSettings((current) => {
+      const next = { ...current, ...changes };
+      if (!next.navigationTabs.includes(next.defaultNavigation)) {
+        next.defaultNavigation = next.navigationTabs[0];
+      }
+      return next;
+    });
   }, []);
   useEffect(() => {
     saveThemeSettings(themeSettings);
@@ -236,17 +263,22 @@ export default function App() {
     [pushRoute],
   );
 
-  const renderFeature = (id: FeatureId, initialWeek?: number) => {
-    if (id === "electricity") return <ElectricityPage onBack={goBack} />;
+  const renderFeature = (
+    id: FeatureId,
+    initialWeek?: number,
+    isMenuPage = false,
+  ) => {
+    const onBack = isMenuPage ? undefined : goBack;
+    if (id === "electricity") return <ElectricityPage onBack={onBack} />;
     if (id === "classroom") {
       return (
-        <ClassroomPage onBack={goBack} onNeedLogin={() => goLogin("ybt")} />
+        <ClassroomPage onBack={onBack} onNeedLogin={() => goLogin("ybt")} />
       );
     }
     if (id === "schedule") {
       return (
         <TimetablePage
-          onBack={goBack}
+          onBack={onBack}
           initialWeek={initialWeek}
           onOpenCalendar={() => pushRoute({ type: "feature", id: "calendar" })}
           onSemesterChange={setSemester}
@@ -257,7 +289,7 @@ export default function App() {
     if (id === "calendar") {
       return (
         <CalendarPage
-          onBack={goBack}
+          onBack={onBack}
           semesterStart={semester.startDate}
           maxWeek={semester.maxWeek}
           onOpenTimetable={openTimetableAt}
@@ -266,7 +298,7 @@ export default function App() {
       );
     }
     if (id === "auth") return <AuthPage onBack={goBack} />;
-    return <FeaturePage featureId={id} onBack={goBack} />;
+    return <FeaturePage featureId={id} onBack={onBack} />;
   };
 
   const content = restoring ? (
@@ -295,7 +327,7 @@ export default function App() {
       onBack={goBack}
     />
   ) : currentRoute.type === "menu-feature" ? (
-    renderFeature(currentRoute.id)
+    renderFeature(currentRoute.id, undefined, true)
   ) : currentRoute.type === "feature" ? (
     renderFeature(currentRoute.id, currentRoute.initialWeek)
   ) : currentRoute.tab === "home" ? (
@@ -303,6 +335,8 @@ export default function App() {
       onOpenFeature={openFeature}
       onBrowseServices={() => setRootRoute({ type: "tab", tab: "services" })}
       homeServices={themeSettings.homeServices}
+      greeting={themeSettings.homeGreeting}
+      emoji={themeSettings.homeEmoji}
     />
   ) : currentRoute.tab === "services" ? (
     <ServicesPage onOpenFeature={openFeature} />
@@ -331,15 +365,7 @@ export default function App() {
         setRootRoute({ type: "tab", tab: "profile" });
       }}
       onNavigationSelect={(id) => {
-        const item = navigationItems.find((option) => option.id === id);
-        if (item?.kind === "feature") {
-          setRootRoute({
-            type: "menu-feature",
-            id: item.id,
-          });
-        } else if (item?.kind === "tab") {
-          setRootRoute({ type: "tab", tab: item.id });
-        }
+        setRootRoute(navigationRoute(id));
       }}
     >
       <AnimatePresence mode="wait" initial={false}>

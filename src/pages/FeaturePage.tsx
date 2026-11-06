@@ -10,16 +10,18 @@ export function FeaturePage({
   onBack,
 }: {
   featureId: FeatureId;
-  onBack: () => void;
+  onBack?: () => void;
 }) {
   const detail = featureDetails[featureId as PlaceholderFeatureId];
   const service = campusServices.find((item) => item.id === featureId);
   return (
     <div className="page feature-page">
-      <button className="back-button" onClick={onBack}>
-        <Icon name="arrow" size={19} />
-        返回
-      </button>
+      {onBack && (
+        <button className="back-button" onClick={onBack}>
+          <Icon name="arrow" size={19} />
+          返回
+        </button>
+      )}
       <section className="feature-intro">
         <span
           className={`feature-hero-icon service-icon-${service?.category ?? "campus"}`}

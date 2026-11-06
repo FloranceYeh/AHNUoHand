@@ -32,7 +32,7 @@ type Phase = "setup" | "loading" | "ready" | "error";
 
 const OPERATOR_PATTERN = /^[0-9]{6,20}$/;
 
-export function ElectricityPage({ onBack }: { onBack: () => void }) {
+export function ElectricityPage({ onBack }: { onBack?: () => void }) {
   const initialStudentId = () => getSavedOperator();
   const [operatorNo, setOperatorNo] = useState(initialStudentId);
   const [draft, setDraft] = useState(initialStudentId);
@@ -138,10 +138,12 @@ export function ElectricityPage({ onBack }: { onBack: () => void }) {
 
   return (
     <div className="page feature-page electricity-page">
-      <button className="back-button" onClick={onBack}>
-        <Icon name="arrow" size={19} />
-        返回
-      </button>
+      {onBack && (
+        <button className="back-button" onClick={onBack}>
+          <Icon name="arrow" size={19} />
+          返回
+        </button>
+      )}
 
       <section className="feature-intro">
         <span className="feature-hero-icon service-icon-life">

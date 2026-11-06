@@ -59,7 +59,7 @@ export function CalendarPage({
   maxWeek,
   onNeedLogin,
 }: {
-  onBack: () => void;
+  onBack?: () => void;
   onOpenTimetable?: (week: number) => void;
   semesterStart?: string;
   maxWeek?: number;
@@ -210,10 +210,12 @@ export function CalendarPage({
 
   return (
     <div className="page feature-page cal-page">
-      <button className="back-button" onClick={onBack}>
-        <Icon name="arrow" size={19} />
-        返回
-      </button>
+      {onBack && (
+        <button className="back-button" onClick={onBack}>
+          <Icon name="arrow" size={19} />
+          返回
+        </button>
+      )}
 
       <section className="feature-intro">
         <span className="feature-hero-icon service-icon-campus">

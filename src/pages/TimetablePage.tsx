@@ -119,7 +119,7 @@ export function TimetablePage({
   onSemesterChange,
   onNeedLogin,
 }: {
-  onBack: () => void;
+  onBack?: () => void;
   /** 从校历跳转过来时指定要看的周次 */
   initialWeek?: number;
   onOpenCalendar?: () => void;
@@ -510,10 +510,12 @@ export function TimetablePage({
 
   return (
     <div className="page feature-page tt-page">
-      <button className="back-button" onClick={onBack}>
-        <Icon name="arrow" size={19} />
-        返回
-      </button>
+      {onBack && (
+        <button className="back-button" onClick={onBack}>
+          <Icon name="arrow" size={19} />
+          返回
+        </button>
+      )}
 
       {phase !== "ready" && (
         <>

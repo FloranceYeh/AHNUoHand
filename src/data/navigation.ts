@@ -19,7 +19,7 @@ export type NavigationItem = TabNavigationItem | ServiceNavigationItem;
 const mainItems: TabNavigationItem[] = [
   {
     id: "home",
-    label: "首页",
+    label: "主页",
     icon: "home",
     description: "校园信息与常用服务",
     kind: "tab",

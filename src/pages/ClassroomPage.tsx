@@ -35,7 +35,7 @@ export function ClassroomPage({
   onBack,
   onNeedLogin,
 }: {
-  onBack: () => void;
+  onBack?: () => void;
   /** 未登录时跳到登录管理页 */
   onNeedLogin: () => void;
 }) {
@@ -306,10 +306,12 @@ export function ClassroomPage({
 
   return (
     <div className="page feature-page classroom-page">
-      <button className="back-button" onClick={onBack}>
-        <Icon name="arrow" size={19} />
-        返回
-      </button>
+      {onBack && (
+        <button className="back-button" onClick={onBack}>
+          <Icon name="arrow" size={19} />
+          返回
+        </button>
+      )}
 
       <section className="feature-intro">
         <span className="feature-hero-icon service-icon-academic">

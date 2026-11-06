@@ -5,6 +5,9 @@ export type AccentColor = "teal" | "blue" | "violet" | "amber" | "rose";
 export type NavigationDisplay = "icon-label" | "icon-only";
 export type ContentMode = "normal" | "simple";
 
+export const DEFAULT_HOME_GREETING = "你好，同学";
+export const DEFAULT_HOME_EMOJI = "👋";
+
 export interface ThemeSettings {
   mode: ThemeMode;
   accent: AccentColor;
@@ -12,6 +15,9 @@ export interface ThemeSettings {
   contentMode: ContentMode;
   homeServices: CampusServiceId[];
   navigationTabs: NavigationItemId[];
+  defaultNavigation: NavigationItemId;
+  homeGreeting: string;
+  homeEmoji: string;
 }
 
 const STORAGE_KEY = "ahnuhand-theme";
@@ -22,6 +28,9 @@ const DEFAULT_SETTINGS: ThemeSettings = {
   contentMode: "normal",
   homeServices: ["schedule", "classroom", "electricity"],
   navigationTabs: ["home", "services", "profile"],
+  defaultNavigation: "home",
+  homeGreeting: DEFAULT_HOME_GREETING,
+  homeEmoji: DEFAULT_HOME_EMOJI,
 };
 
 const HOME_SERVICE_IDS: CampusServiceId[] = [
@@ -90,7 +99,16 @@ export function readThemeSettings(): ThemeSettings {
       contentMode?: unknown;
       homeServices?: unknown;
       navigationTabs?: unknown;
+      defaultNavigation?: unknown;
+      homeGreeting?: unknown;
+      homeEmoji?: unknown;
     } | null;
+    const navigationTabs = readOrderedSelection(
+      parsed?.navigationTabs,
+      NAVIGATION_TAB_IDS,
+      DEFAULT_SETTINGS.navigationTabs,
+      5,
+    );
     return {
       mode: isThemeMode(parsed?.mode) ? parsed.mode : DEFAULT_SETTINGS.mode,
       accent: isAccentColor(parsed?.accent)
@@ -109,12 +127,21 @@ export function readThemeSettings(): ThemeSettings {
         HOME_SERVICE_IDS.length,
         true,
       ),
-      navigationTabs: readOrderedSelection(
-        parsed?.navigationTabs,
-        NAVIGATION_TAB_IDS,
-        DEFAULT_SETTINGS.navigationTabs,
-        5,
-      ),
+      navigationTabs,
+      homeGreeting:
+        typeof parsed?.homeGreeting === "string" &&
+        parsed.homeGreeting.length <= 32
+          ? parsed.homeGreeting
+          : DEFAULT_HOME_GREETING,
+      homeEmoji:
+        typeof parsed?.homeEmoji === "string" && parsed.homeEmoji.length <= 32
+          ? parsed.homeEmoji
+          : DEFAULT_HOME_EMOJI,
+      defaultNavigation: navigationTabs.includes(
+        parsed?.defaultNavigation as NavigationItemId,
+      )
+        ? (parsed!.defaultNavigation as NavigationItemId)
+        : navigationTabs[0],
     };
   } catch {
     return DEFAULT_SETTINGS;

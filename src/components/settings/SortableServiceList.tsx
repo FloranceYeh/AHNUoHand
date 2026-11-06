@@ -5,7 +5,7 @@ import {
   useDragControls,
   useReducedMotion,
 } from "motion/react";
-import { memo, useId, useRef, type RefObject } from "react";
+import { memo, useEffect, useId, useRef, type RefObject } from "react";
 import { navigationItems, type NavigationItem } from "../../data/navigation";
 import type { NavigationItemId } from "../../types";
 import { Icon } from "../Icon";
@@ -18,15 +18,33 @@ function SortableService({
   listRef,
   removeDisabled,
   onRemove,
+  isDefault,
+  onLongPress,
 }: {
   item: NavigationItem;
   orderKey: string;
   listRef: RefObject<HTMLDivElement | null>;
   removeDisabled: boolean;
   onRemove: () => void;
+  isDefault: boolean;
+  onLongPress?: (id: NavigationItemId) => void;
 }) {
   const controls = useDragControls();
   const reduceMotion = useReducedMotion();
+  const pressTimer = useRef<number | null>(null);
+  const pressHandled = useRef(false);
+  const pressOrigin = useRef<{ x: number; y: number } | null>(null);
+  const cancelPress = () => {
+    if (pressTimer.current !== null) window.clearTimeout(pressTimer.current);
+    pressTimer.current = null;
+    pressOrigin.current = null;
+  };
+  useEffect(
+    () => () => {
+      if (pressTimer.current !== null) window.clearTimeout(pressTimer.current);
+    },
+    [],
+  );
   return (
     <Reorder.Item
       as="div"
@@ -39,6 +57,72 @@ function SortableService({
       dragConstraints={listRef}
       dragElastic={0.05}
       dragMomentum={false}
+      tabIndex={onLongPress ? 0 : undefined}
+      aria-label={
+        onLongPress
+          ? `${item.label}，${isDefault ? "当前首页" : "长按设为首页"}`
+          : undefined
+      }
+      onPointerDown={(event) => {
+        cancelPress();
+        pressHandled.current = false;
+        if (
+          !onLongPress ||
+          !event.isPrimary ||
+          event.button !== 0 ||
+          (event.target as Element).closest("button")
+        )
+          return;
+        pressOrigin.current = { x: event.clientX, y: event.clientY };
+        pressTimer.current = window.setTimeout(() => {
+          cancelPress();
+          pressHandled.current = true;
+          onLongPress(item.id);
+        }, 500);
+      }}
+      onPointerMove={(event) => {
+        const origin = pressOrigin.current;
+        if (
+          origin &&
+          Math.hypot(event.clientX - origin.x, event.clientY - origin.y) > 10
+        )
+          cancelPress();
+      }}
+      onPointerUp={cancelPress}
+      onPointerCancel={cancelPress}
+      onPointerLeave={cancelPress}
+      onDragStart={cancelPress}
+      onContextMenu={
+        onLongPress
+          ? (event) => {
+              event.preventDefault();
+              cancelPress();
+              if (
+                !pressHandled.current &&
+                !(event.target as Element).closest("button")
+              ) {
+                pressHandled.current = true;
+                onLongPress(item.id);
+              }
+            }
+          : undefined
+      }
+      onKeyDown={
+        onLongPress
+          ? (event) => {
+              if (
+                event.target === event.currentTarget &&
+                (event.key === "Enter" ||
+                  event.key === " " ||
+                  event.key === "ContextMenu" ||
+                  (event.shiftKey && event.key === "F10"))
+              ) {
+                event.preventDefault();
+                onLongPress(item.id);
+              }
+            }
+          : undefined
+      }
       whileDrag={{
         boxShadow: "var(--shadow-floating)",
         borderColor: "var(--color-primary)",
@@ -78,6 +162,12 @@ function SortableService({
           <span className="service-description">{item.description}</span>
         </span>
       )}
+      {isDefault && (
+        <span className="customization-default-badge">
+          <Icon name="star" size={15} />
+          <p>首页</p>
+        </span>
+      )}
       <Button
         size="small"
         fill="none"
@@ -99,11 +189,15 @@ export const SortableServiceList = memo(function SortableServiceList({
   onChange,
   allowEmpty = false,
   label,
+  defaultNavigation,
+  onSetDefaultNavigation,
 }: {
   values: NavigationItemId[];
   onChange: (values: NavigationItemId[]) => void;
   allowEmpty?: boolean;
   label: string;
+  defaultNavigation?: NavigationItemId;
+  onSetDefaultNavigation?: (id: NavigationItemId) => void;
 }) {
   const listRef = useRef<HTMLDivElement>(null);
   const groupId = useId();
@@ -130,6 +224,8 @@ export const SortableServiceList = memo(function SortableServiceList({
               orderKey={orderKey}
               listRef={listRef}
               removeDisabled={!allowEmpty && values.length === 1}
+              isDefault={id === defaultNavigation}
+              onLongPress={onSetDefaultNavigation}
               onRemove={() => onChange(values.filter((value) => value !== id))}
             />
           );

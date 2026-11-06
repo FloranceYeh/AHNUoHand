@@ -2,12 +2,14 @@ import { Button, Checkbox, Popup } from "antd-mobile";
 import { useCallback, useEffect, useState } from "react";
 import { Icon } from "../components/Icon";
 import { SortableServiceList } from "../components/settings/SortableServiceList";
+import { HomeWelcomeSettings } from "../components/settings/HomeWelcomeSettings";
 import { ServiceDetails } from "../components/services/ServiceDetails";
 import { ServiceIcon } from "../components/services/ServiceIcon";
 import { campusServices } from "../data/services";
 import { navigationItems } from "../data/navigation";
 import type { CampusServiceId, NavigationItemId } from "../types";
 import type { ThemeSettings } from "../lib/theme";
+import { hapticIfAllowed } from "../lib/haptics";
 
 export function HomeNavigationPage({
   settings,
@@ -36,6 +38,13 @@ export function HomeNavigationPage({
     [onChange],
   );
   const [picker, setPicker] = useState<"home" | "navigation" | null>(null);
+  const setDefaultNavigation = useCallback(
+    (id: NavigationItemId) => {
+      onChange({ defaultNavigation: id });
+      hapticIfAllowed("success");
+    },
+    [onChange],
+  );
   const [pendingSelection, setPendingSelection] = useState<NavigationItemId[]>(
     [],
   );
@@ -115,15 +124,16 @@ export function HomeNavigationPage({
       </button>
       <div className="page-heading">
         <p className="eyebrow">HOME & NAVIGATION</p>
-        <h1>首页与导航</h1>
-        <p>添加常用服务，拖动图标或手柄调整顺序。底部菜单最多 5 项。</p>
+        <h1>主页与导航</h1>
+        <p>定制欢迎语、常用服务与底部菜单，按你的习惯安排主页。</p>
       </div>
+      <HomeWelcomeSettings settings={settings} onChange={onChange} />
       <section
         className="customization-section"
         aria-labelledby="home-services-title"
       >
         <div className="customization-heading">
-          <h2 id="home-services-title">首页常用服务</h2>
+          <h2 id="home-services-title">主页常用服务</h2>
           <span>{settings.homeServices.length} 项</span>
           <Button
             size="small"
@@ -140,7 +150,7 @@ export function HomeNavigationPage({
           values={settings.homeServices}
           onChange={updateHomeServices}
           allowEmpty
-          label="首页常用服务排序"
+          label="主页常用服务排序"
         />
         {settings.homeServices.length === 0 && (
           <p className="customization-empty">还没有添加常用服务</p>
@@ -167,8 +177,13 @@ export function HomeNavigationPage({
         <SortableServiceList
           values={settings.navigationTabs}
           onChange={updateNavigation}
+          defaultNavigation={settings.defaultNavigation}
+          onSetDefaultNavigation={setDefaultNavigation}
           label="底部菜单排序"
         />
+        <p className="customization-hint">
+          长按上方列表中的项目可设为首页，打开应用时默认显示。
+        </p>
       </section>
       <Popup
         visible={picker !== null}
