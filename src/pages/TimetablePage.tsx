@@ -42,10 +42,18 @@ import {
 import { rememberReturnTo } from "../lib/classroom";
 
 type Phase = "idle" | "waiting" | "reading" | "ready" | "error";
+type WeekendMode = "auto" | "show" | "hide";
 
 interface CachedGrid extends GridResult {
   savedAt: number;
 }
+
+const SHOW_WEEKEND_KEY = "ahnu.timetable.showWeekend.v1";
+const CELL_HEIGHT_KEY = "ahnu.timetable.cellHeight.v1";
+const CELL_HEIGHT_DEFAULT = 46;
+const CELL_HEIGHT_MIN = 32;
+const CELL_HEIGHT_MAX = 100;
+const CELL_HEIGHT_STEP = 2;
 
 function readCachedGrid(): CachedGrid | null {
   try {
@@ -76,6 +84,20 @@ function initialWeekForGrid(
     ? toInputDate(semester.firstStart)
     : undefined;
   return currentWeekOf(startDate, semester.maxWeek || detectedMaxWeek);
+}
+
+function formatCourseTimeRange(value: string): string {
+  const parts = value.trim().split(/\s*[-–~]\s*/);
+  if (parts.length !== 2) return "";
+  const formatClock = (part: string) => {
+    const digits = part.replace(/\D/g, "");
+    if (digits.length < 3 || digits.length > 4) return "";
+    const hour = digits.slice(0, digits.length - 2).padStart(2, "0");
+    const minute = digits.slice(-2);
+    return `${hour}:${minute}`;
+  };
+  const [start, end] = parts.map(formatClock);
+  return start && end ? `${start}–${end}` : "";
 }
 
 const WEEKDAY_SHORT = ["", "一", "二", "三", "四", "五", "六", "日"];
@@ -234,6 +256,37 @@ export function TimetablePage({
       .sort((a, b) => a.weekday - b.weekday || a.period - b.period);
   }, [grid]);
 
+  const [weekendMode, setWeekendMode] = useState<WeekendMode>(() => {
+    try {
+      const saved = localStorage.getItem(SHOW_WEEKEND_KEY);
+      if (saved === "show" || saved === "hide") return saved;
+    } catch {
+      /* Ignore unavailable storage. */
+    }
+    return "auto";
+  });
+  const [cellHeight, setCellHeight] = useState(() => {
+    try {
+      const raw = localStorage.getItem(CELL_HEIGHT_KEY);
+      const saved = Number(raw);
+      if (raw !== null && Number.isFinite(saved)) {
+        return Math.min(
+          CELL_HEIGHT_MAX,
+          Math.max(
+            CELL_HEIGHT_MIN,
+            Math.round(saved / CELL_HEIGHT_STEP) * CELL_HEIGHT_STEP,
+          ),
+        );
+      }
+    } catch {
+      /* Ignore unavailable storage. */
+    }
+    return CELL_HEIGHT_DEFAULT;
+  });
+  const weekendsVisible =
+    weekendMode === "show" ||
+    (weekendMode === "auto" && slots.some((slot) => slot.weekday >= 6));
+
   // 课表里出现过的最大周次，作为「未设置时的默认周数」
   const detectedMaxWeek = useMemo(
     () => slots.reduce((max, slot) => Math.max(max, ...slot.weeks, 1), 1),
@@ -282,12 +335,7 @@ export function TimetablePage({
     return Math.max(used, PERIOD_COUNT);
   }, [activeSlots]);
 
-  const showWeekend = useMemo(
-    () => activeSlots.some((slot) => slot.weekday >= 6),
-    [activeSlots],
-  );
-
-  const days = showWeekend ? [1, 2, 3, 4, 5, 6, 7] : [1, 2, 3, 4, 5];
+  const days = weekendsVisible ? [1, 2, 3, 4, 5, 6, 7] : [1, 2, 3, 4, 5];
 
   const startKey = semester.firstStart
     ? toInputDate(semester.firstStart)
@@ -295,6 +343,39 @@ export function TimetablePage({
   const monday = weekStartDate(startKey, week);
   const semesterStart = semester.firstStart;
   const isThisWeek = week === nowWeek;
+  const selectedTimeRange = selected
+    ? formatCourseTimeRange(selected.timeRange) ||
+      (() => {
+        const start = periodTimes[selected.period - 1]?.[0];
+        const end = periodTimes[selected.period + selected.span - 2]?.[1];
+        return start && end ? `${start}–${end}` : "";
+      })()
+    : "";
+
+  const setWeekendVisibility = (mode: WeekendMode) => {
+    setWeekendMode(mode);
+    try {
+      localStorage.setItem(SHOW_WEEKEND_KEY, mode);
+    } catch {
+      /* Ignore unavailable storage. */
+    }
+  };
+
+  const setTimetableCellHeight = (value: number) => {
+    const next = Math.min(
+      CELL_HEIGHT_MAX,
+      Math.max(
+        CELL_HEIGHT_MIN,
+        Math.round(value / CELL_HEIGHT_STEP) * CELL_HEIGHT_STEP,
+      ),
+    );
+    setCellHeight(next);
+    try {
+      localStorage.setItem(CELL_HEIGHT_KEY, String(next));
+    } catch {
+      /* Ignore unavailable storage. */
+    }
+  };
 
   // 把生效的首周与总周数同步给外层，校历据此对齐
   useEffect(() => {
@@ -558,7 +639,8 @@ export function TimetablePage({
                 className="tt-calendar tt-calendar-swipe"
                 style={{
                   ["--tt-template" as string]: template,
-                  ["--tt-rows" as string]: `30px repeat(${maxPeriod}, minmax(46px, auto))`,
+                  ["--tt-cell-height" as string]: `${cellHeight}px`,
+                  ["--tt-rows" as string]: `30px repeat(${maxPeriod}, minmax(${cellHeight}px, auto))`,
                 }}
                 onPointerDown={onPointerDown}
                 onPointerMove={onPointerMove}
@@ -751,6 +833,50 @@ export function TimetablePage({
                   </button>
                 </div>
 
+                <div className="tt-weekend-setting">
+                  <span>
+                    <b>显示周末</b>
+                    <small>自动按本学期课程判断</small>
+                  </span>
+                  <div
+                    className="tt-weekend-options"
+                    role="group"
+                    aria-label="周末显示方式"
+                  >
+                    {(
+                      [
+                        ["auto", "自动"],
+                        ["show", "显示"],
+                        ["hide", "隐藏"],
+                      ] as const
+                    ).map(([mode, label]) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        className={weekendMode === mode ? "active" : ""}
+                        aria-pressed={weekendMode === mode}
+                        onClick={() => setWeekendVisibility(mode)}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="tt-cell-height-setting">
+                  <span>
+                    <b>每格高度</b>
+                    <small>调整课程表的纵向密度，可按 2px 调整</small>
+                  </span>
+                  <Stepper
+                    min={CELL_HEIGHT_MIN}
+                    max={CELL_HEIGHT_MAX}
+                    step={CELL_HEIGHT_STEP}
+                    value={cellHeight}
+                    onChange={setTimetableCellHeight}
+                  />
+                </div>
+
                 <div className="tt-setting-meta">
                   <div>
                     <span>学期</span>
@@ -918,7 +1044,7 @@ export function TimetablePage({
                   {selected.span > 1
                     ? `–${selected.period + selected.span - 1}`
                     : ""}{" "}
-                  节{selected.timeRange ? `（${selected.timeRange}）` : ""}
+                  节{selectedTimeRange ? `（${selectedTimeRange}）` : ""}
                 </dd>
               </div>
               <div>

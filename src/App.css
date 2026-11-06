@@ -2141,7 +2141,7 @@ textarea:focus-visible {
   font-style: normal;
 }
 .tt-gridcell {
-  min-height: 46px;
+  min-height: var(--tt-cell-height, 46px);
   border-top: 1px dashed var(--color-line);
   border-left: 1px solid var(--color-line);
 }
@@ -2375,6 +2375,7 @@ textarea:focus-visible {
 }
 .tt-setting-group {
   overflow: hidden;
+  border: 1px solid var(--color-line);
   border-radius: var(--radius-lg);
   background: var(--color-surface-muted);
 }
@@ -2402,6 +2403,95 @@ textarea:focus-visible {
   display: grid;
   gap: 4px;
 }
+.tt-weekend-setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-muted);
+}
+.tt-weekend-setting > span:first-child {
+  display: grid;
+  gap: 4px;
+}
+.tt-weekend-setting b {
+  color: var(--color-ink);
+  font-size: var(--text-caption);
+}
+.tt-weekend-setting small {
+  color: var(--color-muted);
+  font-size: var(--text-micro);
+}
+.tt-weekend-options {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+}
+.tt-weekend-options button {
+  min-width: 40px;
+  min-height: 30px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-muted-strong);
+  font-size: var(--text-micro);
+  cursor: pointer;
+}
+.tt-weekend-options button.active {
+  background: var(--color-surface-muted);
+  box-shadow: var(--shadow-sm);
+  color: var(--color-primary-strong);
+  font-weight: 700;
+}
+.tt-cell-height-setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-muted);
+}
+.tt-cell-height-setting > span:first-child {
+  display: grid;
+  gap: 4px;
+}
+.tt-cell-height-setting b {
+  color: var(--color-ink);
+  font-size: var(--text-caption);
+}
+.tt-cell-height-setting > span small {
+  color: var(--color-muted);
+  font-size: var(--text-micro);
+}
+.tt-cell-height-setting .adm-stepper {
+  --height: 30px;
+  --input-width: 42px;
+  --button-width: 38px;
+  --input-font-size: 15px;
+  --input-font-color: var(--color-ink);
+  --input-background-color: var(--color-surface);
+  --button-font-size: 18px;
+  --button-text-color: var(--color-primary-strong);
+  --button-background-color: var(--color-surface-subtle);
+  --border-radius: var(--radius-md);
+  --border: 1px solid var(--color-line);
+  --border-inner: 1px solid var(--color-line);
+  flex: 0 0 auto;
+  width: 118px;
+  overflow: hidden;
+}
 .tt-setting-row b {
   font-size: var(--text-caption);
 }
@@ -2422,7 +2512,7 @@ textarea:focus-visible {
   font-size: var(--text-micro);
 }
 .tt-date-picker-trigger {
-  min-width: 150px;
+  min-width: 130px;
   min-height: 35px;
   padding: 0 12px;
   border-radius: var(--radius-md);
@@ -2447,6 +2537,7 @@ textarea:focus-visible {
   flex-direction: column;
   gap: 2px;
   padding: 9px 11px;
+  border: 1px solid var(--color-line);
   border-radius: var(--radius-md);
   background: var(--color-surface-muted);
 }
@@ -2460,6 +2551,7 @@ textarea:focus-visible {
 }
 .tt-setting-meta em {
   margin-top: 1px;
+  margin: 4px;
   color: var(--color-muted);
   font-size: 8.5px;
   font-style: normal;
@@ -2486,6 +2578,7 @@ textarea:focus-visible {
   gap: 10px;
   margin-bottom: 8px;
   padding: 8px 12px;
+  border: 1px solid var(--color-line);
   border-radius: var(--radius-md);
   background: var(--color-surface-muted);
 }
@@ -2514,7 +2607,6 @@ textarea:focus-visible {
   flex: 0 0 auto;
   width: 130px;
   overflow: hidden;
-  box-shadow: var(--shadow-sm);
 }
 .tt-field .adm-stepper-middle {
   background: var(--color-surface);
