@@ -31,6 +31,20 @@
   --color-overlay: rgba(16, 32, 27, 0.42);
   --color-focus: #79bca9;
   --color-selection: #cce9df;
+
+  --overlay-white-faint: rgba(255, 255, 255, 0.14);
+  --overlay-white-soft: rgba(255, 255, 255, 0.2);
+  --overlay-white-strong: rgba(255, 255, 255, 0.28);
+  --overlay-white-line: rgba(255, 255, 255, 0.34);
+  --on-color-secondary: rgba(255, 255, 255, 0.78);
+
+  --accent-swatch-teal: #45a88e;
+  --accent-swatch-blue: #6594ee;
+  --accent-swatch-violet: #a38be8;
+  --accent-swatch-amber: #c1842f;
+  --accent-swatch-rose: #c25178;
+
+  --color-star: #f2b544;
   --color-primary-dark: var(--color-primary-strong);
   --color-ink-light: var(--color-ink-secondary);
   --color-peach: #f6e6d9;
@@ -46,14 +60,62 @@
   --service-campus-foreground: #356e9b;
   --service-account-background: #eee7f7;
   --service-account-foreground: #73529b;
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
-  --space-6: 24px;
-  --space-7: 32px;
-  --space-8: 40px;
+
+  --space-px: 1px;
+  --space-3xs: 2px;
+  --space-2xs: 4px;
+  --space-xs: 6px;
+  --space-sm: 8px;
+  --space-md: 10px;
+  --space-lg: 12px;
+  --space-xl: 14px;
+  --space-2xl: 16px;
+  --space-3xl: 20px;
+  --space-4xl: 24px;
+  --space-5xl: 28px;
+  --space-6xl: 32px;
+  --space-7xl: 40px;
+  --space-8xl: 48px;
+
+  --page-padding-x: var(--space-3xl);
+  --page-padding-top: var(--space-5xl);
+  --section-gap: var(--space-4xl);
+  --card-padding: var(--space-2xl);
+  --card-gap: var(--space-lg);
+  --stack-gap: var(--space-sm);
+  --inline-gap: var(--space-xs);
+
+  --bottom-nav-clearance: 86px;
+  --size-3xs: 2px;
+  --size-2xs: 4px;
+  --size-xs: 6px;
+  --size-sm: 8px;
+  --size-md: 12px;
+  --size-lg: 16px;
+  --size-xl: 20px;
+  --size-2xl: 24px;
+  --size-3xl: 28px;
+  --size-4xl: 32px;
+  --size-5xl: 36px;
+  --size-6xl: 40px;
+  --size-7xl: 48px;
+  --size-8xl: 56px;
+  --size-9xl: 72px;
+
+  --size-icon-sm: 16px;
+  --size-icon-md: 20px;
+  --size-icon-lg: 24px;
+  --size-touch-min: 44px;
+  --size-avatar: 36px;
+  --size-avatar-lg: 56px;
+  --size-dot-sm: 6px;
+  --size-dot-md: 8px;
+  --size-nav-icon: 53px;
+  --size-week-cell: 42px;
+  --size-topbar: 62px;
+  --size-service-card: 126px;
+  --size-service-item: 96px;
+
   --radius-sm: 10px;
   --radius-md: 14px;
   --radius-lg: 20px;
@@ -61,6 +123,9 @@
   --radius-pill: 999px;
   --radius-card: var(--radius-lg);
   --radius-control: var(--radius-md);
+  --radius-chip: 8px;
+  --radius-tag: 6px;
+  --radius-dot: 4px;
   --shadow-sm: 0 2px 8px rgba(24, 52, 43, 0.06);
   --shadow-card: 0 3px 12px rgba(24, 52, 43, 0.045);
   --shadow-floating: 0 8px 22px rgba(24, 52, 43, 0.09);
@@ -68,11 +133,20 @@
   --text-display: 30px;
   --text-title: 22px;
   --text-heading: 18px;
+  --text-subheading: 15px;
   --text-body: 14px;
+  --text-body-sm: 13px;
   --text-caption: 12px;
+  --text-label: 11px;
   --text-micro: 10px;
+  --text-nano: 9px;
   --leading-tight: 1.25;
+  --leading-snug: 1.4;
   --leading-body: 1.55;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
   --motion-fast: 160ms;
   --motion-standard: 240ms;
   --motion-spring: 420ms;

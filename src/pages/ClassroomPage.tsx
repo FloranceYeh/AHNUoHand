@@ -427,7 +427,7 @@ export function ClassroomPage({
                   </div>
                   {buildings.length > 3 && (
                     <p className="cls-scroll-hint">
-                      <span aria-hidden="true">↔</span>
+                      <Icon name="leftRight" size={15} />
                       左右滑动查看更多楼栋 · 长按置顶
                     </p>
                   )}

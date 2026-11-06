@@ -27,6 +27,7 @@ import {
   GripVertical,
   Plus,
   LayoutGrid,
+  ChevronsLeftRight,
 } from "lucide-react";
 
 const icons = {
@@ -58,6 +59,7 @@ const icons = {
   grip: GripVertical,
   plus: Plus,
   layoutGrid: LayoutGrid,
+  leftRight: ChevronsLeftRight,
 };
 
 interface IconProps {

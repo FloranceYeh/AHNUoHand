@@ -142,9 +142,6 @@ export function PersonalInfoPage({
             }
           />
         </label>
-        <p className="personal-info-hint">
-          学号保存在个人资料中。电费查询只使用“登录管理”里后勤服务已绑定的学号。
-        </p>
         {error && <p className="elec-error-text">{error}</p>}
       </section>
       <button className="elec-primary personal-save" onClick={submit}>
