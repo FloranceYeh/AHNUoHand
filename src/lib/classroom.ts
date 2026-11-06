@@ -16,6 +16,11 @@ const API = "https://ybt.ahnu.edu.cn/zhxyApi";
 const CAS_SERVICE = "https://ybt.ahnu.edu.cn/zhxyH5/";
 
 const TOKEN_KEY = "ahnu.classroom.token";
+const BUILDING_CACHE_KEY = "ahnu.classroom.buildings.v1";
+const ROOM_CACHE_KEY = "ahnu.classroom.rooms.v1";
+const FAVORITES_KEY = "ahnu.classroom.favorites.v1";
+const BUILDING_CACHE_TTL = 24 * 60 * 60 * 1000;
+const ROOM_CACHE_TTL = 5 * 60 * 1000;
 
 /** 校区与代码的对应关系来自实地抓包（不同校区楼号前缀分别为 1/2/3）。 */
 export const CAMPUSES = [
@@ -74,11 +79,111 @@ export function clearToken(): void {
   } catch {
     /* ignore */
   }
+  clearClassroomCache();
   markLoginExpired("ybt");
+}
+
+interface CachedValue<T> {
+  savedAt: number;
+  value: T;
+}
+
+interface ClassroomFavorites {
+  buildings: string[];
+  rooms: string[];
+  roomSnapshots: Record<string, EmptyRoom>;
+}
+
+function readJson<T>(key: string): T | null {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeJson(key: string, value: unknown): void {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    /* Ignore unavailable or full storage. */
+  }
+}
+
+function cacheKey(prefix: string, value: unknown): string {
+  return `${prefix}:${JSON.stringify(value)}`;
+}
+
+function readCache<T>(key: string, ttl: number): T | null {
+  const cached = readJson<CachedValue<T>>(key);
+  if (
+    !cached ||
+    !Number.isFinite(cached.savedAt) ||
+    Date.now() - cached.savedAt > ttl
+  ) {
+    return null;
+  }
+  return cached.value;
+}
+
+function saveCache<T>(key: string, value: T): void {
+  writeJson(key, { savedAt: Date.now(), value } satisfies CachedValue<T>);
+}
+
+export function clearClassroomCache(): void {
+  try {
+    const keys: string[] = [];
+    for (let index = 0; index < localStorage.length; index += 1) {
+      const key = localStorage.key(index);
+      if (
+        key?.startsWith(`${BUILDING_CACHE_KEY}:`) ||
+        key?.startsWith(`${ROOM_CACHE_KEY}:`)
+      ) {
+        keys.push(key);
+      }
+    }
+    keys.forEach((key) => localStorage.removeItem(key));
+  } catch {
+    /* ignore */
+  }
+}
+
+export function loadClassroomFavorites(): ClassroomFavorites {
+  const saved = readJson<Partial<ClassroomFavorites>>(FAVORITES_KEY);
+  const savedRooms = Array.isArray(saved?.rooms)
+    ? saved.rooms.filter((item): item is string => typeof item === "string")
+    : [];
+  const savedSnapshots =
+    saved?.roomSnapshots && typeof saved.roomSnapshots === "object"
+      ? (Object.fromEntries(
+          Object.entries(saved.roomSnapshots).filter(([, room]) => {
+            if (!room || typeof room !== "object") return false;
+            const value = room as EmptyRoom;
+            return (
+              typeof value.name === "string" && Array.isArray(value.freePeriods)
+            );
+          }),
+        ) as Record<string, EmptyRoom>)
+      : {};
+  return {
+    buildings: Array.isArray(saved?.buildings)
+      ? saved.buildings.filter(
+          (item): item is string => typeof item === "string",
+        )
+      : [],
+    rooms: savedRooms,
+    roomSnapshots: savedSnapshots,
+  };
+}
+
+export function saveClassroomFavorites(favorites: ClassroomFavorites): void {
+  writeJson(FAVORITES_KEY, favorites);
 }
 
 function saveToken(token: string): void {
   try {
+    if (localStorage.getItem(TOKEN_KEY) !== token) clearClassroomCache();
     localStorage.setItem(TOKEN_KEY, token);
     // 通知登录管理模块记下时间，设置页据此展示
     markLoggedIn("ybt");
@@ -333,15 +438,21 @@ export async function loadCurrentTerm(): Promise<CurrentTerm> {
 }
 
 export async function loadBuildings(campus: string): Promise<Building[]> {
+  const key = cacheKey(BUILDING_CACHE_KEY, campus);
+  const cached = readCache<Building[]>(key, BUILDING_CACHE_TTL);
+  if (cached) return cached;
+
   const rows = await ybtRequest<
     Array<{ item_value?: string; item_text?: string }>
   >(
     `/rhpt-applets/kjs/api/getSchoolLhCode?xqName=${encodeURIComponent(campus)}`,
   );
-  return (rows ?? []).map((row) => ({
+  const buildings = (rows ?? []).map((row) => ({
     code: String(row.item_value ?? ""),
     name: String(row.item_text ?? ""),
   }));
+  saveCache(key, buildings);
+  return buildings;
 }
 
 export interface QueryOptions {
@@ -351,11 +462,27 @@ export interface QueryOptions {
   buildingCode: string;
   periodBegin?: string;
   periodEnd?: string;
+  /** 忽略本地缓存，执行一次新查询。 */
+  forceRefresh?: boolean;
 }
 
 export async function queryEmptyRooms(
   options: QueryOptions,
 ): Promise<EmptyRoom[]> {
+  const cacheKeyValue = {
+    week: options.week,
+    weekday: options.weekday,
+    campusCode: options.campusCode,
+    buildingCode: options.buildingCode,
+    periodBegin: options.periodBegin ?? "",
+    periodEnd: options.periodEnd ?? "",
+  };
+  const key = cacheKey(ROOM_CACHE_KEY, cacheKeyValue);
+  if (!options.forceRefresh) {
+    const cached = readCache<EmptyRoom[]>(key, ROOM_CACHE_TTL);
+    if (cached) return cached;
+  }
+
   const params = new URLSearchParams({
     zcCode: options.week,
     zcXqCode: options.weekday,
@@ -369,7 +496,7 @@ export async function queryEmptyRooms(
     Array<{ js_name?: string; kxjc?: string; lh_name?: string }>
   >(`/rhpt-applets/kjs/api/getDataBy?${params.toString()}`);
 
-  return (rows ?? []).map((row) => ({
+  const rooms = (rows ?? []).map((row) => ({
     name: String(row.js_name ?? ""),
     building: String(row.lh_name ?? ""),
     freePeriods: String(row.kxjc ?? "")
@@ -377,6 +504,8 @@ export async function queryEmptyRooms(
       .map((value) => Number.parseInt(value, 10))
       .filter((value) => Number.isFinite(value)),
   }));
+  saveCache(key, rooms);
+  return rooms;
 }
 
 /** 把 `1,2,3` 这类空闲节次合并成「第 1-3 节」这样的可读文本。 */

@@ -19,6 +19,9 @@ import {
   Upload,
   MapPin,
   Hash,
+  Star,
+  BuildingComplex,
+  Building,
 } from "lucide-react";
 
 const icons = {
@@ -42,6 +45,9 @@ const icons = {
   upload: Upload,
   location: MapPin,
   hash: Hash,
+  star: Star,
+  buildings: BuildingComplex,
+  building: Building,
 };
 
 interface IconProps {

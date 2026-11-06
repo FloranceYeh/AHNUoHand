@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MutableRefObject,
+  type PointerEvent,
+} from "react";
 import { Icon } from "../components/Icon";
 import { Picker, Selector } from "antd-mobile";
 import {
@@ -8,10 +16,12 @@ import {
   getToken,
   loadBuildings,
   loadCurrentTerm,
+  loadClassroomFavorites,
   loadWeekdays,
   loadWeeks,
   queryEmptyRooms,
   rememberReturnTo,
+  saveClassroomFavorites,
   type Building,
   type CurrentTerm,
   type DictItem,
@@ -19,6 +29,7 @@ import {
 } from "../lib/classroom";
 
 type Phase = "login" | "loading" | "ready" | "error";
+type DisplayRoom = EmptyRoom & { favoriteKey?: string };
 
 export function ClassroomPage({
   onBack,
@@ -48,34 +59,164 @@ export function ClassroomPage({
   const [rooms, setRooms] = useState<EmptyRoom[]>([]);
   const [queried, setQueried] = useState(false);
   const [keyword, setKeyword] = useState("");
+  const [favorites, setFavorites] = useState(loadClassroomFavorites);
+  const buildingPressTimer = useRef<ReturnType<
+    typeof window.setTimeout
+  > | null>(null);
+  const roomPressTimer = useRef<ReturnType<typeof window.setTimeout> | null>(
+    null,
+  );
+  const suppressBuildingClick = useRef(false);
 
   const campusCode = useMemo(
     () => CAMPUSES.find((item) => item.name === campus)?.code ?? "1",
     [campus],
   );
 
+  const pinnedRooms = useMemo(
+    () =>
+      Object.entries(favorites.roomSnapshots).map(([favoriteKey, room]) => ({
+        ...room,
+        favoriteKey,
+      })) as DisplayRoom[],
+    [favorites.roomSnapshots],
+  );
+  const displayRooms: DisplayRoom[] = queried ? rooms : pinnedRooms;
+
   /** 空闲节次的展示范围：以数据里出现过的最大节次为准，至少 12 节。 */
   const maxPeriod = useMemo(() => {
-    const highest = rooms.reduce(
+    const highest = displayRooms.reduce(
       (max, room) => Math.max(max, ...room.freePeriods, 0),
       0,
     );
     return Math.max(12, highest);
-  }, [rooms]);
+  }, [displayRooms]);
 
   const visibleRooms = useMemo(() => {
     const key = keyword.trim().toLowerCase();
     const list = key
-      ? rooms.filter(
+      ? displayRooms.filter(
           (room) =>
             room.name.toLowerCase().includes(key) ||
             room.building.toLowerCase().includes(key),
         )
-      : rooms;
-    return [...list].sort((a, b) =>
-      a.name.localeCompare(b.name, "zh-Hans-CN", { numeric: true }),
+      : displayRooms;
+    return [...list].sort((a, b) => {
+      const aPinned = favorites.rooms.includes(
+        `${campusCode}:${buildingCode}:${a.name}`,
+      );
+      const bPinned = favorites.rooms.includes(
+        `${campusCode}:${buildingCode}:${b.name}`,
+      );
+      if (aPinned !== bPinned) return aPinned ? -1 : 1;
+      return a.name.localeCompare(b.name, "zh-Hans-CN", { numeric: true });
+    });
+  }, [displayRooms, keyword, favorites.rooms, campusCode, buildingCode]);
+
+  const buildingOptions = useMemo(
+    () =>
+      [...buildings]
+        .sort((a, b) => {
+          const aPinned = favorites.buildings.includes(
+            `${campusCode}:${a.code}`,
+          );
+          const bPinned = favorites.buildings.includes(
+            `${campusCode}:${b.code}`,
+          );
+          if (aPinned !== bPinned) return aPinned ? -1 : 1;
+          return a.name.localeCompare(b.name, "zh-Hans-CN", { numeric: true });
+        })
+        .map((item) => ({
+          label: (
+            <span className="cls-selector-label">
+              <span>{item.name}</span>
+              {favorites.buildings.includes(`${campusCode}:${item.code}`) && (
+                <Icon name="star" size={13} />
+              )}
+            </span>
+          ),
+          value: item.code,
+        })),
+    [buildings, favorites.buildings, campusCode],
+  );
+
+  const toggleBuildingFavorite = useCallback(
+    (code: string) => {
+      setFavorites((current) => {
+        const key = `${campusCode}:${code}`;
+        const buildingsNext = current.buildings.includes(key)
+          ? current.buildings.filter((item) => item !== key)
+          : [key, ...current.buildings];
+        const next = { ...current, buildings: buildingsNext };
+        saveClassroomFavorites(next);
+        return next;
+      });
+    },
+    [campusCode],
+  );
+
+  const toggleRoomFavorite = useCallback(
+    (room: DisplayRoom) => {
+      setFavorites((current) => {
+        const key =
+          room.favoriteKey ?? `${campusCode}:${buildingCode}:${room.name}`;
+        const roomsNext = current.rooms.includes(key)
+          ? current.rooms.filter((item) => item !== key)
+          : [key, ...current.rooms];
+        const snapshotsNext = { ...current.roomSnapshots };
+        if (roomsNext.includes(key)) snapshotsNext[key] = room;
+        else delete snapshotsNext[key];
+        const next = {
+          ...current,
+          rooms: roomsNext,
+          roomSnapshots: snapshotsNext,
+        };
+        saveClassroomFavorites(next);
+        return next;
+      });
+    },
+    [campusCode, buildingCode],
+  );
+
+  const clearPressTimer = (
+    timer: MutableRefObject<ReturnType<typeof window.setTimeout> | null>,
+  ) => {
+    if (timer.current !== null) {
+      window.clearTimeout(timer.current);
+      timer.current = null;
+    }
+  };
+
+  const startBuildingLongPress = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    const item = (event.target as HTMLElement).closest<HTMLElement>(
+      ".adm-selector-item",
     );
-  }, [rooms, keyword]);
+    if (!item) return;
+    const items = Array.from(
+      event.currentTarget.querySelectorAll<HTMLElement>(".adm-selector-item"),
+    );
+    const option = buildingOptions[items.indexOf(item)];
+    if (!option) return;
+    clearPressTimer(buildingPressTimer);
+    buildingPressTimer.current = window.setTimeout(() => {
+      suppressBuildingClick.current = true;
+      toggleBuildingFavorite(String(option.value));
+      if ("vibrate" in navigator) navigator.vibrate?.(10);
+    }, 520);
+  };
+
+  const startRoomLongPress = (
+    event: PointerEvent<HTMLElement>,
+    room: EmptyRoom,
+  ) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    clearPressTimer(roomPressTimer);
+    roomPressTimer.current = window.setTimeout(() => {
+      toggleRoomFavorite(room);
+      if ("vibrate" in navigator) navigator.vibrate?.(10);
+    }, 520);
+  };
 
   const bootstrap = useCallback(async () => {
     setPhase("loading");
@@ -220,19 +361,33 @@ export function ClassroomPage({
 
       {phase === "ready" && (
         <div className="cls-report">
-          <section className="elec-card">
+          <section className="elec-card cls-filter-card">
             <header className="elec-card-head">
-              <h2>查询条件</h2>
-              <span>
+              <div className="cls-section-title">
+                <span className="cls-section-icon">
+                  <Icon name="search" size={17} />
+                </span>
+                <div>
+                  <h2>查询条件</h2>
+                </div>
+              </div>
+              <span className="cls-term-label">
                 {term?.year} 学年 第{term?.term}学期
               </span>
             </header>
 
             <div className="cls-field">
-              <label>校区</label>
+              <label>
+                <Icon name="buildings" size={15} />
+                校区
+              </label>
               <Selector
-                className="cls-selector"
-                options={CAMPUSES.map((item) => ({ label: item.name, value: item.name }))}
+                className="cls-selector cls-campus-selector"
+                columns={2}
+                options={CAMPUSES.map((item) => ({
+                  label: item.name,
+                  value: item.name,
+                }))}
                 value={[campus]}
                 onChange={(values) => values[0] && setCampus(String(values[0]))}
                 showCheckMark={false}
@@ -240,15 +395,43 @@ export function ClassroomPage({
             </div>
 
             <div className="cls-field">
-              <label>楼栋</label>
+              <label>
+                <Icon name="building" size={15} />
+                楼栋
+              </label>
               {buildings.length ? (
-                <Selector
-                  className="cls-selector cls-building-selector"
-                  options={buildings.map((item) => ({ label: item.name, value: item.code }))}
-                  value={[buildingCode]}
-                  onChange={(values) => values[0] && setBuildingCode(String(values[0]))}
-                  showCheckMark={false}
-                />
+                <>
+                  <div
+                    className="cls-building-press-area"
+                    onPointerDown={startBuildingLongPress}
+                    onPointerUp={() => clearPressTimer(buildingPressTimer)}
+                    onPointerCancel={() => clearPressTimer(buildingPressTimer)}
+                    onPointerLeave={() => clearPressTimer(buildingPressTimer)}
+                    onContextMenu={(event) => event.preventDefault()}
+                    onClickCapture={(event) => {
+                      if (!suppressBuildingClick.current) return;
+                      event.preventDefault();
+                      event.stopPropagation();
+                      suppressBuildingClick.current = false;
+                    }}
+                  >
+                    <Selector
+                      className="cls-selector cls-building-selector"
+                      options={buildingOptions}
+                      value={[buildingCode]}
+                      onChange={(values) =>
+                        values[0] && setBuildingCode(String(values[0]))
+                      }
+                      showCheckMark={false}
+                    />
+                  </div>
+                  {buildings.length > 3 && (
+                    <p className="cls-scroll-hint">
+                      <span aria-hidden="true">↔</span>
+                      左右滑动查看更多楼栋 · 长按置顶
+                    </p>
+                  )}
+                </>
               ) : (
                 <span className="elec-empty">该校区暂无楼栋数据</span>
               )}
@@ -256,18 +439,27 @@ export function ClassroomPage({
 
             <div className="cls-row">
               <div className="cls-field grow">
-                <label>周次</label>
+                <label>
+                  <Icon name="calendar" size={15} />
+                  周次
+                </label>
                 <button
                   type="button"
                   className="cls-picker-trigger"
                   onClick={() => setWeekPickerOpen(true)}
                   disabled={!weekList.length}
                 >
-                  {weekList.find((item) => item.value === week)?.text || "选择周次"}
-                  <Icon name="arrow" size={15} />
+                  {weekList.find((item) => item.value === week)?.text ||
+                    "选择周次"}
+                  <Icon name="chevron" size={15} />
                 </button>
                 <Picker
-                  columns={[weekList.map((item) => ({ label: item.text, value: item.value }))]}
+                  columns={[
+                    weekList.map((item) => ({
+                      label: item.text,
+                      value: item.value,
+                    })),
+                  ]}
                   visible={weekPickerOpen}
                   value={[week]}
                   onClose={() => setWeekPickerOpen(false)}
@@ -275,22 +467,33 @@ export function ClassroomPage({
                 />
               </div>
               <div className="cls-field grow">
-                <label>星期</label>
+                <label>
+                  <Icon name="event" size={15} />
+                  星期
+                </label>
                 <button
                   type="button"
                   className="cls-picker-trigger"
                   onClick={() => setWeekdayPickerOpen(true)}
                   disabled={!weekdays.length}
                 >
-                  {weekdays.find((item) => item.value === weekday)?.text || "选择星期"}
-                  <Icon name="arrow" size={15} />
+                  {weekdays.find((item) => item.value === weekday)?.text ||
+                    "选择星期"}
+                  <Icon name="chevron" size={15} />
                 </button>
                 <Picker
-                  columns={[weekdays.map((item) => ({ label: item.text, value: item.value }))]}
+                  columns={[
+                    weekdays.map((item) => ({
+                      label: item.text,
+                      value: item.value,
+                    })),
+                  ]}
                   visible={weekdayPickerOpen}
                   value={[weekday]}
                   onClose={() => setWeekdayPickerOpen(false)}
-                  onConfirm={(values) => setWeekday(String(values[0] ?? weekday))}
+                  onConfirm={(values) =>
+                    setWeekday(String(values[0] ?? weekday))
+                  }
                 />
               </div>
             </div>
@@ -306,22 +509,34 @@ export function ClassroomPage({
             </button>
           </section>
 
-          {queried && (
-            <section className="elec-card">
+          {(queried || pinnedRooms.length > 0) && (
+            <section className="elec-card cls-results-card">
               <header className="elec-card-head">
-                <h2>空闲教室</h2>
-                <span>
+                <div className="cls-section-title">
+                  <span className="cls-section-icon">
+                    <Icon name="school" size={17} />
+                  </span>
+                  <div>
+                    <h2>{queried ? "空闲教室" : "已置顶教室"}</h2>
+                    <p>
+                      {queried
+                        ? "按教室查看每节课的空闲状态 · 长按可置顶"
+                        : "来自上次查询的本机缓存 · 查询可刷新状态"}
+                    </p>
+                  </div>
+                </div>
+                <span className="cls-result-count">
                   {keyword
-                    ? `${visibleRooms.length} / ${rooms.length} 间`
-                    : `共 ${rooms.length} 间`}
+                    ? `${visibleRooms.length} / ${displayRooms.length} 间`
+                    : `共 ${displayRooms.length} 间`}
                 </span>
               </header>
 
-              {rooms.length > 0 && (
+              {displayRooms.length > 0 && (
                 <>
                   <div className="cls-search">
                     <span className="cls-search-icon" aria-hidden="true">
-                      ⌕
+                      <Icon name="search" size={17} />
                     </span>
                     <input
                       value={keyword}
@@ -358,7 +573,7 @@ export function ClassroomPage({
                 </>
               )}
 
-              {rooms.length === 0 ? (
+              {displayRooms.length === 0 ? (
                 <p className="elec-empty">这个时段没有空闲教室</p>
               ) : visibleRooms.length === 0 ? (
                 <p className="elec-empty">没有匹配「{keyword}」的教室</p>
@@ -366,13 +581,34 @@ export function ClassroomPage({
                 <div className="cls-grid">
                   {visibleRooms.map((room) => {
                     const allDay = room.freePeriods.length >= maxPeriod;
+                    const favoriteKey =
+                      room.favoriteKey ??
+                      `${campusCode}:${buildingCode}:${room.name}`;
+                    const isPinned = favorites.rooms.includes(favoriteKey);
                     return (
                       <article
-                        className="cls-card"
-                        key={`${room.building}-${room.name}`}
+                        className={`cls-card${isPinned ? " cls-card-pinned" : ""}`}
+                        key={favoriteKey}
+                        onPointerDown={(event) =>
+                          startRoomLongPress(event, room)
+                        }
+                        onPointerUp={() => clearPressTimer(roomPressTimer)}
+                        onPointerCancel={() => clearPressTimer(roomPressTimer)}
+                        onPointerLeave={() => clearPressTimer(roomPressTimer)}
+                        onContextMenu={(event) => event.preventDefault()}
                       >
                         <div className="cls-card-top">
+                          <span className="cls-room-icon">
+                            <Icon name="grid" size={15} />
+                          </span>
                           <span className="cls-card-name">{room.name}</span>
+                          {isPinned && (
+                            <Icon
+                              name="star"
+                              size={14}
+                              className="cls-pin-icon"
+                            />
+                          )}
                           {allDay && <span className="cls-badge">全天</span>}
                         </div>
                         <div className="cls-track">

@@ -353,10 +353,11 @@ export function TimetablePage({
       active.offsetLeft - (strip.clientWidth - active.clientWidth) / 2;
     strip.scrollTo({
       left,
-      behavior: firstPosition ||
+      behavior:
+        firstPosition ||
         window.matchMedia("(prefers-reduced-motion: reduce)").matches
-        ? "auto"
-        : "smooth",
+          ? "auto"
+          : "smooth",
     });
   }, [week, weekStripReady]);
 
@@ -550,99 +551,104 @@ export function TimetablePage({
                 onPointerUp={finishSwipe}
                 onPointerCancel={(event) => finishSwipe(event, true)}
               >
-            <div className="tt-corner" />
-            {days.map((day) => {
-              const date = monday
-                ? new Date(monday.getTime() + (day - 1) * 24 * 60 * 60 * 1000)
-                : null;
-              const isToday = isThisWeek && day === todayIndex;
-              return (
-                <div
-                  className={`tt-dayhead${isToday ? " today" : ""}`}
-                  key={`h-${day}`}
-                >
-                  <span className="tt-dayname">{WEEKDAY_SHORT[day]}</span>
-                  <span className="tt-daydate">
-                    {date ? formatMonthDay(date) : ""}
-                  </span>
-                </div>
-              );
-            })}
+                <div className="tt-corner" />
+                {days.map((day) => {
+                  const date = monday
+                    ? new Date(
+                        monday.getTime() + (day - 1) * 24 * 60 * 60 * 1000,
+                      )
+                    : null;
+                  const isToday = isThisWeek && day === todayIndex;
+                  return (
+                    <div
+                      className={`tt-dayhead${isToday ? " today" : ""}`}
+                      key={`h-${day}`}
+                    >
+                      <span className="tt-dayname">{WEEKDAY_SHORT[day]}</span>
+                      <span className="tt-daydate">
+                        {date ? formatMonthDay(date) : ""}
+                      </span>
+                    </div>
+                  );
+                })}
 
-            {isThisWeek && (
-              <div
-                className="tt-today-col"
-                style={{
-                  gridColumn: todayIndex + 1,
-                  gridRow: `2 / span ${maxPeriod}`,
-                }}
-              />
-            )}
-
-            {Array.from({ length: maxPeriod }, (_, index) => index + 1).map(
-              (period) => {
-                const time = periodTimes[period - 1];
-                return (
+                {isThisWeek && (
                   <div
-                    className="tt-timecell"
-                    key={`t-${period}`}
-                    style={{ gridRow: period + 1 }}
-                  >
-                    <b>{period}</b>
-                    {time && (
-                      <>
-                        <em>{time[0]}</em>
-                        <em>{time[1]}</em>
-                      </>
-                    )}
-                  </div>
-                );
-              },
-            )}
-
-            {days.map((day) =>
-              Array.from({ length: maxPeriod }, (_, index) => index + 1).map(
-                (period) => (
-                  <div
-                    className="tt-gridcell"
-                    key={`g-${day}-${period}`}
-                    style={{ gridColumn: day + 1, gridRow: period + 1 }}
+                    className="tt-today-col"
+                    style={{
+                      gridColumn: todayIndex + 1,
+                      gridRow: `2 / span ${maxPeriod}`,
+                    }}
                   />
-                ),
-              ),
-            )}
+                )}
 
-            {activeSlots.map((slot, index) => {
-              const color = courseColor(slot.name);
-              return (
-                <button
-                  type="button"
-                  className="tt-course"
-                  key={`c-${slot.weekday}-${slot.period}-${index}`}
-                  style={{
-                    gridColumn: slot.weekday + 1,
-                    gridRow: `${slot.period + 1} / span ${Math.max(1, slot.span)}`,
-                    background: color.bg,
-                    color: color.fg,
-                  }}
-                  onClick={() => {
-                    if (didSwipeRef.current) {
-                      didSwipeRef.current = false;
-                      return;
-                    }
-                    setSelected(slot);
-                  }}
-                >
-                  <span className="tt-course-name">{slot.name}</span>
-                  {slot.place && (
-                    <span className="tt-course-place">@ {slot.place}</span>
-                  )}
-                  {slot.teacher && (
-                    <span className="tt-course-teacher">{slot.teacher}</span>
-                  )}
-                </button>
-              );
-            })}
+                {Array.from({ length: maxPeriod }, (_, index) => index + 1).map(
+                  (period) => {
+                    const time = periodTimes[period - 1];
+                    return (
+                      <div
+                        className="tt-timecell"
+                        key={`t-${period}`}
+                        style={{ gridRow: period + 1 }}
+                      >
+                        <b>{period}</b>
+                        {time && (
+                          <>
+                            <em>{time[0]}</em>
+                            <em>{time[1]}</em>
+                          </>
+                        )}
+                      </div>
+                    );
+                  },
+                )}
+
+                {days.map((day) =>
+                  Array.from(
+                    { length: maxPeriod },
+                    (_, index) => index + 1,
+                  ).map((period) => (
+                    <div
+                      className="tt-gridcell"
+                      key={`g-${day}-${period}`}
+                      style={{ gridColumn: day + 1, gridRow: period + 1 }}
+                    />
+                  )),
+                )}
+
+                {activeSlots.map((slot, index) => {
+                  const color = courseColor(slot.name);
+                  return (
+                    <button
+                      type="button"
+                      className="tt-course"
+                      key={`c-${slot.weekday}-${slot.period}-${index}`}
+                      style={{
+                        gridColumn: slot.weekday + 1,
+                        gridRow: `${slot.period + 1} / span ${Math.max(1, slot.span)}`,
+                        background: color.bg,
+                        color: color.fg,
+                      }}
+                      onClick={() => {
+                        if (didSwipeRef.current) {
+                          didSwipeRef.current = false;
+                          return;
+                        }
+                        setSelected(slot);
+                      }}
+                    >
+                      <span className="tt-course-name">{slot.name}</span>
+                      {slot.place && (
+                        <span className="tt-course-place">@ {slot.place}</span>
+                      )}
+                      {slot.teacher && (
+                        <span className="tt-course-teacher">
+                          {slot.teacher}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </motion.div>
           </AnimatePresence>
@@ -849,8 +855,7 @@ export function TimetablePage({
                 {WEEKDAY_FULL[selected.weekday]}
               </span>
               <span>
-                <Icon name="clock" size={14} />
-                第 {selected.period}
+                <Icon name="clock" size={14} />第 {selected.period}
                 {selected.span > 1
                   ? `–${selected.period + selected.span - 1}`
                   : ""}{" "}
@@ -860,21 +865,27 @@ export function TimetablePage({
             <dl className="tt-detail">
               <div>
                 <dt>
-                  <span className="tt-detail-icon"><Icon name="person" size={16} /></span>
+                  <span className="tt-detail-icon">
+                    <Icon name="person" size={16} />
+                  </span>
                   <span>教师</span>
                 </dt>
                 <dd>{selected.teacher || "—"}</dd>
               </div>
               <div>
                 <dt>
-                  <span className="tt-detail-icon"><Icon name="location" size={16} /></span>
+                  <span className="tt-detail-icon">
+                    <Icon name="location" size={16} />
+                  </span>
                   <span>地点</span>
                 </dt>
                 <dd>{selected.place || "—"}</dd>
               </div>
               <div>
                 <dt>
-                  <span className="tt-detail-icon"><Icon name="clock" size={16} /></span>
+                  <span className="tt-detail-icon">
+                    <Icon name="clock" size={16} />
+                  </span>
                   <span>时间</span>
                 </dt>
                 <dd>
@@ -887,7 +898,9 @@ export function TimetablePage({
               </div>
               <div>
                 <dt>
-                  <span className="tt-detail-icon"><Icon name="calendar" size={16} /></span>
+                  <span className="tt-detail-icon">
+                    <Icon name="calendar" size={16} />
+                  </span>
                   <span>周次</span>
                 </dt>
                 <dd>{formatWeeks(selected.weeks)}</dd>
@@ -895,7 +908,9 @@ export function TimetablePage({
               {selected.section && (
                 <div>
                   <dt>
-                    <span className="tt-detail-icon"><Icon name="hash" size={16} /></span>
+                    <span className="tt-detail-icon">
+                      <Icon name="hash" size={16} />
+                    </span>
                     <span>课序号</span>
                   </dt>
                   <dd>{selected.section}</dd>
