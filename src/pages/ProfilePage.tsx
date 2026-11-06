@@ -34,7 +34,7 @@ export function ProfilePage({
         </span>
         <div>
           <strong>{profile.nickname}</strong>
-          <p>
+          <p className={profile.studentId ? undefined : "profile-hint"}>
             {profile.studentId
               ? `学号 ${profile.studentId}`
               : "点击编辑个人资料"}

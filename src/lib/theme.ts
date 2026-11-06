@@ -1,11 +1,13 @@
 export type ThemeMode = "system" | "light" | "dark";
 export type AccentColor = "teal" | "blue" | "violet" | "amber" | "rose";
 export type NavigationDisplay = "icon-label" | "icon-only";
+export type ContentMode = "normal" | "simple";
 
 export interface ThemeSettings {
   mode: ThemeMode;
   accent: AccentColor;
   navigationDisplay: NavigationDisplay;
+  contentMode: ContentMode;
 }
 
 const STORAGE_KEY = "ahnuhand-theme";
@@ -13,6 +15,7 @@ const DEFAULT_SETTINGS: ThemeSettings = {
   mode: "system",
   accent: "teal",
   navigationDisplay: "icon-label",
+  contentMode: "normal",
 };
 
 function isThemeMode(value: unknown): value is ThemeMode {
@@ -33,6 +36,10 @@ function isNavigationDisplay(value: unknown): value is NavigationDisplay {
   return value === "icon-label" || value === "icon-only";
 }
 
+function isContentMode(value: unknown): value is ContentMode {
+  return value === "normal" || value === "simple";
+}
+
 export function readThemeSettings(): ThemeSettings {
   try {
     const parsed = JSON.parse(
@@ -41,6 +48,7 @@ export function readThemeSettings(): ThemeSettings {
       mode?: unknown;
       accent?: unknown;
       navigationDisplay?: unknown;
+      contentMode?: unknown;
     } | null;
     return {
       mode: isThemeMode(parsed?.mode) ? parsed.mode : DEFAULT_SETTINGS.mode,
@@ -50,6 +58,9 @@ export function readThemeSettings(): ThemeSettings {
       navigationDisplay: isNavigationDisplay(parsed?.navigationDisplay)
         ? parsed.navigationDisplay
         : DEFAULT_SETTINGS.navigationDisplay,
+      contentMode: isContentMode(parsed?.contentMode)
+        ? parsed.contentMode
+        : DEFAULT_SETTINGS.contentMode,
     };
   } catch {
     return DEFAULT_SETTINGS;
@@ -60,6 +71,7 @@ export function applyThemeSettings(settings: ThemeSettings): void {
   const root = document.documentElement;
   root.dataset.theme = settings.mode;
   root.dataset.accent = settings.accent;
+  root.dataset.contentMode = settings.contentMode;
   const themeColor = getComputedStyle(root)
     .getPropertyValue("--color-canvas")
     .trim();

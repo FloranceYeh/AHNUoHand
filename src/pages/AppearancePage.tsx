@@ -1,7 +1,12 @@
 import { Selector } from "antd-mobile";
 import { Icon } from "../components/Icon";
 import { BrandIcon } from "../components/BrandIcon";
-import type { AccentColor, ThemeMode, ThemeSettings } from "../lib/theme";
+import type {
+  AccentColor,
+  ContentMode,
+  ThemeMode,
+  ThemeSettings,
+} from "../lib/theme";
 
 const themeOptions = [
   { label: "跟随系统", value: "system" },
@@ -58,6 +63,10 @@ const accentOptions = [
 const navigationOptions = [
   { label: "图标 + 文字", value: "icon-label" },
   { label: "仅图标", value: "icon-only" },
+];
+const appearanceModeOptions = [
+  { label: "普通模式", value: "normal" },
+  { label: "简洁模式", value: "simple" },
 ];
 
 export function AppearancePage({
@@ -127,6 +136,22 @@ export function AppearancePage({
         </div>
       </section>
       <section className="appearance-settings" aria-label="外观选项">
+        <div className="appearance-control">
+          <div className="appearance-label">
+            <strong>界面模式</strong>
+            <small>简洁模式隐藏提示和辅助描述</small>
+          </div>
+          <Selector
+            className="appearance-selector"
+            columns={2}
+            options={appearanceModeOptions}
+            value={[settings.contentMode]}
+            onChange={(value) =>
+              update({ contentMode: value[0] as ContentMode })
+            }
+            showCheckMark={false}
+          />
+        </div>
         <div className="appearance-control">
           <div className="appearance-label">
             <strong>显示模式</strong>

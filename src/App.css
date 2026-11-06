@@ -437,6 +437,10 @@ textarea:focus-visible {
   background: var(--color-sky);
   color: #4394ad;
 }
+.service-icon-account {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-strong);
+}
 .service-copy {
   display: grid;
   width: 100%;
@@ -1069,6 +1073,41 @@ textarea:focus-visible {
 }
 .appearance-accent-option i.rose {
   background: #c25178;
+}
+
+:root[data-content-mode="simple"] .page-heading > p:last-child,
+:root[data-content-mode="simple"] .feature-intro > p:last-child,
+:root[data-content-mode="simple"] .placeholder-panel > p,
+:root[data-content-mode="simple"] [class*="-hint"],
+:root[data-content-mode="simple"] .welcome-subtitle,
+:root[data-content-mode="simple"] .assistant-copy > span,
+:root[data-content-mode="simple"] .campus-note,
+:root[data-content-mode="simple"] .home-footer,
+:root[data-content-mode="simple"] .services-footnote,
+:root[data-content-mode="simple"] .service-description,
+:root[data-content-mode="simple"] .elec-desc,
+:root[data-content-mode="simple"] .tt-setting-tip,
+:root[data-content-mode="simple"] .tt-setting-note,
+:root[data-content-mode="simple"] .placeholder-caption,
+:root[data-content-mode="simple"] .auth-note,
+:root[data-content-mode="simple"] .auth-meta,
+:root[data-content-mode="simple"] .auth-host,
+:root[data-content-mode="simple"] .personal-info-card > small,
+:root[data-content-mode="simple"] .settings-row small,
+:root[data-content-mode="simple"] .appearance-label small,
+:root[data-content-mode="simple"] .appearance-preview-content small,
+:root[data-content-mode="simple"] .tt-settings small,
+:root[data-content-mode="simple"] .personal-avatar-picker small,
+:root[data-content-mode="simple"] .profile-hint,
+:root[data-content-mode="simple"] .empty-state span,
+:root[data-content-mode="simple"] .cal-holiday-note {
+  display: none;
+}
+:root[data-content-mode="simple"] .service-card {
+  min-height: 96px;
+}
+:root[data-content-mode="simple"] .service-card-compact {
+  min-height: 88px;
 }
 @media (max-width: 380px) {
   .appearance-control {
