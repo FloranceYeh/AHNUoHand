@@ -1,4 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { Icon } from "../components/Icon";
 import {
   fetchElectricity,
@@ -8,7 +20,9 @@ import {
   formatTime,
   getSavedOperator,
   isCacheFresh,
+  readHistory,
   readCache,
+  saveHistory,
   saveOperator,
   writeCache,
   type ElectricityReport,
@@ -26,6 +40,7 @@ export function ElectricityPage({ onBack }: { onBack: () => void }) {
     getSavedOperator() ? "loading" : "setup",
   );
   const [report, setReport] = useState<ElectricityReport | null>(null);
+  const [history, setHistory] = useState<ElectricityReport[]>([]);
   const [error, setError] = useState("");
   const [formError, setFormError] = useState("");
 
@@ -38,6 +53,7 @@ export function ElectricityPage({ onBack }: { onBack: () => void }) {
       setOperatorNo(target);
       saveOperator(target);
       writeCache(target, data);
+      setHistory(readHistory(target));
       setPhase("ready");
     } catch (cause) {
       const message =
@@ -60,6 +76,7 @@ export function ElectricityPage({ onBack }: { onBack: () => void }) {
     const cache = readCache();
     if (cache && cache.operatorNo === saved && isCacheFresh(cache.savedAt)) {
       setReport(cache.report);
+      setHistory(saveHistory(saved, cache.report));
       setPhase("ready");
       return;
     }
@@ -79,16 +96,13 @@ export function ElectricityPage({ onBack }: { onBack: () => void }) {
   const changeOperator = () => {
     forgetOperator();
     setReport(null);
+    setHistory([]);
     setError("");
     setDraft(operatorNo);
     setPhase("setup");
   };
 
   const daily = report?.daily ?? [];
-  const dailyMax = useMemo(
-    () => Math.max(1, ...daily.map((point) => point.kwh)),
-    [daily],
-  );
   const dailyTotal = useMemo(
     () => daily.reduce((sum, point) => sum + point.kwh, 0),
     [daily],
@@ -96,6 +110,31 @@ export function ElectricityPage({ onBack }: { onBack: () => void }) {
   const monthMax = report
     ? Math.max(1, report.month.thisMonthKwh, report.month.lastMonthKwh)
     : 1;
+  const dailyChart = useMemo(
+    () =>
+      daily.map((point) => ({
+        ...point,
+        label: point.date.slice(5),
+      })),
+    [daily],
+  );
+  const balanceChart = useMemo(
+    () =>
+      history.map((item) => ({
+        label: formatTime(item.fetchedAt).slice(0, 5),
+        balance: item.balance.total,
+        remaining: item.balance.kwhLeft,
+      })),
+    [history],
+  );
+  const averageDaily = daily.length ? dailyTotal / daily.length : 0;
+  const estimatedDays =
+    averageDaily > 0 ? report!.balance.kwhLeft / averageDaily : 0;
+  const latestHistory = history[history.length - 1];
+  const balanceDelta =
+    latestHistory && history.length > 1
+      ? report!.balance.total - history[history.length - 2].balance.total
+      : 0;
 
   return (
     <div className="page feature-page electricity-page">
@@ -252,33 +291,202 @@ export function ElectricityPage({ onBack }: { onBack: () => void }) {
             </header>
             {daily.length > 0 ? (
               <div
-                className="elec-chart"
+                className="elec-rechart"
                 role="img"
                 aria-label={`近 ${daily.length} 天每日用电量`}
               >
-                {daily.map((point, index) => (
-                  <div
-                    className="elec-bar"
-                    key={`${point.date}-${index}`}
-                    title={`${point.date}：${formatKwh(point.kwh)} 度，余 ${formatKwh(point.remain)} 度`}
+                <ResponsiveContainer width="100%" height={220}>
+                  <AreaChart
+                    data={dailyChart}
+                    margin={{ top: 8, right: 8, left: -18, bottom: 0 }}
                   >
-                    <span
-                      className="elec-bar-fill"
-                      style={{
-                        height: `${Math.max(3, (point.kwh / dailyMax) * 100)}%`,
-                      }}
+                    <defs>
+                      <linearGradient
+                        id="electricityKwhFill"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="0%"
+                          stopColor="var(--color-primary)"
+                          stopOpacity={0.32}
+                        />
+                        <stop
+                          offset="100%"
+                          stopColor="var(--color-primary)"
+                          stopOpacity={0.03}
+                        />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid
+                      stroke="var(--color-line)"
+                      strokeDasharray="3 3"
+                      vertical={false}
                     />
-                    {index % 5 === 0 && (
-                      <span className="elec-bar-label">
-                        {point.date.slice(5)}
-                      </span>
-                    )}
-                  </div>
-                ))}
+                    <XAxis
+                      dataKey="label"
+                      tick={{ fontSize: 10, fill: "var(--color-muted)" }}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 10, fill: "var(--color-muted)" }}
+                      tickLine={false}
+                      axisLine={false}
+                      width={32}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        border: "1px solid var(--color-line-strong)",
+                        borderRadius: "12px",
+                        background: "var(--color-surface-raised)",
+                        boxShadow: "var(--shadow-floating)",
+                      }}
+                      labelStyle={{
+                        color: "var(--color-ink)",
+                        fontWeight: 700,
+                      }}
+                      itemStyle={{ color: "var(--color-ink-secondary)" }}
+                      formatter={(value, name) => [
+                        `${formatKwh(Number(value))} 度`,
+                        String(name),
+                      ]}
+                    />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    <Area
+                      type="monotone"
+                      dataKey="kwh"
+                      name="用电量"
+                      stroke="var(--color-primary)"
+                      strokeWidth={2.5}
+                      fill="url(#electricityKwhFill)"
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="remain"
+                      name="剩余电量"
+                      stroke="var(--color-warning)"
+                      strokeWidth={2}
+                      dot={false}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
               </div>
             ) : (
               <p className="elec-empty">这段时间还没有用电记录</p>
             )}
+          </section>
+
+          <section className="elec-card">
+            <header className="elec-card-head">
+              <h2>用电分析</h2>
+              <span>{history.length} 次记录</span>
+            </header>
+            <div className="elec-analysis-grid">
+              <div className="elec-analysis-item">
+                <span>日均用电</span>
+                <strong>{formatKwh(averageDaily)} 度</strong>
+              </div>
+              <div className="elec-analysis-item">
+                <span>预计可用</span>
+                <strong>
+                  {estimatedDays > 0
+                    ? `${Math.round(estimatedDays)} 天`
+                    : "暂无"}
+                </strong>
+              </div>
+              <div className="elec-analysis-item">
+                <span>余额变化</span>
+                <strong className={balanceDelta < 0 ? "negative" : "positive"}>
+                  {balanceDelta > 0 ? "+" : ""}
+                  {formatMoney(balanceDelta)} 元
+                </strong>
+              </div>
+            </div>
+            {balanceChart.length > 1 && (
+              <div className="elec-rechart elec-balance-chart">
+                <ResponsiveContainer width="100%" height={180}>
+                  <LineChart
+                    data={balanceChart}
+                    margin={{ top: 8, right: 8, left: -18, bottom: 0 }}
+                  >
+                    <CartesianGrid
+                      stroke="var(--color-line)"
+                      strokeDasharray="3 3"
+                      vertical={false}
+                    />
+                    <XAxis
+                      dataKey="label"
+                      tick={{ fontSize: 10, fill: "var(--color-muted)" }}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 10, fill: "var(--color-muted)" }}
+                      tickLine={false}
+                      axisLine={false}
+                      width={32}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        border: "1px solid var(--color-line-strong)",
+                        borderRadius: "12px",
+                        background: "var(--color-surface-raised)",
+                        boxShadow: "var(--shadow-floating)",
+                      }}
+                      labelStyle={{
+                        color: "var(--color-ink)",
+                        fontWeight: 700,
+                      }}
+                      itemStyle={{ color: "var(--color-ink-secondary)" }}
+                      formatter={(value, name) => [
+                        name === "余额"
+                          ? `${formatMoney(Number(value))} 元`
+                          : `${formatKwh(Number(value))} 度`,
+                        String(name),
+                      ]}
+                    />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    <Line
+                      type="monotone"
+                      dataKey="balance"
+                      name="余额"
+                      stroke="var(--color-primary)"
+                      strokeWidth={2}
+                      dot={{ r: 3 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="remaining"
+                      name="剩余电量"
+                      stroke="var(--color-warning)"
+                      strokeWidth={2}
+                      dot={{ r: 3 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+            <div className="elec-month-analysis">
+              <div>
+                <span>本月结构</span>
+                <strong>
+                  照明 {formatKwh(report.month.thisMonthLight)} · 空调{" "}
+                  {formatKwh(report.month.thisMonthAc)}
+                </strong>
+              </div>
+              <div>
+                <span>环比变化</span>
+                <strong>
+                  {formatKwh(
+                    report.month.thisMonthKwh - report.month.lastMonthKwh,
+                  )}{" "}
+                  度
+                </strong>
+              </div>
+            </div>
           </section>
 
           <div className="elec-actions">

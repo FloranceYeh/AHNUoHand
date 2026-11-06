@@ -1337,6 +1337,96 @@ textarea:focus-visible {
   height: 92px;
   padding-bottom: 16px;
 }
+.elec-rechart {
+  width: 100%;
+  min-height: 180px;
+  margin-top: 4px;
+}
+.elec-rechart .recharts-wrapper,
+.elec-rechart .recharts-surface {
+  overflow: visible;
+}
+.elec-rechart .recharts-text {
+  font-family: inherit;
+}
+.elec-rechart svg,
+.elec-rechart svg * {
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.elec-rechart svg:focus,
+.elec-rechart svg *:focus,
+.elec-rechart svg *:focus-visible {
+  outline: none;
+}
+.elec-rechart .recharts-tooltip-wrapper {
+  z-index: 5;
+}
+.elec-rechart .recharts-default-tooltip {
+  border: 0 !important;
+  border-radius: var(--radius-md) !important;
+  background: var(--color-surface-raised) !important;
+  color: var(--color-ink) !important;
+}
+.elec-rechart .recharts-tooltip-label {
+  margin-bottom: 5px;
+  color: var(--color-ink) !important;
+  font-weight: 700;
+}
+.elec-rechart .recharts-tooltip-item {
+  color: var(--color-ink-secondary) !important;
+}
+.elec-analysis-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.elec-analysis-item {
+  display: flex;
+  min-height: 72px;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 10px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-subtle);
+}
+.elec-analysis-item span,
+.elec-month-analysis span {
+  color: var(--color-muted);
+  font-size: var(--text-micro);
+}
+.elec-analysis-item strong {
+  color: var(--color-ink);
+  font-size: var(--text-caption);
+}
+.elec-analysis-item strong.negative {
+  color: var(--color-danger);
+}
+.elec-analysis-item strong.positive {
+  color: var(--color-primary-strong);
+}
+.elec-balance-chart {
+  margin: 4px -4px 8px;
+}
+.elec-month-analysis {
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-line);
+}
+.elec-month-analysis > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.elec-month-analysis strong {
+  color: var(--color-ink-secondary);
+  font-size: var(--text-caption);
+  text-align: right;
+}
 .elec-bar {
   position: relative;
   display: flex;

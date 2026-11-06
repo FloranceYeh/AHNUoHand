@@ -62,8 +62,11 @@ const BODY_KEY = "12345678cgg54321";
 const ORG_NO = "00110001";
 
 const REPORT_KEY = "ahnu.electricity.report";
+const HISTORY_KEY = "ahnu.electricity.history";
 const OPERATOR_KEY = "ahnu.electricity.operator";
 const CACHE_TTL = 5 * 60 * 1000;
+const HISTORY_LIMIT = 30;
+const HISTORY_TTL = 90 * 24 * 60 * 60 * 1000;
 
 // ---------------------------------------------------------------------------
 // 协议层
@@ -302,12 +305,64 @@ export function saveOperator(operatorNo: string): void {
 }
 
 export function forgetOperator(): void {
+  const operator = getSavedOperator();
   try {
     localStorage.removeItem(OPERATOR_KEY);
     localStorage.removeItem(REPORT_KEY);
+    if (operator) localStorage.removeItem(historyKey(operator));
   } catch {
     /* ignore */
   }
+}
+
+function historyKey(operatorNo: string): string {
+  return `${HISTORY_KEY}.${operatorNo}`;
+}
+
+export function readHistory(operatorNo: string): ElectricityReport[] {
+  const raw = safeGet(historyKey(operatorNo));
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    const cutoff = Date.now() - HISTORY_TTL;
+    return parsed
+      .filter((item): item is ElectricityReport => {
+        if (!item || typeof item !== "object") return false;
+        const report = item as ElectricityReport;
+        return (
+          typeof report.fetchedAt === "string" &&
+          !Number.isNaN(Date.parse(report.fetchedAt)) &&
+          Date.parse(report.fetchedAt) >= cutoff &&
+          typeof report.balance?.kwhLeft === "number"
+        );
+      })
+      .sort(
+        (a, b) =>
+          new Date(a.fetchedAt).getTime() - new Date(b.fetchedAt).getTime(),
+      );
+  } catch {
+    return [];
+  }
+}
+
+export function saveHistory(
+  operatorNo: string,
+  report: ElectricityReport,
+): ElectricityReport[] {
+  const history = [
+    ...readHistory(operatorNo).filter(
+      (item) => item.fetchedAt !== report.fetchedAt,
+    ),
+    report,
+  ]
+    .sort(
+      (a, b) =>
+        new Date(a.fetchedAt).getTime() - new Date(b.fetchedAt).getTime(),
+    )
+    .slice(-HISTORY_LIMIT);
+  safeSet(historyKey(operatorNo), JSON.stringify(history));
+  return history;
 }
 
 export function readCache(): StoredReport | null {
@@ -333,6 +388,7 @@ export function writeCache(
       report,
     } satisfies StoredReport),
   );
+  saveHistory(operatorNo, report);
 }
 
 export function isCacheFresh(savedAt: number): boolean {
