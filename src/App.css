@@ -426,20 +426,20 @@ textarea:focus-visible {
   border-radius: var(--radius-md);
 }
 .service-icon-academic {
-  background: var(--color-primary-soft);
-  color: var(--color-primary-strong);
+  background: var(--service-academic-background);
+  color: var(--service-academic-foreground);
 }
 .service-icon-life {
-  background: var(--color-peach);
-  color: #ad7043;
+  background: var(--service-life-background);
+  color: var(--service-life-foreground);
 }
 .service-icon-campus {
-  background: var(--color-sky);
-  color: #4394ad;
+  background: var(--service-campus-background);
+  color: var(--service-campus-foreground);
 }
 .service-icon-account {
-  background: var(--color-primary-soft);
-  color: var(--color-primary-strong);
+  background: var(--service-account-background);
+  color: var(--service-account-foreground);
 }
 .service-copy {
   display: grid;
@@ -537,20 +537,22 @@ textarea:focus-visible {
   display: flex;
   flex: 0 0 auto;
   justify-content: center;
+  gap: 2px;
   padding: 8px 16px calc(8px + env(safe-area-inset-bottom));
   border-top: 1px solid var(--color-line);
   background: var(--color-surface);
 }
 .nav-item {
   display: flex;
-  flex: 1;
+  flex: 1 1 0;
   max-width: 190px;
+  min-width: 0;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 3px;
   min-height: 52px;
-  padding: 2px 8px;
+  padding: 2px 3px;
   border: 0;
   background: transparent;
   color: var(--color-muted);
@@ -560,7 +562,7 @@ textarea:focus-visible {
 .nav-icon {
   display: grid;
   place-items: center;
-  width: 53px;
+  width: min(100%, 53px);
   height: 28px;
   border-radius: var(--radius-pill);
 }
@@ -570,6 +572,25 @@ textarea:focus-visible {
 }
 .nav-item.is-active .nav-icon {
   background: var(--color-primary-soft);
+}
+.nav-item[data-service-category="academic"] {
+  --service-background: var(--service-academic-background);
+  --service-foreground: var(--service-academic-foreground);
+}
+.nav-item[data-service-category="life"] {
+  --service-background: var(--service-life-background);
+  --service-foreground: var(--service-life-foreground);
+}
+.nav-item[data-service-category="campus"] {
+  --service-background: var(--service-campus-background);
+  --service-foreground: var(--service-campus-foreground);
+}
+.nav-item[data-service-category] .nav-icon {
+  background: var(--service-background);
+  color: var(--service-foreground);
+}
+.nav-item[data-service-category].is-active {
+  color: var(--service-foreground);
 }
 .bottom-navigation.icons-only .nav-item {
   min-height: 48px;
@@ -745,7 +766,7 @@ textarea:focus-visible {
   align-items: center;
   gap: 12px;
   width: 100%;
-  min-height: 70px;
+  min-height: 80px;
   padding: 11px 14px;
   border: 0;
   border-bottom: 1px solid var(--color-line);
@@ -871,16 +892,20 @@ textarea:focus-visible {
   margin-top: 16px;
 }
 /* Appearance page --------------------------------------- */
-.appearance-page {
+.appearance-page,
+.home-navigation-page {
   padding-bottom: calc(22px + env(safe-area-inset-bottom));
 }
-.appearance-page > .back-button {
+.appearance-page > .back-button,
+.home-navigation-page > .back-button {
   margin-bottom: 8px;
 }
-.appearance-page .page-heading {
+.appearance-page .page-heading,
+.home-navigation-page .page-heading {
   margin-bottom: 18px;
 }
-.appearance-page .page-heading > p:last-child {
+.appearance-page .page-heading > p:last-child,
+.home-navigation-page .page-heading > p:last-child {
   max-width: 330px;
   line-height: 1.65;
 }
@@ -903,6 +928,189 @@ textarea:focus-visible {
 }
 .appearance-settings .appearance-control {
   margin: 0;
+}
+.customization-section {
+  margin-top: 18px;
+}
+.customization-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 2px 9px;
+}
+.customization-heading h2 {
+  flex: 1;
+  margin: 0;
+  color: var(--color-ink);
+  font-size: var(--text-body);
+}
+.customization-heading > span {
+  color: var(--color-muted);
+  font-size: var(--text-micro);
+  white-space: nowrap;
+}
+.customization-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  isolation: isolate;
+}
+.customization-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 72px;
+  padding: 8px 16px 8px 10px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+.customization-row > .service-copy {
+  width: auto;
+  flex: 1;
+  min-width: 0;
+}
+.customization-menu-icon {
+  display: grid;
+  flex: 0 0 39px;
+  place-items: center;
+  margin: 0;
+  width: 39px;
+  height: 39px;
+  border-radius: var(--radius-sm);
+  background: var(--service-account-background);
+  color: var(--service-account-foreground);
+}
+.customization-sortable-icon {
+  display: grid;
+  flex: 0 0 39px;
+  place-items: center;
+  touch-action: none;
+  cursor: grab;
+}
+.customization-sortable-icon .service-icon {
+  margin: 0;
+}
+.customization-drag-handle {
+  display: grid;
+  flex: 0 0 36px;
+  place-items: center;
+  width: 36px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-muted-strong);
+  touch-action: none;
+  cursor: grab;
+}
+.customization-drag-handle:active,
+.customization-sortable-icon:active {
+  cursor: grabbing;
+}
+.customization-row .adm-button.customization-remove-button {
+  --background-color: var(--color-surface-subtle);
+  --text-color: var(--color-ink-secondary);
+  --border-color: var(--color-line);
+  --border-radius: var(--radius-sm);
+  --border-width: 1px;
+  display: grid;
+  flex: 0 0 36px;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0;
+}
+.customization-empty {
+  margin: 0;
+  padding: 16px;
+  border: 1px dashed var(--color-line-strong);
+  border-radius: var(--radius-md);
+  color: var(--color-muted);
+  font-size: var(--text-caption);
+  text-align: center;
+}
+.customization-heading .adm-button.customization-add-button {
+  --background-color: var(--color-surface);
+  --text-color: var(--color-primary-strong);
+  --border-color: var(--color-line);
+  --border-radius: var(--radius-pill);
+  --border-width: 1px;
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 0 12px;
+  font-size: var(--text-caption);
+  font-weight: 600;
+}
+.customization-add-button > span,
+.customization-remove-button > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.customization-picker-popup {
+  overflow: hidden;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+.customization-picker-content {
+  display: flex;
+  max-height: min(82dvh, 720px);
+  flex-direction: column;
+  padding: 18px 16px calc(16px + env(safe-area-inset-bottom));
+  background: var(--color-surface);
+}
+.customization-picker-header {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px 10px 0;
+}
+.customization-picker-header h2 {
+  margin: 0;
+  color: var(--color-ink);
+  font-size: var(--text-heading);
+}
+.customization-picker-options {
+  min-height: 0;
+  margin: 0 -16px 14px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 16px;
+}
+.customization-picker-capacity {
+  margin: 0 0 8px;
+  color: var(--color-muted);
+  font-size: var(--text-caption);
+}
+.customization-picker-option {
+  display: flex;
+  width: 100%;
+  min-height: 56px;
+  align-items: center;
+  padding: 14px 2px;
+  border-bottom: 1px solid var(--color-line);
+}
+.customization-picker-option .adm-checkbox-content {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.customization-picker-content > .adm-button {
+  --border-radius: var(--radius-md);
+  flex: 0 0 auto;
+  min-height: 46px;
+  font-size: var(--text-body);
 }
 .appearance-preview {
   margin: -8px 0 18px;
@@ -967,6 +1175,14 @@ textarea:focus-visible {
 .appearance-preview-content > span:last-child {
   display: grid;
   gap: 3px;
+  min-width: 0;
+}
+.customization-picker-option .service-icon {
+  margin: 0;
+}
+.customization-picker-option .service-copy {
+  width: auto;
+  flex: 1;
   min-width: 0;
 }
 .appearance-preview-content strong {
@@ -1108,6 +1324,9 @@ textarea:focus-visible {
 }
 :root[data-content-mode="simple"] .service-card-compact {
   min-height: 88px;
+}
+:root[data-content-mode="simple"] .customization-row {
+  min-height: 60px;
 }
 @media (max-width: 380px) {
   .appearance-control {

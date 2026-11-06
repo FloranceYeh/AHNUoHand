@@ -216,7 +216,7 @@ export function CalendarPage({
       </button>
 
       <section className="feature-intro">
-        <span className="feature-hero-icon service-icon-academic">
+        <span className="feature-hero-icon service-icon-campus">
           <Icon name="calendar" size={30} />
         </span>
         <p className="eyebrow">学习服务</p>

@@ -1,4 +1,4 @@
-import { featureDetails } from "../data/services";
+import { campusServices, featureDetails } from "../data/services";
 import type { FeatureId } from "../types";
 import { Icon } from "../components/Icon";
 
@@ -13,6 +13,7 @@ export function FeaturePage({
   onBack: () => void;
 }) {
   const detail = featureDetails[featureId as PlaceholderFeatureId];
+  const service = campusServices.find((item) => item.id === featureId);
   return (
     <div className="page feature-page">
       <button className="back-button" onClick={onBack}>
@@ -21,7 +22,7 @@ export function FeaturePage({
       </button>
       <section className="feature-intro">
         <span
-          className={`feature-hero-icon service-icon-${featureId === "electricity" ? "life" : "academic"}`}
+          className={`feature-hero-icon service-icon-${service?.category ?? "campus"}`}
         >
           <Icon name={detail.icon} size={30} />
         </span>

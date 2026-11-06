@@ -1,6 +1,7 @@
 import { Selector } from "antd-mobile";
 import { Icon } from "../components/Icon";
 import { BrandIcon } from "../components/BrandIcon";
+import { navigationItems } from "../data/navigation";
 import type {
   AccentColor,
   ContentMode,
@@ -75,11 +76,10 @@ export function AppearancePage({
   onBack,
 }: {
   settings: ThemeSettings;
-  onChange: (settings: ThemeSettings) => void;
+  onChange: (changes: Partial<ThemeSettings>) => void;
   onBack: () => void;
 }) {
-  const update = (changes: Partial<ThemeSettings>) =>
-    onChange({ ...settings, ...changes });
+  const update = onChange;
 
   return (
     <div className="page feature-page appearance-page">
@@ -120,18 +120,17 @@ export function AppearancePage({
           <div
             className={`appearance-preview-nav${settings.navigationDisplay === "icon-only" ? " icons-only" : ""}`}
           >
-            {[
-              { name: "home", label: "首页" },
-              { name: "grid", label: "服务" },
-              { name: "person", label: "我的" },
-            ].map((item, index) => (
-              <span className={index === 0 ? "is-active" : ""} key={item.name}>
-                <Icon name={item.name} size={17} />
-                {settings.navigationDisplay === "icon-label" && (
-                  <small>{item.label}</small>
-                )}
-              </span>
-            ))}
+            {settings.navigationTabs
+              .map((id) => navigationItems.find((item) => item.id === id))
+              .filter((item) => item !== undefined)
+              .map((item, index) => (
+                <span className={index === 0 ? "is-active" : ""} key={item.id}>
+                  <Icon name={item.icon} size={17} />
+                  {settings.navigationDisplay === "icon-label" && (
+                    <small>{item.label}</small>
+                  )}
+                </span>
+              ))}
           </div>
         </div>
       </section>

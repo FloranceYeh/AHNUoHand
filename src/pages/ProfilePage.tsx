@@ -9,11 +9,13 @@ const settings = [
 export function ProfilePage({
   onOpenAuth,
   onOpenAppearance,
+  onOpenHomeNavigation,
   profile,
   onOpenPersonalInfo,
 }: {
   onOpenAuth?: () => void;
   onOpenAppearance: () => void;
+  onOpenHomeNavigation: () => void;
   profile: PersonalInfo;
   onOpenPersonalInfo: () => void;
 }) {
@@ -61,6 +63,16 @@ export function ProfilePage({
           <span className="settings-copy">
             <strong>外观设置</strong>
             <small>主题、主题色与导航栏显示</small>
+          </span>
+          <Icon name="chevron" size={18} className="service-chevron" />
+        </button>
+        <button className="settings-row" onClick={onOpenHomeNavigation}>
+          <span className="settings-icon">
+            <Icon name="layoutGrid" size={20} />
+          </span>
+          <span className="settings-copy">
+            <strong>首页与导航</strong>
+            <small>自定义常用服务与底部菜单，拖动调整顺序</small>
           </span>
           <Icon name="chevron" size={18} className="service-chevron" />
         </button>

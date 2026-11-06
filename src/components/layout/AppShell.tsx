@@ -1,21 +1,27 @@
 import type { ReactNode } from "react";
-import type { MainTab } from "../../types";
+import type { NavigationItemId } from "../../types";
+import type { NavigationDisplay } from "../../lib/theme";
+import { motion } from "motion/react";
 import { BottomNavigation } from "./BottomNavigation";
 import { BrandIcon } from "../BrandIcon";
 
 interface AppShellProps {
-  activeTab: MainTab;
-  onTabChange: (tab: MainTab) => void;
+  activeItem: NavigationItemId;
+  onNavigationSelect: (item: NavigationItemId) => void;
   profile: { nickname: string; avatar: string };
   onOpenProfile: () => void;
+  navigationTabs: NavigationItemId[];
+  navigationDisplay: NavigationDisplay;
   children: ReactNode;
 }
 
 export function AppShell({
-  activeTab,
-  onTabChange,
+  activeItem,
+  onNavigationSelect,
   profile,
   onOpenProfile,
+  navigationTabs,
+  navigationDisplay,
   children,
 }: AppShellProps) {
   return (
@@ -26,7 +32,7 @@ export function AppShell({
           href="#home"
           onClick={(event) => {
             event.preventDefault();
-            onTabChange("home");
+            onNavigationSelect("home");
           }}
         >
           <BrandIcon />
@@ -46,10 +52,15 @@ export function AppShell({
           )}
         </button>
       </header>
-      <main className="page-content" key={activeTab}>
+      <motion.main layoutScroll className="page-content" key={activeItem}>
         {children}
-      </main>
-      <BottomNavigation activeTab={activeTab} onChange={onTabChange} />
+      </motion.main>
+      <BottomNavigation
+        activeItem={activeItem}
+        onSelect={onNavigationSelect}
+        navigationTabs={navigationTabs}
+        navigationDisplay={navigationDisplay}
+      />
     </div>
   );
 }

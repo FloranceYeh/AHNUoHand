@@ -1,41 +1,46 @@
-import type { MainTab } from "../../types";
+import type { NavigationItemId } from "../../types";
 import { motion, useReducedMotion } from "motion/react";
 import { Icon } from "../Icon";
 import { hapticIfAllowed } from "../../lib/haptics";
-import { readThemeSettings } from "../../lib/theme";
-
-const items: { id: MainTab; label: string; icon: string }[] = [
-  { id: "home", label: "首页", icon: "home" },
-  { id: "services", label: "服务", icon: "grid" },
-  { id: "profile", label: "我的", icon: "person" },
-];
+import { navigationItems } from "../../data/navigation";
 
 export function BottomNavigation({
-  activeTab,
-  onChange,
+  activeItem,
+  onSelect,
+  navigationTabs,
+  navigationDisplay,
 }: {
-  activeTab: MainTab;
-  onChange: (tab: MainTab) => void;
+  activeItem: NavigationItemId;
+  onSelect: (item: NavigationItemId) => void;
+  navigationTabs: NavigationItemId[];
+  navigationDisplay: "icon-label" | "icon-only";
 }) {
   const reduceMotion = useReducedMotion();
-  const iconOnly = readThemeSettings().navigationDisplay === "icon-only";
+  const iconOnly = navigationDisplay === "icon-only";
+  const items = navigationTabs
+    .map((id) => navigationItems.find((item) => item.id === id))
+    .filter((item) => item !== undefined);
   return (
     <nav
       className={`bottom-navigation${iconOnly ? " icons-only" : ""}`}
       aria-label="主导航"
     >
       {items.map((item) => {
-        const active = activeTab === item.id;
+        const active = activeItem === item.id;
         return (
           <motion.button
             key={item.id}
             className={`nav-item ${active ? "is-active" : ""}`}
+            data-service-category={
+              item.kind === "feature" ? item.category : undefined
+            }
             aria-current={active ? "page" : undefined}
+            aria-label={item.label}
             whileTap={reduceMotion ? undefined : { scale: 0.94 }}
             onClick={() => {
               // 已经在这一页就不响，避免多余触感
               if (!active) hapticIfAllowed("light");
-              onChange(item.id);
+              onSelect(item.id);
             }}
           >
             <motion.span

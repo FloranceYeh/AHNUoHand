@@ -1,4 +1,6 @@
 export type MainTab = "home" | "services" | "profile";
+export type CampusServiceId = Exclude<FeatureId, "auth">;
+export type NavigationItemId = MainTab | CampusServiceId;
 export type FeatureId =
   | "schedule"
   | "electricity"
@@ -10,7 +12,7 @@ export type FeatureId =
   | "auth";
 
 export interface CampusService {
-  id: FeatureId;
+  id: CampusServiceId;
   title: string;
   description: string;
   icon: string;

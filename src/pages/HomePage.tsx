@@ -1,18 +1,20 @@
 import { campusServices } from "../data/services";
-import type { FeatureId } from "../types";
+import type { CampusServiceId, FeatureId } from "../types";
 import { Icon } from "../components/Icon";
 import { ServiceGrid } from "../components/services/ServiceGrid";
 
 export function HomePage({
   onOpenFeature,
   onBrowseServices,
+  homeServices,
 }: {
   onOpenFeature: (id: FeatureId) => void;
   onBrowseServices: () => void;
+  homeServices: CampusServiceId[];
 }) {
-  const featured = campusServices.filter(
-    (service) => service.status === "available",
-  );
+  const featured = homeServices
+    .map((id) => campusServices.find((service) => service.id === id))
+    .filter((service) => service !== undefined);
   return (
     <div className="page home-page">
       <section className="welcome-block">
@@ -45,7 +47,13 @@ export function HomePage({
             <Icon name="chevron" size={16} />
           </button>
         </div>
-        <ServiceGrid services={featured} onOpen={onOpenFeature} />
+        {featured.length > 0 ? (
+          <ServiceGrid services={featured} onOpen={onOpenFeature} />
+        ) : (
+          <p className="empty-state">
+            还没有常用服务，可在“首页与导航”中添加。
+          </p>
+        )}
       </section>
       <section className="campus-note">
         <span className="note-icon">

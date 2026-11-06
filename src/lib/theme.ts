@@ -1,3 +1,5 @@
+import type { CampusServiceId, NavigationItemId } from "../types";
+
 export type ThemeMode = "system" | "light" | "dark";
 export type AccentColor = "teal" | "blue" | "violet" | "amber" | "rose";
 export type NavigationDisplay = "icon-label" | "icon-only";
@@ -8,6 +10,8 @@ export interface ThemeSettings {
   accent: AccentColor;
   navigationDisplay: NavigationDisplay;
   contentMode: ContentMode;
+  homeServices: CampusServiceId[];
+  navigationTabs: NavigationItemId[];
 }
 
 const STORAGE_KEY = "ahnuhand-theme";
@@ -16,7 +20,24 @@ const DEFAULT_SETTINGS: ThemeSettings = {
   accent: "teal",
   navigationDisplay: "icon-label",
   contentMode: "normal",
+  homeServices: ["schedule", "classroom", "electricity"],
+  navigationTabs: ["home", "services", "profile"],
 };
+
+const HOME_SERVICE_IDS: CampusServiceId[] = [
+  "schedule",
+  "classroom",
+  "electricity",
+  "library",
+  "calendar",
+  "feedback",
+];
+const NAVIGATION_TAB_IDS: NavigationItemId[] = [
+  "home",
+  "services",
+  "profile",
+  ...HOME_SERVICE_IDS,
+];
 
 function isThemeMode(value: unknown): value is ThemeMode {
   return value === "system" || value === "light" || value === "dark";
@@ -40,6 +61,24 @@ function isContentMode(value: unknown): value is ContentMode {
   return value === "normal" || value === "simple";
 }
 
+function readOrderedSelection<T extends string>(
+  value: unknown,
+  allowed: T[],
+  fallback: T[],
+  maximum = allowed.length,
+  allowEmpty = false,
+): T[] {
+  if (!Array.isArray(value)) return [...fallback];
+  const selected = value.filter(
+    (item, index): item is T =>
+      typeof item === "string" &&
+      allowed.includes(item as T) &&
+      value.indexOf(item) === index,
+  );
+  if (selected.length === 0) return allowEmpty ? [] : [...fallback];
+  return selected.slice(0, maximum);
+}
+
 export function readThemeSettings(): ThemeSettings {
   try {
     const parsed = JSON.parse(
@@ -49,6 +88,8 @@ export function readThemeSettings(): ThemeSettings {
       accent?: unknown;
       navigationDisplay?: unknown;
       contentMode?: unknown;
+      homeServices?: unknown;
+      navigationTabs?: unknown;
     } | null;
     return {
       mode: isThemeMode(parsed?.mode) ? parsed.mode : DEFAULT_SETTINGS.mode,
@@ -61,6 +102,19 @@ export function readThemeSettings(): ThemeSettings {
       contentMode: isContentMode(parsed?.contentMode)
         ? parsed.contentMode
         : DEFAULT_SETTINGS.contentMode,
+      homeServices: readOrderedSelection(
+        parsed?.homeServices,
+        HOME_SERVICE_IDS,
+        DEFAULT_SETTINGS.homeServices,
+        HOME_SERVICE_IDS.length,
+        true,
+      ),
+      navigationTabs: readOrderedSelection(
+        parsed?.navigationTabs,
+        NAVIGATION_TAB_IDS,
+        DEFAULT_SETTINGS.navigationTabs,
+        5,
+      ),
     };
   } catch {
     return DEFAULT_SETTINGS;

@@ -37,6 +37,15 @@
   --color-sky: #e4edf7;
   --color-lilac: #eee9f6;
   --color-amber: #f4ecd7;
+  /* Fixed category palettes, independent of the selected accent color. */
+  --service-academic-background: #e0eee8;
+  --service-academic-foreground: #246d54;
+  --service-life-background: #f8e8d9;
+  --service-life-foreground: #955d2e;
+  --service-campus-background: #e1edf7;
+  --service-campus-foreground: #356e9b;
+  --service-account-background: #eee7f7;
+  --service-account-foreground: #73529b;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -79,6 +88,8 @@
   --adm-color-border: var(--color-line);
   --adm-color-background: var(--color-surface);
   --adm-color-background-body: var(--color-canvas);
+  --adm-color-light: var(--color-muted-strong);
+  --adm-color-fill-content: var(--color-muted);
 }
 
 :root[data-accent="teal"] {
@@ -121,6 +132,14 @@
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
+  --service-academic-background: #203e32;
+  --service-academic-foreground: #9bd5b8;
+  --service-life-background: #463323;
+  --service-life-foreground: #efbd8e;
+  --service-campus-background: #263b50;
+  --service-campus-foreground: #a0c9ef;
+  --service-account-background: #392e4b;
+  --service-account-foreground: #ceb5ee;
   --color-canvas: #111916;
   --color-surface: #18221e;
   --color-surface-raised: #202c27;
@@ -273,6 +292,14 @@
 @media (prefers-color-scheme: dark) {
   :root[data-theme="system"] {
     color-scheme: dark;
+    --service-academic-background: #203e32;
+    --service-academic-foreground: #9bd5b8;
+    --service-life-background: #463323;
+    --service-life-foreground: #efbd8e;
+    --service-campus-background: #263b50;
+    --service-campus-foreground: #a0c9ef;
+    --service-account-background: #392e4b;
+    --service-account-foreground: #ceb5ee;
     --color-canvas: #111916;
     --color-surface: #18221e;
     --color-surface-raised: #202c27;

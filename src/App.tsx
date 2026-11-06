@@ -7,6 +7,7 @@ import { HomePage } from "./pages/HomePage";
 import { ServicesPage } from "./pages/ServicesPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { AppearancePage } from "./pages/AppearancePage";
+import { HomeNavigationPage } from "./pages/HomeNavigationPage";
 import { PersonalInfoPage } from "./pages/PersonalInfoPage";
 import { FeaturePage } from "./pages/FeaturePage";
 import { ElectricityPage } from "./pages/ElectricityPage";
@@ -29,7 +30,13 @@ import {
   hasPendingTimetableLogin,
   resumeMobileTimetableLogin,
 } from "./lib/timetableSession";
-import type { FeatureId, MainTab } from "./types";
+import type {
+  CampusServiceId,
+  FeatureId,
+  MainTab,
+  NavigationItemId,
+} from "./types";
+import { navigationItems } from "./data/navigation";
 import {
   readPersonalInfo,
   savePersonalInfo,
@@ -48,8 +55,10 @@ export interface SemesterInfo {
 
 type AppRoute =
   | { type: "tab"; tab: MainTab }
+  | { type: "menu-feature"; id: CampusServiceId }
   | { type: "feature"; id: FeatureId; initialWeek?: number }
   | { type: "appearance" }
+  | { type: "home-navigation" }
   | { type: "personal-info" };
 
 interface StackScreen {
@@ -80,6 +89,12 @@ export default function App() {
   const currentRoute = currentScreen.route;
   const rootRoute = stack[0].route;
   const activeTab = rootRoute.type === "tab" ? rootRoute.tab : "home";
+  const activeItem: NavigationItemId =
+    rootRoute.type === "menu-feature"
+      ? rootRoute.id
+      : rootRoute.type === "tab"
+        ? rootRoute.tab
+        : "home";
 
   const pushRoute = useCallback((route: AppRoute) => {
     const key = nextScreenKey.current++;
@@ -101,7 +116,7 @@ export default function App() {
       setStack((current) => current.slice(0, -1));
       return;
     }
-    if (activeTab !== "home") {
+    if (rootRoute.type === "menu-feature" || activeTab !== "home") {
       lastHomeBackRef.current = 0;
       setExitPromptVisible(false);
       setRootRoute({ type: "tab", tab: "home" });
@@ -130,7 +145,7 @@ export default function App() {
         exitPromptTimerRef.current = null;
       }, 2000);
     }
-  }, [activeTab, isAndroid, setRootRoute, stack.length]);
+  }, [activeTab, isAndroid, rootRoute.type, setRootRoute, stack.length]);
 
   useEffect(
     () => () => {
@@ -141,10 +156,12 @@ export default function App() {
     [],
   );
 
-  const changeThemeSettings = (settings: ThemeSettings) => {
-    saveThemeSettings(settings);
-    setThemeSettings(settings);
-  };
+  const changeThemeSettings = useCallback((changes: Partial<ThemeSettings>) => {
+    setThemeSettings((current) => ({ ...current, ...changes }));
+  }, []);
+  useEffect(() => {
+    saveThemeSettings(themeSettings);
+  }, [themeSettings]);
   const changePersonalInfo = (info: PersonalInfo) => {
     savePersonalInfo(info);
     setPersonalInfo(info);
@@ -271,12 +288,21 @@ export default function App() {
       onChange={changeThemeSettings}
       onBack={goBack}
     />
+  ) : currentRoute.type === "home-navigation" ? (
+    <HomeNavigationPage
+      settings={themeSettings}
+      onChange={changeThemeSettings}
+      onBack={goBack}
+    />
+  ) : currentRoute.type === "menu-feature" ? (
+    renderFeature(currentRoute.id)
   ) : currentRoute.type === "feature" ? (
     renderFeature(currentRoute.id, currentRoute.initialWeek)
   ) : currentRoute.tab === "home" ? (
     <HomePage
       onOpenFeature={openFeature}
       onBrowseServices={() => setRootRoute({ type: "tab", tab: "services" })}
+      homeServices={themeSettings.homeServices}
     />
   ) : currentRoute.tab === "services" ? (
     <ServicesPage onOpenFeature={openFeature} />
@@ -284,6 +310,7 @@ export default function App() {
     <ProfilePage
       onOpenAuth={() => pushRoute({ type: "feature", id: "auth" })}
       onOpenAppearance={() => pushRoute({ type: "appearance" })}
+      onOpenHomeNavigation={() => pushRoute({ type: "home-navigation" })}
       profile={personalInfo}
       onOpenPersonalInfo={() => pushRoute({ type: "personal-info" })}
     />
@@ -296,12 +323,24 @@ export default function App() {
 
   return (
     <AppShell
-      activeTab={activeTab}
+      activeItem={activeItem}
       profile={personalInfo}
+      navigationTabs={themeSettings.navigationTabs}
+      navigationDisplay={themeSettings.navigationDisplay}
       onOpenProfile={() => {
         setRootRoute({ type: "tab", tab: "profile" });
       }}
-      onTabChange={(next) => setRootRoute({ type: "tab", tab: next })}
+      onNavigationSelect={(id) => {
+        const item = navigationItems.find((option) => option.id === id);
+        if (item?.kind === "feature") {
+          setRootRoute({
+            type: "menu-feature",
+            id: item.id,
+          });
+        } else if (item?.kind === "tab") {
+          setRootRoute({ type: "tab", tab: item.id });
+        }
+      }}
     >
       <AnimatePresence mode="wait" initial={false}>
         <motion.div

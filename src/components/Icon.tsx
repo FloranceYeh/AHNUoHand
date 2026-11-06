@@ -22,6 +22,11 @@ import {
   Star,
   BuildingComplex,
   Building,
+  ArrowUp,
+  ArrowDown,
+  GripVertical,
+  Plus,
+  LayoutGrid,
 } from "lucide-react";
 
 const icons = {
@@ -48,6 +53,11 @@ const icons = {
   star: Star,
   buildings: BuildingComplex,
   building: Building,
+  up: ArrowUp,
+  down: ArrowDown,
+  grip: GripVertical,
+  plus: Plus,
+  layoutGrid: LayoutGrid,
 };
 
 interface IconProps {
