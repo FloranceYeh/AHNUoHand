@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Icon } from "../components/Icon";
 import { DatePicker, Popup, Stepper } from "antd-mobile";
@@ -47,6 +47,37 @@ interface CachedGrid extends GridResult {
   savedAt: number;
 }
 
+function readCachedGrid(): CachedGrid | null {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as CachedGrid;
+    return parsed?.cells?.length ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function initialWeekForGrid(
+  grid: CachedGrid | null,
+  requestedWeek?: number,
+): number {
+  if (requestedWeek && requestedWeek > 0) return requestedWeek;
+  if (!grid) return 1;
+  const slots = grid.cells.flatMap((cell) =>
+    parseCellText(cell.text, cell.weekday, cell.period, cell.span),
+  );
+  const detectedMaxWeek = slots.reduce(
+    (max, slot) => Math.max(max, ...slot.weeks, 1),
+    1,
+  );
+  const semester = resolveSemester(grid.startDate, detectedMaxWeek);
+  const startDate = semester.firstStart
+    ? toInputDate(semester.firstStart)
+    : undefined;
+  return currentWeekOf(startDate, semester.maxWeek || detectedMaxWeek);
+}
+
 const WEEKDAY_SHORT = ["", "一", "二", "三", "四", "五", "六", "日"];
 const WEEKDAY_FULL = [
   "",
@@ -76,15 +107,17 @@ export function TimetablePage({
   onNeedLogin: () => void;
 }) {
   const reduceMotion = useReducedMotion();
-  const [phase, setPhase] = useState<Phase>("idle");
+  const [grid, setGrid] = useState<CachedGrid | null>(readCachedGrid);
+  const [phase, setPhase] = useState<Phase>(() =>
+    readCachedGrid() ? "ready" : "idle",
+  );
   const [error, setError] = useState("");
-  const [grid, setGrid] = useState<CachedGrid | null>(null);
-  const [week, setWeek] = useState(1);
+  const [week, setWeek] = useState(() => initialWeekForGrid(grid, initialWeek));
   const [hint, setHint] = useState("");
   const [selected, setSelected] = useState<CourseSlot | null>(null);
+  const [detailsVisible, setDetailsVisible] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
-  const [weekStripReady, setWeekStripReady] = useState(false);
   const [weekTransitionDirection, setWeekTransitionDirection] = useState(0);
   const drawerTransition = reduceMotion
     ? { duration: 0 }
@@ -101,24 +134,12 @@ export function TimetablePage({
   const weekStripRef = useRef<HTMLDivElement>(null);
 
   const closeOverlay = () => {
-    setSelected(null);
+    if (selected) setDetailsVisible(false);
     setSettingsOpen(false);
     setDatePickerOpen(false);
   };
 
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(CACHE_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as CachedGrid;
-      if (parsed?.cells?.length) {
-        setGrid(parsed);
-        setPhase("ready");
-      }
-    } catch {
-      /* 缓存损坏时忽略 */
-    }
-  }, []);
+  const closeCourseDetails = () => setDetailsVisible(false);
 
   useEffect(
     () => () => {
@@ -248,15 +269,6 @@ export function TimetablePage({
     today,
   );
 
-  // 默认定位到当前周；从校历跳转过来时用指定周次
-  const initialisedRef = useRef(false);
-  useEffect(() => {
-    if (phase !== "ready" || initialisedRef.current) return;
-    initialisedRef.current = true;
-    setWeek(initialWeek ?? nowWeek);
-    setWeekStripReady(true);
-  }, [phase, nowWeek, initialWeek]);
-
   const activeSlots = useMemo(
     () => slots.filter((slot) => isActive(slot, week)),
     [slots, week],
@@ -339,8 +351,8 @@ export function TimetablePage({
   };
 
   const lastPositionedWeekRef = useRef<number | null>(null);
-  useEffect(() => {
-    if (!weekStripReady) return;
+  useLayoutEffect(() => {
+    if (phase !== "ready") return;
     const strip = weekStripRef.current;
     const active = strip?.querySelector<HTMLElement>(
       ".tt-weekstrip-item.active",
@@ -359,12 +371,11 @@ export function TimetablePage({
           ? "auto"
           : "smooth",
     });
-  }, [week, weekStripReady]);
+  }, [phase, week]);
 
   // Preserve vertical page scrolling while recognizing a deliberate horizontal swipe.
   const onPointerDown = (event: React.PointerEvent) => {
     if (event.pointerType === "mouse" && event.button !== 0) return;
-    event.currentTarget.setPointerCapture?.(event.pointerId);
     swipeRef.current = {
       pointerId: event.pointerId,
       x: event.clientX,
@@ -386,6 +397,7 @@ export function TimetablePage({
     ) {
       gesture.horizontal = true;
       didSwipeRef.current = true;
+      event.currentTarget.setPointerCapture?.(event.pointerId);
     }
     if (gesture.horizontal) event.preventDefault();
   };
@@ -393,7 +405,9 @@ export function TimetablePage({
     const gesture = swipeRef.current;
     if (!gesture || gesture.pointerId !== event.pointerId) return;
     swipeRef.current = null;
-    event.currentTarget.releasePointerCapture?.(event.pointerId);
+    if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
     if (cancelled || !gesture.horizontal) return;
     const dx = event.clientX - gesture.x;
     const elapsed = Math.max(1, event.timeStamp - gesture.startedAt);
@@ -635,6 +649,7 @@ export function TimetablePage({
                           return;
                         }
                         setSelected(slot);
+                        setDetailsVisible(true);
                       }}
                     >
                       <span className="tt-course-name">{slot.name}</span>
@@ -813,11 +828,12 @@ export function TimetablePage({
 
       {selected && (
         <Popup
-          visible
+          visible={detailsVisible}
           position="bottom"
           destroyOnClose={false}
-          onMaskClick={() => setSelected(null)}
-          onClose={() => setSelected(null)}
+          onMaskClick={closeCourseDetails}
+          onClose={closeCourseDetails}
+          afterClose={() => setSelected(null)}
           bodyStyle={{
             borderRadius: "22px 22px 0 0",
             maxHeight: "min(82dvh, 720px)",
@@ -830,6 +846,15 @@ export function TimetablePage({
             role="dialog"
             aria-modal="true"
             aria-labelledby="tt-course-title"
+            drag="y"
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 0.42 }}
+            dragMomentum={false}
+            onDragEnd={(_, info) => {
+              if (info.offset.y > 96 || info.velocity.y > 650) {
+                closeCourseDetails();
+              }
+            }}
             initial={reduceMotion ? false : { y: "10%", opacity: 0.7 }}
             animate={{ y: 0, opacity: 1 }}
             transition={drawerTransition}
@@ -917,9 +942,6 @@ export function TimetablePage({
                 </div>
               )}
             </dl>
-            <button className="elec-primary" onClick={() => setSelected(null)}>
-              关闭
-            </button>
           </motion.div>
         </Popup>
       )}

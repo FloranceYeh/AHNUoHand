@@ -2345,6 +2345,13 @@ textarea:focus-visible {
   place-items: center;
   height: 28px;
   margin: -2px 0 4px;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.tt-popup-handle:active {
+  cursor: grabbing;
 }
 .tt-settings {
   z-index: 70;
