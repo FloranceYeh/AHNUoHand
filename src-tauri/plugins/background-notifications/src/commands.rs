@@ -11,3 +11,25 @@ pub(crate) async fn configure<R: Runtime>(
 ) -> Result<()> {
     app.background_notifications().configure(payload)
 }
+
+#[command]
+pub(crate) async fn notify<R: Runtime>(
+    app: AppHandle<R>,
+    payload: NotificationRequest,
+) -> Result<()> {
+    #[cfg(mobile)]
+    { app.background_notifications().notify(payload) }
+    #[cfg(desktop)]
+    { let _ = (app, payload); Ok(()) }
+}
+
+#[command]
+pub(crate) async fn schedule<R: Runtime>(
+    app: AppHandle<R>,
+    payload: ScheduleRequest,
+) -> Result<()> {
+    #[cfg(mobile)]
+    { app.background_notifications().schedule(payload) }
+    #[cfg(desktop)]
+    { let _ = (app, payload); Ok(()) }
+}

@@ -1,7 +1,15 @@
 import { useState } from "react";
-import { Stepper, Switch } from "antd-mobile";
+import {
+  Collapse,
+  Input,
+  Selector,
+  Stepper,
+  Switch,
+  TextArea,
+} from "antd-mobile";
 import { Icon } from "../components/Icon";
 import {
+  DEFAULT_NOTIFICATION_ICONS,
   ensureNotificationPermission,
   notify,
   type NotificationSettings,
@@ -19,9 +27,25 @@ export function NotificationSettingsPage({
   const [permissionError, setPermissionError] = useState("");
   const [testStatus, setTestStatus] = useState("");
   const [testSending, setTestSending] = useState(false);
+  const iconOptions = [
+    { label: <Icon name="school" size={21} />, value: "school", title: "校园" },
+    { label: <Icon name="bell" size={21} />, value: "bell", title: "通知" },
+    { label: <Icon name="book" size={21} />, value: "book", title: "课程" },
+    { label: <Icon name="bolt" size={21} />, value: "bolt", title: "电量" },
+    {
+      label: <Icon name="idCard" size={21} />,
+      value: "idCard",
+      title: "一卡通",
+    },
+    {
+      label: <Icon name="settings" size={21} />,
+      value: "settings",
+      title: "设置",
+    },
+  ];
   const update = async (
     key: keyof NotificationSettings,
-    value: boolean | number,
+    value: boolean | number | string,
   ) => {
     const next = { ...settings, [key]: value };
     if (value === true && !(await ensureNotificationPermission())) {
@@ -52,13 +76,51 @@ export function NotificationSettingsPage({
       />
     </div>
   );
+  const notificationEditor = (
+    iconKey: keyof NotificationSettings,
+    titleKey: keyof NotificationSettings,
+    bodyKey: keyof NotificationSettings,
+  ) => (
+    <Collapse className="notification-editor">
+      <Collapse.Panel key={`${String(iconKey)}-custom`} title="自定义通知">
+        <div className="notification-copy-fields">
+          <div className="notification-copy-field">
+            <label className="notification-copy-field-label">标题</label>
+            <Input
+              value={String(settings[titleKey])}
+              placeholder="通知标题"
+              onChange={(value) => void update(titleKey, value)}
+            />
+          </div>
+          <div className="notification-copy-field">
+            <label className="notification-copy-field-label">文案</label>
+            <TextArea
+              value={String(settings[bodyKey])}
+              placeholder="通知内容"
+              autoSize={{ minRows: 2, maxRows: 4 }}
+              onChange={(value) => void update(bodyKey, value)}
+            />
+          </div>
+        </div>
+        <span className="notification-icon-field-label">配图</span>
+        <Selector
+          columns={3}
+          options={iconOptions}
+          value={[settings[iconKey] as string]}
+          onChange={(value) => value[0] && void update(iconKey, value[0])}
+          showCheckMark={false}
+        />
+      </Collapse.Panel>
+    </Collapse>
+  );
   const sendTest = async () => {
     setTestSending(true);
     setTestStatus("");
     try {
       const sent = await notify(
-        "AHNUoHand 通知测试",
-        "通知权限和系统推送工作正常。",
+        settings.testTitle,
+        settings.testBody,
+        settings.testIcon,
       );
       setTestStatus(
         sent
@@ -92,29 +154,32 @@ export function NotificationSettingsPage({
           "课前提醒",
           "根据已读取的课表，在上课前发送通知。",
           "classReminder",
-          "book",
+          DEFAULT_NOTIFICATION_ICONS.class,
           "academic",
         )}
         {settings.classReminder && (
-          <div className="notification-setting-row notification-stepper-row">
-            <div className="notification-setting-copy">
-              <strong>提前时间</strong>
-              <small>分钟</small>
+          <>
+            <div className="notification-setting-row notification-stepper-row">
+              <div className="notification-setting-copy">
+                <strong>提前时间</strong>
+                <small>分钟</small>
+              </div>
+              <Stepper
+                min={5}
+                max={60}
+                step={5}
+                value={settings.reminderMinutes}
+                onChange={(value) => void update("reminderMinutes", value)}
+              />
             </div>
-            <Stepper
-              min={5}
-              max={60}
-              step={5}
-              value={settings.reminderMinutes}
-              onChange={(value) => void update("reminderMinutes", value)}
-            />
-          </div>
+            {notificationEditor("classIcon", "classTitle", "classBody")}
+          </>
         )}
         {toggleRow(
           "寝室月用电预警",
           "定时查询宿舍剩余电量，低于阈值时提醒。",
           "electricityAlert",
-          "bolt",
+          DEFAULT_NOTIFICATION_ICONS.electricity,
           "life",
         )}
         {settings.electricityAlert && (
@@ -147,13 +212,18 @@ export function NotificationSettingsPage({
                 onChange={(value) => void update("electricityBalance", value)}
               />
             </div>
+            {notificationEditor(
+              "electricityIcon",
+              "electricityTitle",
+              "electricityBody",
+            )}
           </>
         )}
         {toggleRow(
           "一卡通余额预警",
           "定时查询一卡通余额，低于阈值时提醒。",
           "schoolCardAlert",
-          "idCard",
+          DEFAULT_NOTIFICATION_ICONS.schoolCard,
           "account",
         )}
         {settings.schoolCardAlert && (
@@ -186,25 +256,35 @@ export function NotificationSettingsPage({
                 onChange={(value) => void update("schoolCardBalance", value)}
               />
             </div>
+            {notificationEditor(
+              "schoolCardIcon",
+              "schoolCardTitle",
+              "schoolCardBody",
+            )}
           </>
         )}
       </section>
       <p className="notification-setting-note">
         普通关闭应用后，系统会按轮询间隔继续执行；一卡通需要已登录的完美校园会话。系统强制停止应用或限制后台活动时不会执行。
       </p>
-      <button
-        className="elec-ghost notification-test-button"
-        onClick={() => void sendTest()}
-        disabled={testSending}
-      >
-        <Icon name="bell" size={17} />
-        {testSending ? "正在发送…" : "发送测试通知"}
-      </button>
-      {testStatus && (
-        <p className="notification-test-status" role="status">
-          {testStatus}
-        </p>
-      )}
+      <div className="notification-test">
+        <button
+          className="elec-ghost notification-test-button"
+          onClick={() => void sendTest()}
+          disabled={testSending}
+        >
+          <Icon name={DEFAULT_NOTIFICATION_ICONS.test} size={17} />
+          {testSending ? "正在发送…" : "发送测试通知"}
+        </button>
+        <div className="settings-list notification-test-icon">
+          {notificationEditor("testIcon", "testTitle", "testBody")}
+        </div>
+        {testStatus && (
+          <p className="notification-test-status" role="status">
+            {testStatus}
+          </p>
+        )}
+      </div>
     </div>
   );
 }

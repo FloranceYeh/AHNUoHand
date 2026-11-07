@@ -37,7 +37,8 @@ export function AppShell({
         >
           <BrandIcon />
           <span>
-            AHNUoHand<span className="brand-light"> · 校园助手</span>
+            <span>AHNUoHand</span>
+            <span className="brand-light"> · 校园助手</span>
           </span>
         </a>
         <button

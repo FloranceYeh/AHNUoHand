@@ -1,12 +1,10 @@
 import {
   isPermissionGranted,
   requestPermission,
-  Schedule,
   sendNotification,
-  pending,
-  cancel,
 } from "@tauri-apps/plugin-notification";
 import { invoke } from "@tauri-apps/api/core";
+import { renderNotificationImage } from "./notificationImage";
 import { CACHE_KEY } from "./timetableSession";
 import { resolveSemester } from "./semesterSettings";
 import { parseCellText } from "./timetable";
@@ -17,7 +15,28 @@ import { currentSchoolCardMonth, querySchoolCardSilently } from "./schoolcard";
 const SETTINGS_KEY = "ahnu.notifications.settings.v1";
 const REMINDER_ID_START = 730000;
 
+export type NotificationKind = "class" | "electricity" | "schoolCard" | "test";
+
+export const DEFAULT_NOTIFICATION_ICONS = {
+  class: "book",
+  electricity: "bolt",
+  schoolCard: "idCard",
+  test: "bell",
+} satisfies Record<NotificationKind, string>;
+
 export interface NotificationSettings {
+  classIcon: string;
+  classTitle: string;
+  classBody: string;
+  electricityIcon: string;
+  electricityTitle: string;
+  electricityBody: string;
+  schoolCardIcon: string;
+  schoolCardTitle: string;
+  schoolCardBody: string;
+  testIcon: string;
+  testTitle: string;
+  testBody: string;
   classReminder: boolean;
   reminderMinutes: number;
   electricityAlert: boolean;
@@ -29,6 +48,19 @@ export interface NotificationSettings {
 }
 
 export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
+  classIcon: DEFAULT_NOTIFICATION_ICONS.class,
+  classTitle: "即将上课",
+  classBody: "{{course}}{{details}} · {{minutes}} 分钟后开始",
+  electricityIcon: DEFAULT_NOTIFICATION_ICONS.electricity,
+  electricityTitle: "宿舍剩余电量提醒",
+  electricityBody:
+    "宿舍剩余电量 {{value}} 度，已低于设定阈值 {{threshold}} 度。",
+  schoolCardIcon: DEFAULT_NOTIFICATION_ICONS.schoolCard,
+  schoolCardTitle: "一卡通余额提醒",
+  schoolCardBody: "当前余额 ¥{{value}}，已低于设定阈值 ¥{{threshold}}。",
+  testIcon: DEFAULT_NOTIFICATION_ICONS.test,
+  testTitle: "AHNUoHand 通知测试",
+  testBody: "通知权限和系统推送工作正常。",
   classReminder: false,
   reminderMinutes: 10,
   electricityAlert: false,
@@ -38,6 +70,16 @@ export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
   schoolCardBalance: 20,
   schoolCardPollMinutes: 360,
 };
+
+function renderTemplate(
+  template: string,
+  values: Record<string, string>,
+): string {
+  return template.replace(
+    /\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g,
+    (_, key: string) => values[key] ?? "",
+  );
+}
 
 export function readNotificationSettings(): NotificationSettings {
   try {
@@ -58,9 +100,18 @@ export async function syncBackgroundNotificationTask(
   settings = readNotificationSettings(),
 ): Promise<void> {
   if (!isMobile()) return;
+  const settingsWithImages = {
+    ...settings,
+    electricityImageBase64: settings.electricityAlert
+      ? await renderNotificationImage(settings.electricityIcon)
+      : "",
+    schoolCardImageBase64: settings.schoolCardAlert
+      ? await renderNotificationImage(settings.schoolCardIcon)
+      : "",
+  };
   await invoke("plugin:background-notifications|configure", {
     payload: {
-      settings: JSON.stringify(settings),
+      settings: JSON.stringify(settingsWithImages),
       operatorNo: getSavedOperator(),
     },
   });
@@ -71,21 +122,36 @@ export async function ensureNotificationPermission(): Promise<boolean> {
   return (await requestPermission()) === "granted";
 }
 
-export async function notify(title: string, body: string): Promise<boolean> {
+export async function notify(
+  title: string,
+  body: string,
+  iconName = "bell",
+): Promise<boolean> {
   if (!(await ensureNotificationPermission())) return false;
-  sendNotification({ title, body });
+  if (isMobile()) {
+    await invoke("plugin:background-notifications|notify", {
+      payload: {
+        title,
+        body,
+        imageBase64: await renderNotificationImage(iconName),
+      },
+    });
+  } else {
+    sendNotification({ title, body });
+  }
   return true;
 }
 
 export async function syncCourseNotifications(
   settings = readNotificationSettings(),
 ): Promise<void> {
-  const queued = await pending().catch(() => []);
-  const oldIds = queued
-    .map((item) => item.id)
-    .filter((id) => id >= REMINDER_ID_START && id < REMINDER_ID_START + 10000);
-  if (oldIds.length) await cancel(oldIds).catch(() => {});
-  if (!settings.classReminder || !isMobile()) return;
+  if (!isMobile()) return;
+  if (!settings.classReminder) {
+    await invoke("plugin:background-notifications|schedule", {
+      payload: { jobs: "[]" },
+    });
+    return;
+  }
 
   let grid: {
     startDate?: string;
@@ -94,18 +160,38 @@ export async function syncCourseNotifications(
   try {
     grid = JSON.parse(localStorage.getItem(CACHE_KEY) || "null");
   } catch {
+    await invoke("plugin:background-notifications|schedule", {
+      payload: { jobs: "[]" },
+    });
     return;
   }
-  if (!grid?.startDate || !grid.cells?.length) return;
+  if (!grid?.startDate || !grid.cells?.length) {
+    await invoke("plugin:background-notifications|schedule", {
+      payload: { jobs: "[]" },
+    });
+    return;
+  }
   const semester = resolveSemester(grid.startDate);
-  if (!semester.firstStart) return;
+  if (!semester.firstStart) {
+    await invoke("plugin:background-notifications|schedule", {
+      payload: { jobs: "[]" },
+    });
+    return;
+  }
   const firstMonday = new Date(semester.firstStart);
   firstMonday.setHours(0, 0, 0, 0);
   const now = new Date();
   const end = new Date(now);
   end.setDate(end.getDate() + 35);
   let id = REMINDER_ID_START;
-  const jobs: { id: number; title: string; body: string; date: Date }[] = [];
+  const jobs: {
+    id: number;
+    title: string;
+    body: string;
+    at: number;
+    imageBase64?: string;
+  }[] = [];
+  const imageBase64 = await renderNotificationImage(settings.classIcon);
   for (const cell of grid.cells) {
     const slots = parseCellText(
       cell.text,
@@ -128,22 +214,26 @@ export async function syncCourseNotifications(
         const details = [slot.place, slot.teacher].filter(Boolean).join(" · ");
         jobs.push({
           id: id++,
-          title: "即将上课",
-          body: `${slot.name}${details ? ` · ${details}` : ""} · ${settings.reminderMinutes} 分钟后开始`,
-          date,
+          title: renderTemplate(settings.classTitle, {
+            course: slot.name,
+            details: details ? ` · ${details}` : "",
+            minutes: String(settings.reminderMinutes),
+          }),
+          body: renderTemplate(settings.classBody, {
+            course: slot.name,
+            details: details ? ` · ${details}` : "",
+            minutes: String(settings.reminderMinutes),
+          }),
+          at: date.getTime(),
+          imageBase64,
         });
       }
     }
   }
-  if (!jobs.length || !(await ensureNotificationPermission())) return;
-  for (const job of jobs) {
-    sendNotification({
-      id: job.id,
-      title: job.title,
-      body: job.body,
-      schedule: Schedule.at(job.date, false, true),
-    });
-  }
+  if (!(await ensureNotificationPermission())) return;
+  await invoke("plugin:background-notifications|schedule", {
+    payload: { jobs: JSON.stringify(jobs) },
+  });
 }
 
 export function checkThresholdAlert(
@@ -158,11 +248,26 @@ export function checkThresholdAlert(
   const key = `ahnu.notifications.alerted.${kind}.${period}`;
   if (localStorage.getItem(key)) return;
   localStorage.setItem(key, "1");
+  const settings = readNotificationSettings();
+  const isElectricity = kind === "electricity";
   void notify(
-    kind === "electricity" ? "宿舍用电提醒" : "一卡通余额提醒",
-    kind === "electricity"
-      ? `宿舍剩余电量 ${value.toFixed(1)} 度，已低于提醒阈值。`
-      : `当前余额 ¥${value.toFixed(2)}，已低于提醒阈值。`,
+    renderTemplate(
+      settings[isElectricity ? "electricityTitle" : "schoolCardTitle"],
+      {
+        value: isElectricity ? value.toFixed(1) : value.toFixed(2),
+        threshold: threshold.toString(),
+        period,
+      },
+    ),
+    renderTemplate(
+      settings[isElectricity ? "electricityBody" : "schoolCardBody"],
+      {
+        value: isElectricity ? value.toFixed(1) : value.toFixed(2),
+        threshold: threshold.toString(),
+        period,
+      },
+    ),
+    settings[isElectricity ? "electricityIcon" : "schoolCardIcon"],
   );
 }
 

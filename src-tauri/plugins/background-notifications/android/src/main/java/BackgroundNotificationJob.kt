@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.app.job.JobParameters
 import android.app.job.JobService
 import android.content.Context
+import android.graphics.BitmapFactory
 import android.os.Build
 import android.util.Base64
 import android.webkit.CookieManager
@@ -74,7 +75,19 @@ class BackgroundNotificationJob : JobService() {
       val remaining = detail.optDouble("NumDianShengYuALL", Double.NaN)
       if (!remaining.isNaN() && remaining <= settings.optDouble("electricityBalance", 10.0)) {
         val day = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
-        sendAlert(prefs, "electricityAlerted.$day", "宿舍剩余电量提醒", "宿舍剩余电量 ${"%.1f".format(Locale.US, remaining)} 度，已低于设定阈值。")
+        sendAlert(
+          prefs,
+          settings,
+          "electricityAlerted.$day",
+          "electricity",
+          mapOf(
+            "value" to "%.1f".format(Locale.US, remaining),
+            "threshold" to "%.1f".format(Locale.US, settings.optDouble("electricityBalance", 10.0)),
+            "period" to day,
+          ),
+          "宿舍剩余电量提醒",
+          "宿舍剩余电量 {{value}} 度，已低于设定阈值 {{threshold}} 度。",
+        )
       }
     } catch (error: Exception) {
       android.util.Log.w("AHNUNotification", "Background electricity poll failed", error)
@@ -123,7 +136,19 @@ class BackgroundNotificationJob : JobService() {
       val balance = if (main != 0.0) main else data.optDouble("my_fare", 0.0)
       if (balance <= settings.optDouble("schoolCardBalance", 20.0)) {
         val month = SimpleDateFormat("yyyy-MM", Locale.US).format(Date())
-        sendAlert(prefs, "schoolCardAlerted.$month", "一卡通余额提醒", "当前余额 ¥${"%.2f".format(Locale.US, balance)}，已低于设定阈值。")
+        sendAlert(
+          prefs,
+          settings,
+          "schoolCardAlerted.$month",
+          "schoolCard",
+          mapOf(
+            "value" to "%.2f".format(Locale.US, balance),
+            "threshold" to "%.2f".format(Locale.US, settings.optDouble("schoolCardBalance", 20.0)),
+            "period" to month,
+          ),
+          "一卡通余额提醒",
+          "当前余额 ¥{{value}}，已低于设定阈值 ¥{{threshold}}。",
+        )
       }
     } catch (error: Exception) {
       android.util.Log.w("AHNUNotification", "Background school card poll failed", error)
@@ -148,13 +173,28 @@ class BackgroundNotificationJob : JobService() {
     return text
   }
 
-  private fun sendAlert(prefs: android.content.SharedPreferences, key: String, title: String, body: String) {
+  private fun sendAlert(
+    prefs: android.content.SharedPreferences,
+    settings: JSONObject,
+    key: String,
+    kind: String,
+    values: Map<String, String>,
+    defaultTitle: String,
+    defaultBody: String,
+  ) {
     if (prefs.getBoolean(key, false)) return
     if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return
     val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     if (Build.VERSION.SDK_INT >= 26) manager.createNotificationChannel(NotificationChannel(ALERT_CHANNEL, "账户预警", NotificationManager.IMPORTANCE_DEFAULT))
+    val encodedImage = settings.optString("${kind}ImageBase64")
+    val imageBytes = Base64.decode(encodedImage.substringAfter(","), Base64.DEFAULT)
+    val image = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+    val title = renderTemplate(settings.optString("${kind}Title", defaultTitle), values)
+    val body = renderTemplate(settings.optString("${kind}Body", defaultBody), values)
+    val appIcon = resources.getIdentifier("ic_launcher", "mipmap", packageName)
     val notification = NotificationCompat.Builder(this, ALERT_CHANNEL)
-      .setSmallIcon(android.R.drawable.ic_dialog_info)
+      .setSmallIcon(appIcon.takeIf { it != 0 } ?: android.R.drawable.ic_dialog_info)
+      .setLargeIcon(image)
       .setContentTitle(title)
       .setContentText(body)
       .setStyle(NotificationCompat.BigTextStyle().bigText(body))
@@ -163,6 +203,11 @@ class BackgroundNotificationJob : JobService() {
     manager.notify(key.hashCode(), notification)
     prefs.edit().putBoolean(key, true).apply()
   }
+
+  private fun renderTemplate(template: String, values: Map<String, String>): String =
+    Regex("\\{\\{\\s*([a-zA-Z0-9_]+)\\s*\\}\\}").replace(template) { match ->
+      values[match.groupValues[1]].orEmpty()
+    }
 
   private fun saltedEncrypt(value: String, passphrase: String): String {
     val salt = ByteArray(8).also { java.security.SecureRandom().nextBytes(it) }

@@ -7,3 +7,17 @@ pub struct ConfigureRequest {
   pub operator_no: String,
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NotificationRequest {
+  pub title: String,
+  pub body: String,
+  pub image_base64: String,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScheduleRequest {
+  pub jobs: String,
+}
+

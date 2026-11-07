@@ -30,4 +30,12 @@ impl<R: Runtime> BackgroundNotifications<R> {
       .0.run_mobile_plugin("configure", payload)
       .map_err(Into::into)
   }
+
+  pub fn notify(&self, payload: NotificationRequest) -> crate::Result<()> {
+    self.0.run_mobile_plugin("notify", payload).map_err(Into::into)
+  }
+
+  pub fn schedule(&self, payload: ScheduleRequest) -> crate::Result<()> {
+    self.0.run_mobile_plugin("schedule", payload).map_err(Into::into)
+  }
 }

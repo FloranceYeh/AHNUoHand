@@ -5,6 +5,8 @@ Default permissions for the plugin
 #### This default permission set includes the following:
 
 - `allow-configure`
+- `allow-notify`
+- `allow-schedule`
 
 ## Permission Table
 
@@ -44,6 +46,32 @@ Denies the configure command without any pre-configured scope.
 <tr>
 <td>
 
+`background-notifications:allow-notify`
+
+</td>
+<td>
+
+Enables the notify command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`background-notifications:deny-notify`
+
+</td>
+<td>
+
+Denies the notify command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
 `background-notifications:allow-ping`
 
 </td>
@@ -63,6 +91,32 @@ Enables the ping command without any pre-configured scope.
 <td>
 
 Denies the ping command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`background-notifications:allow-schedule`
+
+</td>
+<td>
+
+Enables the schedule command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`background-notifications:deny-schedule`
+
+</td>
+<td>
+
+Denies the schedule command without any pre-configured scope.
 
 </td>
 </tr>

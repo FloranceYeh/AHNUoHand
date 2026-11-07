@@ -208,13 +208,32 @@ export default function App() {
   }, [themeSettings]);
   useEffect(() => {
     saveNotificationSettings(notificationSettings);
-    void syncBackgroundNotificationTask(notificationSettings).catch(() => {});
+    const syncBackground = () =>
+      void syncBackgroundNotificationTask(notificationSettings).catch(() => {});
     const sync = () =>
       void syncCourseNotifications(notificationSettings).catch(() => {});
+    const syncImages = () => {
+      syncBackground();
+      sync();
+    };
+    syncBackground();
     sync();
+    const systemTheme = window.matchMedia("(prefers-color-scheme: dark)");
+    if (themeSettings.mode === "system") {
+      systemTheme.addEventListener("change", syncImages);
+    }
     const timer = window.setInterval(sync, 15 * 60_000);
-    return () => window.clearInterval(timer);
-  }, [notificationSettings, currentScreen.key, personalInfo.studentId]);
+    return () => {
+      window.clearInterval(timer);
+      systemTheme.removeEventListener("change", syncImages);
+    };
+  }, [
+    notificationSettings,
+    currentScreen.key,
+    personalInfo.studentId,
+    themeSettings.accent,
+    themeSettings.mode,
+  ]);
   useEffect(() => {
     const poll = () => void pollNotificationSources(notificationSettings);
     poll();
