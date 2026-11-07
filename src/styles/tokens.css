@@ -1,9 +1,8 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap");
-
 /* AHNUoHand design language: components consume semantic tokens only. */
 :root {
   color-scheme: light;
-  font-family: "DM Sans", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  --font-family: system-ui, sans-serif;
+  font-family: var(--font-family);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -152,7 +151,9 @@
   --motion-spring: 420ms;
   --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-emphasized: cubic-bezier(0.22, 1, 0.36, 1);
+  --adm-font-family: var(--font-family);
   --adm-color-primary: var(--color-primary);
+  --adm-color-wathet: var(--color-primary-soft);
   --adm-color-success: var(--color-success);
   --adm-color-warning: var(--color-warning);
   --adm-color-danger: var(--color-danger);
@@ -163,43 +164,141 @@
   --adm-color-background: var(--color-surface);
   --adm-color-background-body: var(--color-canvas);
   --adm-color-light: var(--color-muted-strong);
-  --adm-color-fill-content: var(--color-muted);
+  --adm-color-fill-content: var(--color-surface-muted);
 }
 
+/* Light palettes also apply when following a system using light mode.
+   Dark palettes below override the same semantic tokens. Service categories,
+   status colors and decorative palettes stay independent of the accent. */
 :root[data-accent="teal"] {
+  --color-canvas: #f4f8f6;
+  --color-surface: #ffffff;
+  --color-surface-raised: #ffffff;
+  --color-surface-muted: #eaf2ee;
+  --color-surface-subtle: #f6faf8;
+  --color-ink: #172a23;
+  --color-ink-secondary: #50675c;
+  --color-muted: #62746c;
+  --color-muted-strong: #5b7065;
+  --color-line: #dfe9e3;
+  --color-line-strong: #c8d9cf;
   --color-primary: #167765;
   --color-primary-strong: #0f5d50;
   --color-primary-soft: #dcefe9;
   --color-primary-faint: #eff8f4;
   --color-primary-rgb: 22, 119, 101;
+  --color-on-primary: #ffffff;
+  --color-overlay: rgba(16, 32, 27, 0.42);
+  --color-focus: #167765;
+  --color-selection: #cce9df;
+  --shadow-sm: 0 2px 8px rgba(24, 52, 43, 0.06);
+  --shadow-card: 0 3px 12px rgba(24, 52, 43, 0.045);
+  --shadow-floating: 0 8px 22px rgba(24, 52, 43, 0.09);
+  --shadow-modal: 0 -10px 32px rgba(24, 52, 43, 0.13);
 }
 :root[data-accent="blue"] {
+  --color-canvas: #f4f7fc;
+  --color-surface: #ffffff;
+  --color-surface-raised: #ffffff;
+  --color-surface-muted: #eaf0f9;
+  --color-surface-subtle: #f7f9fd;
+  --color-ink: #1b283d;
+  --color-ink-secondary: #53657f;
+  --color-muted: #637188;
+  --color-muted-strong: #5b6c86;
+  --color-line: #dfe6f1;
+  --color-line-strong: #cad6e9;
   --color-primary: #3d70c8;
   --color-primary-strong: #2d579f;
   --color-primary-soft: #e0eafa;
   --color-primary-faint: #f1f5fd;
   --color-primary-rgb: 61, 112, 200;
+  --color-on-primary: #ffffff;
+  --color-overlay: rgba(20, 31, 49, 0.42);
+  --color-focus: #3d70c8;
+  --color-selection: #d2e2fc;
+  --shadow-sm: 0 2px 8px rgba(28, 47, 78, 0.06);
+  --shadow-card: 0 3px 12px rgba(28, 47, 78, 0.045);
+  --shadow-floating: 0 8px 22px rgba(28, 47, 78, 0.09);
+  --shadow-modal: 0 -10px 32px rgba(28, 47, 78, 0.13);
 }
 :root[data-accent="violet"] {
+  --color-canvas: #f7f5fb;
+  --color-surface: #ffffff;
+  --color-surface-raised: #ffffff;
+  --color-surface-muted: #f0ecf7;
+  --color-surface-subtle: #faf8fd;
+  --color-ink: #2b233c;
+  --color-ink-secondary: #685c7d;
+  --color-muted: #736985;
+  --color-muted-strong: #6d617f;
+  --color-line: #e7e1f0;
+  --color-line-strong: #d5cae6;
   --color-primary: #7458bb;
   --color-primary-strong: #584096;
   --color-primary-soft: #ebe5f9;
   --color-primary-faint: #f5f1fc;
   --color-primary-rgb: 116, 88, 187;
+  --color-on-primary: #ffffff;
+  --color-overlay: rgba(32, 24, 46, 0.42);
+  --color-focus: #7458bb;
+  --color-selection: #e2d7f7;
+  --shadow-sm: 0 2px 8px rgba(49, 35, 73, 0.06);
+  --shadow-card: 0 3px 12px rgba(49, 35, 73, 0.045);
+  --shadow-floating: 0 8px 22px rgba(49, 35, 73, 0.09);
+  --shadow-modal: 0 -10px 32px rgba(49, 35, 73, 0.13);
 }
 :root[data-accent="amber"] {
-  --color-primary: #c1842f;
+  --color-canvas: #faf7f1;
+  --color-surface: #ffffff;
+  --color-surface-raised: #ffffff;
+  --color-surface-muted: #f5eee2;
+  --color-surface-subtle: #fcfaf5;
+  --color-ink: #33291b;
+  --color-ink-secondary: #75634a;
+  --color-muted: #7b6d59;
+  --color-muted-strong: #76654c;
+  --color-line: #ece3d4;
+  --color-line-strong: #dfcfb5;
+  --color-primary: #9c651f;
   --color-primary-strong: #98611c;
   --color-primary-soft: #f5ead6;
   --color-primary-faint: #fbf6eb;
-  --color-primary-rgb: 193, 132, 47;
+  --color-primary-rgb: 156, 101, 31;
+  --color-on-primary: #ffffff;
+  --color-overlay: rgba(42, 32, 18, 0.42);
+  --color-focus: #9c651f;
+  --color-selection: #efdbb8;
+  --shadow-sm: 0 2px 8px rgba(65, 46, 22, 0.06);
+  --shadow-card: 0 3px 12px rgba(65, 46, 22, 0.045);
+  --shadow-floating: 0 8px 22px rgba(65, 46, 22, 0.09);
+  --shadow-modal: 0 -10px 32px rgba(65, 46, 22, 0.13);
 }
 :root[data-accent="rose"] {
-  --color-primary: #c25178;
+  --color-canvas: #fcf5f8;
+  --color-surface: #ffffff;
+  --color-surface-raised: #ffffff;
+  --color-surface-muted: #f8eaf0;
+  --color-surface-subtle: #fdf8fa;
+  --color-ink: #38212d;
+  --color-ink-secondary: #7a5969;
+  --color-muted: #816979;
+  --color-muted-strong: #7c5e6f;
+  --color-line: #f0dfe7;
+  --color-line-strong: #e5c8d5;
+  --color-primary: #be4c74;
   --color-primary-strong: #9c3a5d;
   --color-primary-soft: #f7e3eb;
   --color-primary-faint: #fcf2f6;
-  --color-primary-rgb: 194, 81, 120;
+  --color-primary-rgb: 190, 76, 116;
+  --color-on-primary: #ffffff;
+  --color-overlay: rgba(44, 23, 34, 0.42);
+  --color-focus: #be4c74;
+  --color-selection: #f2d1df;
+  --shadow-sm: 0 2px 8px rgba(70, 32, 50, 0.06);
+  --shadow-card: 0 3px 12px rgba(70, 32, 50, 0.045);
+  --shadow-floating: 0 8px 22px rgba(70, 32, 50, 0.09);
+  --shadow-modal: 0 -10px 32px rgba(70, 32, 50, 0.13);
 }
 :root[data-theme="light"] {
   color-scheme: light;

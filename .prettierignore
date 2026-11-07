@@ -15,6 +15,7 @@ src-tauri/gen
 public
 src/assets
 src-tauri/icons
+src-tauri/plugins
 *.png
 *.ico
 *.icns
