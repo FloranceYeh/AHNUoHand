@@ -15,26 +15,26 @@ export const PLATFORMS: PlatformInfo[] = [
   {
     id: "ybt",
     name: "一站式服务大厅",
-    description: "空教室、校历",
+    description: "查询空教室与查看校历",
     host: "ybt.ahnu.edu.cn",
     requiresLogin: true,
-    authHint: "统一身份认证（CAS）",
+    authHint: "学校统一身份认证",
   },
   {
     id: "jw",
     name: "教务系统",
-    description: "课程表读取",
+    description: "读取并更新课程表",
     host: "jw.ahnu.edu.cn",
     requiresLogin: true,
-    authHint: "教务系统会话 Cookie",
+    authHint: "教务系统网页登录会话",
   },
   {
     id: "zongwu",
     name: "后勤服务",
-    description: "宿舍电费",
+    description: "查询宿舍电费与用电记录",
     host: "zongwu.ahnu.edu.cn",
     requiresLogin: false,
-    authHint: "本机绑定学号，不需要密码",
+    authHint: "绑定个人资料中的学号，无需密码",
   },
 ];
 

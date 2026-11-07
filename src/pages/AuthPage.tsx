@@ -134,12 +134,12 @@ export function AuthPage({
         </span>
         <p className="eyebrow">账号</p>
         <h1>登录管理</h1>
-        <p>各校园平台都在这里登录，其他功能直接复用。</p>
+        <p>集中管理校园平台的登录状态与学号绑定。</p>
       </section>
 
       <section className="auth-summary">
         <div>
-          <p className="elec-label">已验证的平台</p>
+          <p className="elec-label">已验证登录</p>
           <p className="auth-count">
             {activeCount}
             <span>
@@ -168,17 +168,17 @@ export function AuthPage({
           const badge =
             id === "zongwu"
               ? bound
-                ? "已绑定学号"
+                ? "已绑定"
                 : "未绑定"
               : item.state === "active"
-                ? "已验证可用"
+                ? "已验证"
                 : item.state === "expired"
-                  ? "需要重新登录"
+                  ? "需重新登录"
                   : id === "jw" && item.hasOfflineData
-                    ? "有离线课表，会话未验证"
+                    ? "仅有离线数据"
                     : item.hasCredential
-                      ? "凭据已保存，待验证"
-                      : "未验证";
+                      ? "凭据已保存"
+                      : "未登录";
           const isBusy = busy === id;
           const hasActions =
             (id !== "zongwu" && id !== "jw" && !logged) ||
@@ -200,17 +200,17 @@ export function AuthPage({
 
               <dl className="auth-meta">
                 <div>
-                  <dt>用于</dt>
+                  <dt>服务用途</dt>
                   <dd>{item.platform.description}</dd>
                 </div>
                 <div>
-                  <dt>认证</dt>
+                  <dt>连接方式</dt>
                   <dd>{item.platform.authHint}</dd>
                 </div>
                 {item.since && (
                   <div>
-                    <dt>登录于</dt>
-                    <dd>上次成功于 {formatTime(item.since)}</dd>
+                    <dt>最近成功</dt>
+                    <dd>{formatTime(item.since)}</dd>
                   </div>
                 )}
               </dl>
@@ -286,7 +286,7 @@ export function AuthPage({
 
               {id === "jw" && waitingJw && (
                 <p className="auth-pending">
-                  已在教务页面登录？回到课表点「手动读取」即可完成连接。
+                  已在教务页面登录？返回课表并点击“手动读取”即可验证连接。
                 </p>
               )}
             </section>
@@ -295,8 +295,8 @@ export function AuthPage({
       </div>
 
       <p className="auth-note">
-        “已验证可用”表示最近一次登录或功能请求成功，不保证服务端会话之后不会过期；教务系统的
-        Cookie 由 WebView 管理，清除离线课表不会退出教务账号。本应用不保存密码。
+        “已验证”表示最近一次登录或功能请求成功，服务端会话仍可能过期。教务系统的登录会话由
+        WebView 管理，清除离线课表不会退出教务账号；本应用不保存密码。
       </p>
 
       {confirmAll && (
@@ -308,7 +308,7 @@ export function AuthPage({
             <span className="tt-sheet-bar" style={{ background: "#c2542f" }} />
             <h2>清除本机凭据？</h2>
             <p className="auth-confirm-text">
-              一站式服务大厅凭据和本机绑定学号会被清除。教务系统 Cookie 由
+              一站式服务大厅凭据和本机绑定学号会被清除。教务系统登录会话由
               WebView 管理，不会被此操作注销；已保存的课表也会保留。
             </p>
             <div className="tt-form-actions">
