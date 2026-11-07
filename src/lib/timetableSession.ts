@@ -90,21 +90,20 @@ interface ExtractResult {
 /**
  * 让学生登录教务系统。
  *
- * 桌面端另开窗口；移动端只有一个 WebView，因此由页面自己跳去教务登录页，
+ * 桌面端另开窗口；移动端只有一个 WebView，因此由 Rust 将当前历史项替换为登录页，
  * 并记下「待读取」标记。Rust 侧的页面钩子看到登录后的教务页面时会把用户送回应用，
  * 前端启动时再自动续上读取。
  */
 export async function openLoginWindow(): Promise<void> {
   if (isMobile()) {
     localStorage.setItem(MOBILE_PENDING_KEY, String(Date.now()));
-    // 先让 Rust 记下在等哪个站点登录，再跳转
+    // 原生侧以 replace 导航，避免认证跳转链留在 WebView 返回历史中
     try {
       await invoke("mobile_watch_login", { url: LOGIN_URL });
     } catch (cause) {
       clearPendingTimetableLogin();
       throw cause;
     }
-    window.location.href = LOGIN_URL;
     return;
   }
 

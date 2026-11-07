@@ -396,15 +396,21 @@ pub async fn query_schoolcard_silent(
 
 /// 记录「正在等某个站点登录完成」。
 ///
-/// 页面跳转由前端自己做（`window.location.href = url`）——
-/// 实测从页面内赋值可靠，而 Rust 侧 `eval` 在导航瞬间可能打到已卸载的上下文。
-/// 这里只负责登记，等 `on_page_load` 看到该站点的登录后页面时把用户送回应用。
+/// 用 `replace` 将应用历史项替换为登录页，避免认证站点进入主 WebView 的
+/// 返回历史；登录完成后页面加载钩子再用 `replace` 把用户送回应用。
 #[tauri::command]
-pub async fn mobile_watch_login(url: String) -> Result<(), String> {
+pub async fn mobile_watch_login(app: tauri::AppHandle, url: String) -> Result<(), String> {
+    let target_host = host_of(&url).ok_or_else(|| "登录地址无效".to_string())?;
     if let Ok(mut host) = PENDING_HOST.lock() {
-        *host = host_of(&url);
+        *host = Some(target_host.clone());
     }
-    println!("[mobile_login] watch {url}");
+    let window = app
+        .get_webview_window("main")
+        .ok_or_else(|| "找不到主窗口".to_string())?;
+    window
+        .eval(&format!("window.location.replace({url:?});"))
+        .map_err(|error| format!("无法打开登录页面：{error}"))?;
+    println!("[mobile_login] begin site login host={target_host}");
     Ok(())
 }
 

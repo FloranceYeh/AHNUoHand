@@ -1,6 +1,7 @@
 package top.florance.ahnuohand
 
 import android.graphics.Color
+import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
@@ -20,7 +21,17 @@ class MainActivity : TauriActivity() {
       override fun handleOnBackPressed() {
         val webView = findWebView(window.decorView)
         if (webView != null) {
-          webView.evaluateJavascript("window.dispatchEvent(new Event('app-back'))", null)
+          if (webView.isAppPage()) {
+            webView.clearHistory()
+            webView.evaluateJavascript("window.dispatchEvent(new Event('app-back'))", null)
+          } else {
+            webView.stopLoading()
+            webView.clearHistory()
+            webView.evaluateJavascript(
+              "window.location.replace('http://tauri.localhost/')",
+              null,
+            )
+          }
         } else {
           isEnabled = false
           onBackPressedDispatcher.onBackPressed()
@@ -38,6 +49,14 @@ class MainActivity : TauriActivity() {
       }
     }
     return null
+  }
+
+  private fun WebView.isAppPage(): Boolean {
+    val host = url?.let { Uri.parse(it).host?.lowercase() } ?: return false
+    return host == "tauri.localhost" ||
+      host == "localhost" ||
+      host == "127.0.0.1" ||
+      host == "10.0.2.2"
   }
 
   private fun View.disableOverscroll() {
