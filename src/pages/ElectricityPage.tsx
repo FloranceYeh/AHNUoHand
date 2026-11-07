@@ -29,6 +29,10 @@ import {
   type ElectricityReport,
 } from "../lib/electricity";
 import { saveStudentId } from "../lib/profile";
+import {
+  checkThresholdAlert,
+  readNotificationSettings,
+} from "../lib/notifications";
 
 type Phase = "setup" | "loading" | "ready" | "error";
 
@@ -59,6 +63,15 @@ export function ElectricityPage({
     setError("");
     try {
       const data = await fetchElectricity(target, 15);
+      const notificationSettings = readNotificationSettings();
+      if (notificationSettings.electricityAlert) {
+        checkThresholdAlert(
+          "electricity",
+          data.balance.kwhLeft,
+          data.fetchedAt.slice(0, 10),
+          notificationSettings.electricityBalance,
+        );
+      }
       setReport(data);
       setOperatorNo(target);
       saveOperator(target);

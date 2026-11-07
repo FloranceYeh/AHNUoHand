@@ -189,18 +189,7 @@ export async function querySchoolCard(
   if (isMobile()) {
     if (!force) {
       onProgress?.("正在后台读取一卡通数据…");
-      const raw = await invoke<string>("query_schoolcard_silent", { month });
-      const result = JSON.parse(raw) as {
-        state?: string;
-        message?: string;
-      } & SchoolCardReport;
-      if (result.state !== "ready") {
-        throw new Error(result.message || "一卡通查询失败");
-      }
-      const report = normalizeReport(result);
-      saveSchoolCardCache(report);
-      markLoggedIn("schoolcard");
-      return report;
+      return querySchoolCardSilently(month);
     }
     try {
       localStorage.setItem(MOBILE_PENDING_KEY, String(Date.now()));
@@ -268,6 +257,22 @@ export async function querySchoolCard(
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
   throw new Error("等待完美校园登录超时，请重试");
+}
+
+export async function querySchoolCardSilently(
+  month = currentSchoolCardMonth(),
+): Promise<SchoolCardReport> {
+  const raw = await invoke<string>("query_schoolcard_silent", { month });
+  const result = JSON.parse(raw) as {
+    state?: string;
+    message?: string;
+  } & SchoolCardReport;
+  if (result.state !== "ready")
+    throw new Error(result.message || "一卡通查询失败");
+  const report = normalizeReport(result);
+  saveSchoolCardCache(report);
+  markLoggedIn("schoolcard");
+  return report;
 }
 
 function normalizeReport(value: SchoolCardReport): SchoolCardReport {

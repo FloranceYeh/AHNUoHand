@@ -10,12 +10,14 @@ export function ProfilePage({
   onOpenAuth,
   onOpenAppearance,
   onOpenHomeNavigation,
+  onOpenNotifications,
   profile,
   onOpenPersonalInfo,
 }: {
   onOpenAuth?: () => void;
   onOpenAppearance: () => void;
   onOpenHomeNavigation: () => void;
+  onOpenNotifications: () => void;
   profile: PersonalInfo;
   onOpenPersonalInfo: () => void;
 }) {
@@ -73,6 +75,16 @@ export function ProfilePage({
           <span className="settings-copy">
             <strong>主页与导航</strong>
             <small>自定义常用服务与底部菜单，拖动调整顺序</small>
+          </span>
+          <Icon name="chevron" size={18} className="service-chevron" />
+        </button>
+        <button className="settings-row" onClick={onOpenNotifications}>
+          <span className="settings-icon">
+            <Icon name="bell" size={20} />
+          </span>
+          <span className="settings-copy">
+            <strong>通知订阅</strong>
+            <small>课前提醒、用电与一卡通余额预警</small>
           </span>
           <Icon name="chevron" size={18} className="service-chevron" />
         </button>

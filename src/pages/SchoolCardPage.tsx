@@ -21,6 +21,10 @@ import {
   takeMobileSchoolCardResult,
   type SchoolCardReport,
 } from "../lib/schoolcard";
+import {
+  checkThresholdAlert,
+  readNotificationSettings,
+} from "../lib/notifications";
 
 type Phase = "idle" | "loading" | "ready" | "error";
 
@@ -65,6 +69,15 @@ export function SchoolCardPage({ onBack }: { onBack?: () => void }) {
     setError("");
     try {
       const result = await querySchoolCard(targetMonth, setProgress, force);
+      const notificationSettings = readNotificationSettings();
+      if (notificationSettings.schoolCardAlert) {
+        checkThresholdAlert(
+          "schoolcard",
+          result.balance,
+          result.month,
+          notificationSettings.schoolCardBalance,
+        );
+      }
       setMonth(result.month);
       setReport(result);
       setPhase("ready");

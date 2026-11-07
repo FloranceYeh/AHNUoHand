@@ -9,6 +9,7 @@ import { ProfilePage } from "./pages/ProfilePage";
 import { AppearancePage } from "./pages/AppearancePage";
 import { HomeNavigationPage } from "./pages/HomeNavigationPage";
 import { PersonalInfoPage } from "./pages/PersonalInfoPage";
+import { NotificationSettingsPage } from "./pages/NotificationSettingsPage";
 import { FeaturePage } from "./pages/FeaturePage";
 import { ElectricityPage } from "./pages/ElectricityPage";
 import { ClassroomPage } from "./pages/ClassroomPage";
@@ -43,6 +44,13 @@ import type {
 } from "./types";
 import { navigationItems } from "./data/navigation";
 import {
+  pollNotificationSources,
+  readNotificationSettings,
+  saveNotificationSettings,
+  syncCourseNotifications,
+  type NotificationSettings,
+} from "./lib/notifications";
+import {
   readPersonalInfo,
   savePersonalInfo,
   type PersonalInfo,
@@ -64,7 +72,8 @@ type AppRoute =
   | { type: "feature"; id: FeatureId; initialWeek?: number }
   | { type: "appearance" }
   | { type: "home-navigation" }
-  | { type: "personal-info" };
+  | { type: "personal-info" }
+  | { type: "notifications" };
 
 interface StackScreen {
   key: number;
@@ -92,6 +101,8 @@ export default function App() {
   const [semester, setSemester] = useState<SemesterInfo>({});
   const [personalInfo, setPersonalInfo] =
     useState<PersonalInfo>(readPersonalInfo);
+  const [notificationSettings, setNotificationSettings] =
+    useState<NotificationSettings>(readNotificationSettings);
   const lastHomeBackRef = useRef(0);
   const exitPromptTimerRef = useRef<number | null>(null);
   const [exitPromptVisible, setExitPromptVisible] = useState(false);
@@ -194,6 +205,20 @@ export default function App() {
   useEffect(() => {
     saveThemeSettings(themeSettings);
   }, [themeSettings]);
+  useEffect(() => {
+    saveNotificationSettings(notificationSettings);
+    const sync = () =>
+      void syncCourseNotifications(notificationSettings).catch(() => {});
+    sync();
+    const timer = window.setInterval(sync, 15 * 60_000);
+    return () => window.clearInterval(timer);
+  }, [notificationSettings, currentScreen.key]);
+  useEffect(() => {
+    const poll = () => void pollNotificationSources(notificationSettings);
+    poll();
+    const timer = window.setInterval(poll, 60_000);
+    return () => window.clearInterval(timer);
+  }, [notificationSettings]);
   const changePersonalInfo = (info: PersonalInfo) => {
     savePersonalInfo(info);
     setPersonalInfo(info);
@@ -357,6 +382,12 @@ export default function App() {
     renderFeature(currentRoute.id, undefined, true)
   ) : currentRoute.type === "feature" ? (
     renderFeature(currentRoute.id, currentRoute.initialWeek)
+  ) : currentRoute.type === "notifications" ? (
+    <NotificationSettingsPage
+      settings={notificationSettings}
+      onChange={setNotificationSettings}
+      onBack={goBack}
+    />
   ) : currentRoute.tab === "home" ? (
     <HomePage
       onOpenFeature={openFeature}
@@ -372,6 +403,7 @@ export default function App() {
       onOpenAuth={() => pushRoute({ type: "feature", id: "auth" })}
       onOpenAppearance={() => pushRoute({ type: "appearance" })}
       onOpenHomeNavigation={() => pushRoute({ type: "home-navigation" })}
+      onOpenNotifications={() => pushRoute({ type: "notifications" })}
       profile={personalInfo}
       onOpenPersonalInfo={() => pushRoute({ type: "personal-info" })}
     />

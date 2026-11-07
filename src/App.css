@@ -258,6 +258,86 @@ textarea:focus-visible {
   background: var(--color-surface);
   box-shadow: var(--shadow-card);
 }
+.adm-stepper {
+  --height: var(--size-3xl);
+  --input-width: var(--size-6xl);
+  --button-width: var(--size-5xl);
+  --input-font-size: var(--text-caption);
+  --input-font-color: var(--color-ink);
+  --input-background-color: var(--color-surface);
+  --button-font-size: var(--text-heading);
+  --button-text-color: var(--color-primary-strong);
+  --button-background-color: var(--color-surface-subtle);
+  --border-radius: var(--radius-md);
+  --border: 1px solid var(--color-line);
+  --border-inner: 1px solid var(--color-line);
+  flex: 0 0 auto;
+  overflow: hidden;
+}
+.notification-settings-list {
+  padding: 0;
+  overflow: hidden;
+}
+.notification-setting-row {
+  min-height: var(--size-service-item);
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  padding: var(--space-md) var(--space-xl);
+  border-bottom: 1px solid var(--color-line);
+}
+.notification-setting-row:last-child {
+  border-bottom: 0;
+}
+.notification-setting-icon {
+  display: grid;
+  flex: 0 0 var(--size-5xl);
+  place-items: center;
+  width: var(--size-5xl);
+  height: var(--size-5xl);
+  border-radius: var(--radius-sm);
+}
+.notification-setting-copy {
+  min-width: 0;
+  display: grid;
+  flex: 1;
+  gap: var(--space-2xs);
+}
+.notification-setting-copy strong {
+  color: var(--color-ink);
+  font-size: var(--text-caption);
+  line-height: var(--leading-snug);
+}
+.notification-setting-copy small {
+  color: var(--color-muted-strong);
+  font-size: var(--text-micro);
+  line-height: var(--leading-snug);
+}
+.notification-stepper-row {
+  min-height: var(--size-8xl);
+  background: var(--color-surface-subtle);
+}
+.notification-setting-note,
+.notification-permission-error {
+  margin: var(--space-lg) var(--space-lg);
+  color: var(--color-muted-strong);
+  font-size: var(--text-caption);
+  line-height: var(--leading-body);
+}
+.notification-permission-error {
+  color: var(--color-danger);
+}
+.notification-test-button {
+  width: 100%;
+  margin-top: var(--space-lg);
+}
+.notification-test-status {
+  margin: var(--space-sm) 0 0;
+  color: var(--color-muted-strong);
+  font-size: var(--text-caption);
+  line-height: var(--leading-snug);
+  text-align: center;
+}
 .elec-primary,
 .elec-ghost,
 .tt-icon-button,
@@ -1392,7 +1472,9 @@ textarea:focus-visible {
 :root[data-content-mode="simple"] .profile-hint,
 :root[data-content-mode="simple"] .empty-state span,
 :root[data-content-mode="simple"] .cal-holiday-note,
-:root[data-content-mode="simple"] .cls-scroll-hint span {
+:root[data-content-mode="simple"] .cls-scroll-hint span,
+:root[data-content-mode="simple"] .notification-setting-copy small,
+:root[data-content-mode="simple"] .notification-setting-note {
   display: none;
 }
 :root[data-content-mode="simple"] .service-title {
@@ -2804,23 +2886,6 @@ textarea:focus-visible {
   color: var(--color-muted);
   font-size: var(--text-micro);
 }
-.tt-cell-height-setting .adm-stepper {
-  --height: var(--size-3xl);
-  --input-width: var(--size-6xl);
-  --button-width: var(--size-5xl);
-  --input-font-size: var(--text-caption);
-  --input-font-color: var(--color-ink);
-  --input-background-color: var(--color-surface);
-  --button-font-size: var(--text-heading);
-  --button-text-color: var(--color-primary-strong);
-  --button-background-color: var(--color-surface-subtle);
-  --border-radius: var(--radius-md);
-  --border: 1px solid var(--color-line);
-  --border-inner: 1px solid var(--color-line);
-  flex: 0 0 auto;
-  width: var(--size-9xl);
-  overflow: hidden;
-}
 .tt-setting-row b {
   font-size: var(--text-caption);
 }
@@ -2919,23 +2984,6 @@ textarea:focus-visible {
   padding: var(--space-xs) var(--space-sm);
   background: var(--color-surface);
   color: var(--color-ink);
-}
-.tt-field .adm-stepper {
-  --height: var(--size-3xl);
-  --input-width: var(--size-6xl);
-  --button-width: var(--size-6xl);
-  --input-font-size: var(--text-subheading);
-  --input-font-color: var(--color-ink);
-  --input-background-color: var(--color-surface);
-  --button-font-size: var(--text-heading);
-  --button-text-color: var(--color-primary-strong);
-  --button-background-color: var(--color-surface-subtle);
-  --border-radius: var(--radius-md);
-  --border: 1px solid var(--color-line);
-  --border-inner: 1px solid var(--color-line);
-  flex: 0 0 auto;
-  width: var(--size-9xl);
-  overflow: hidden;
 }
 .tt-field .adm-stepper-middle {
   background: var(--color-surface);

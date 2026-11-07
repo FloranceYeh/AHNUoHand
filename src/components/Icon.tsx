@@ -32,6 +32,7 @@ import {
   IdCard,
   ChevronDown,
   ArrowLeftRight,
+  Bell,
 } from "lucide-react";
 
 const icons = {
@@ -68,6 +69,7 @@ const icons = {
   keyRound: KeyRound,
   idCard: IdCard,
   arrowLR: ArrowLeftRight,
+  bell: Bell,
 };
 
 interface IconProps {
