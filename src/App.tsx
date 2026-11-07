@@ -48,6 +48,7 @@ import {
   readNotificationSettings,
   saveNotificationSettings,
   syncCourseNotifications,
+  syncBackgroundNotificationTask,
   type NotificationSettings,
 } from "./lib/notifications";
 import {
@@ -207,12 +208,13 @@ export default function App() {
   }, [themeSettings]);
   useEffect(() => {
     saveNotificationSettings(notificationSettings);
+    void syncBackgroundNotificationTask(notificationSettings).catch(() => {});
     const sync = () =>
       void syncCourseNotifications(notificationSettings).catch(() => {});
     sync();
     const timer = window.setInterval(sync, 15 * 60_000);
     return () => window.clearInterval(timer);
-  }, [notificationSettings, currentScreen.key]);
+  }, [notificationSettings, currentScreen.key, personalInfo.studentId]);
   useEffect(() => {
     const poll = () => void pollNotificationSources(notificationSettings);
     poll();

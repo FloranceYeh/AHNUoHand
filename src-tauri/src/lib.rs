@@ -11,7 +11,8 @@ fn exit_app(app: tauri::AppHandle) {
 pub fn run() {
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_notification::init());
+        .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_background_notifications::init());
 
     // 移动端只有一个 WebView，登录靠主窗口跳转完成，
     // 因此需要一个页面加载钩子来捕捉 CAS 回跳里的 ticket。

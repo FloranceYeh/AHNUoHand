@@ -1,0 +1,18 @@
+[package]
+name = "tauri-plugin-background-notifications"
+version = "0.1.0"
+authors = [ "Florance" ]
+description = "Persistent Android notification polling tasks"
+edition = "2024"
+rust-version = "1.90"
+exclude = ["/examples", "/dist-js", "/guest-js", "/node_modules"]
+links = "tauri-plugin-background-notifications"
+
+[dependencies]
+tauri = { version = "2" }
+serde = "1.0"
+serde_json = "1"
+thiserror = "2"
+
+[build-dependencies]
+tauri-plugin = { version = "2", features = ["build"] }

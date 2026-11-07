@@ -32,6 +32,7 @@ import { saveStudentId } from "../lib/profile";
 import {
   checkThresholdAlert,
   readNotificationSettings,
+  syncBackgroundNotificationTask,
 } from "../lib/notifications";
 
 type Phase = "setup" | "loading" | "ready" | "error";
@@ -75,6 +76,7 @@ export function ElectricityPage({
       setReport(data);
       setOperatorNo(target);
       saveOperator(target);
+      void syncBackgroundNotificationTask().catch(() => {});
       writeCache(target, data);
       setHistory(readHistory(target));
       setPhase("ready");

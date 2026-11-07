@@ -6,6 +6,7 @@ import {
   pending,
   cancel,
 } from "@tauri-apps/plugin-notification";
+import { invoke } from "@tauri-apps/api/core";
 import { CACHE_KEY } from "./timetableSession";
 import { resolveSemester } from "./semesterSettings";
 import { parseCellText } from "./timetable";
@@ -51,6 +52,18 @@ export function readNotificationSettings(): NotificationSettings {
 
 export function saveNotificationSettings(settings: NotificationSettings): void {
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+}
+
+export async function syncBackgroundNotificationTask(
+  settings = readNotificationSettings(),
+): Promise<void> {
+  if (!isMobile()) return;
+  await invoke("plugin:background-notifications|configure", {
+    payload: {
+      settings: JSON.stringify(settings),
+      operatorNo: getSavedOperator(),
+    },
+  });
 }
 
 export async function ensureNotificationPermission(): Promise<boolean> {

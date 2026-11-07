@@ -190,7 +190,7 @@ export function NotificationSettingsPage({
         )}
       </section>
       <p className="notification-setting-note">
-        轮询仅在应用运行期间进行；一卡通轮询需要已登录的完美校园会话。关闭应用期间不会自动查询账户信息。
+        普通关闭应用后，系统会按轮询间隔继续执行；一卡通需要已登录的完美校园会话。系统强制停止应用或限制后台活动时不会执行。
       </p>
       <button
         className="elec-ghost notification-test-button"
