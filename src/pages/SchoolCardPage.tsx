@@ -260,6 +260,7 @@ export function SchoolCardPage({ onBack }: { onBack?: () => void }) {
                         border: "1px solid var(--color-line-strong)",
                         borderRadius: "12px",
                         background: "var(--color-surface-raised)",
+                        boxShadow: "var(--shadow-floating)",
                       }}
                       formatter={(value) => [
                         `${formatMoney(Number(value))} 元`,
