@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { Input } from "antd-mobile";
 import { Icon } from "../components/Icon";
 import {
   allStatuses,
@@ -28,7 +29,15 @@ import { getStudentId, saveStudentId } from "../lib/profile";
  * 功能页不做登录，只判断状态；未登录时跳到本页并自动发起对应登录，
  * 所以「登录动作」和「登录状态」都集中在这里。
  */
-export function AuthPage({ onBack }: { onBack: () => void }) {
+export function AuthPage({
+  onBack,
+  studentId,
+  onStudentIdChange,
+}: {
+  onBack: () => void;
+  studentId: string;
+  onStudentIdChange: (studentId: string) => void;
+}) {
   const [statuses, setStatuses] = useState<PlatformStatus[]>(() =>
     allStatuses(),
   );
@@ -36,7 +45,7 @@ export function AuthPage({ onBack }: { onBack: () => void }) {
   const [error, setError] = useState("");
   const [confirmAll, setConfirmAll] = useState(false);
   const [operatorInput, setOperatorInput] = useState(
-    () => getSavedOperator() || getStudentId(),
+    () => studentId || getSavedOperator() || getStudentId(),
   );
   const [binding, setBinding] = useState(false);
 
@@ -99,6 +108,7 @@ export function AuthPage({ onBack }: { onBack: () => void }) {
     }
     saveOperator(value);
     saveStudentId(value);
+    onStudentIdChange(value);
     setBinding(false);
     setError("");
     refresh();
@@ -170,6 +180,12 @@ export function AuthPage({ onBack }: { onBack: () => void }) {
                       ? "凭据已保存，待验证"
                       : "未验证";
           const isBusy = busy === id;
+          const hasActions =
+            (id !== "zongwu" && id !== "jw" && !logged) ||
+            (id === "zongwu" && !bound && !binding) ||
+            id === "jw" ||
+            (id === "ybt" && item.hasCredential) ||
+            bound;
           return (
             <section className="elec-card auth-item" key={id}>
               <header className="auth-item-head">
@@ -201,12 +217,14 @@ export function AuthPage({ onBack }: { onBack: () => void }) {
 
               {!logged && id === "zongwu" && binding && (
                 <div className="auth-bind">
-                  <input
-                    type="text"
+                  <Input
                     inputMode="numeric"
                     placeholder="输入学号"
                     value={operatorInput}
-                    onChange={(event) => setOperatorInput(event.target.value)}
+                    onChange={(value) =>
+                      setOperatorInput(value.replace(/\D/g, ""))
+                    }
+                    clearable
                   />
                   <button className="elec-primary" onClick={bindOperator}>
                     保存
@@ -214,52 +232,57 @@ export function AuthPage({ onBack }: { onBack: () => void }) {
                 </div>
               )}
 
-              <div className="auth-actions">
-                {id !== "zongwu" && id !== "jw" && !logged && (
-                  <button
-                    className="elec-primary auth-login-btn"
-                    disabled={isBusy}
-                    onClick={() => void startLogin(id)}
-                  >
-                    {isBusy ? "正在连接…" : "登录"}
-                  </button>
-                )}
-                {id === "zongwu" && !bound && !binding && (
-                  <button
-                    className="elec-primary auth-login-btn"
-                    onClick={() => setBinding(true)}
-                  >
-                    绑定学号
-                  </button>
-                )}
-                {id === "jw" && (
-                  <button
-                    className="elec-primary auth-login-btn"
-                    disabled={isBusy}
-                    onClick={() => void startLogin("jw")}
-                  >
-                    {isBusy ? "正在打开…" : "打开教务系统"}
-                  </button>
-                )}
-                {id === "jw" && item.hasOfflineData && (
-                  <button className="auth-remove" onClick={() => remove("jw")}>
-                    清除离线课表
-                  </button>
-                )}
-                {id === "ybt" && item.hasCredential && (
-                  <button className="auth-remove" onClick={() => remove(id)}>
-                    清除本机凭据
-                  </button>
-                )}
-                {bound && (
-                  <button
-                    className="auth-remove"
-                    onClick={() => remove("zongwu")}
-                  >
-                    解除学号绑定
-                  </button>
-                )}
-              </div>
+              {hasActions && (
+                <div className="auth-actions">
+                  {id !== "zongwu" && id !== "jw" && !logged && (
+                    <button
+                      className="elec-primary auth-login-btn"
+                      disabled={isBusy}
+                      onClick={() => void startLogin(id)}
+                    >
+                      {isBusy ? "正在连接…" : "登录"}
+                    </button>
+                  )}
+                  {id === "zongwu" && !bound && !binding && (
+                    <button
+                      className="elec-primary auth-login-btn"
+                      onClick={() => setBinding(true)}
+                    >
+                      绑定学号
+                    </button>
+                  )}
+                  {id === "jw" && (
+                    <button
+                      className="elec-primary auth-login-btn"
+                      disabled={isBusy}
+                      onClick={() => void startLogin("jw")}
+                    >
+                      {isBusy ? "正在打开…" : "打开教务系统"}
+                    </button>
+                  )}
+                  {id === "jw" && item.hasOfflineData && (
+                    <button
+                      className="auth-remove"
+                      onClick={() => remove("jw")}
+                    >
+                      清除离线课表
+                    </button>
+                  )}
+                  {id === "ybt" && item.hasCredential && (
+                    <button className="auth-remove" onClick={() => remove(id)}>
+                      清除本机凭据
+                    </button>
+                  )}
+                  {bound && (
+                    <button
+                      className="auth-remove"
+                      onClick={() => remove("zongwu")}
+                    >
+                      解除学号绑定
+                    </button>
+                  )}
+                </div>
+              )}
 
               {id === "jw" && waitingJw && (
                 <p className="auth-pending">

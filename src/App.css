@@ -1528,11 +1528,14 @@ textarea:focus-visible {
   color: var(--color-primary-strong);
 }
 .elec-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
   padding: var(--space-2xl);
 }
 .elec-report {
   display: grid;
-  gap: var(--space-3xl);
+  gap: var(--space-2xl);
 }
 .elec-card h2 {
   margin: 0;
@@ -1543,7 +1546,7 @@ textarea:focus-visible {
   font-size: var(--text-subheading);
 }
 .elec-desc {
-  margin: var(--space-sm) 0 var(--space-xl);
+  margin: 0;
   color: var(--color-muted);
   font-size: var(--text-label);
   line-height: 1.75;
@@ -1614,7 +1617,7 @@ textarea:focus-visible {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-sm) var(--space-xl);
-  margin: var(--space-lg) var(--space-3xs) var(--space-xl);
+  margin: var(--space-md) var(--space-3xs) var(--space-md);
   color: var(--color-muted);
   font-size: var(--text-micro);
 }
@@ -1842,7 +1845,6 @@ textarea:focus-visible {
 .elec-actions {
   display: flex;
   gap: var(--space-md);
-  margin-top: var(--space-xl);
 }
 .elec-actions .elec-primary,
 .elec-actions .elec-ghost {
@@ -3254,7 +3256,7 @@ textarea:focus-visible {
 .auth-meta {
   display: grid;
   gap: var(--space-xs);
-  margin: var(--space-md) 0;
+  margin: 0;
 }
 .auth-meta > div {
   display: flex;
@@ -3288,8 +3290,7 @@ textarea:focus-visible {
 .auth-actions {
   display: flex;
   flex-direction: column;
-  gap: var(--size-lg);
-  margin-top: var(--space-lg);
+  gap: var(--space-lg);
 }
 .auth-login-btn {
   width: 100%;
@@ -3297,8 +3298,7 @@ textarea:focus-visible {
 .auth-bind {
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
-  margin-top: var(--space-lg);
+  gap: var(--space-xl);
   transition: all 100ms linear;
 }
 .auth-bind input {

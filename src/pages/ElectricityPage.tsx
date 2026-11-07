@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Input } from "antd-mobile";
 import {
   Area,
   AreaChart,
@@ -27,17 +28,26 @@ import {
   writeCache,
   type ElectricityReport,
 } from "../lib/electricity";
+import { saveStudentId } from "../lib/profile";
 
 type Phase = "setup" | "loading" | "ready" | "error";
 
 const OPERATOR_PATTERN = /^[0-9]{6,20}$/;
 
-export function ElectricityPage({ onBack }: { onBack?: () => void }) {
-  const initialStudentId = () => getSavedOperator();
+export function ElectricityPage({
+  onBack,
+  studentId,
+  onStudentIdChange,
+}: {
+  onBack?: () => void;
+  studentId: string;
+  onStudentIdChange: (studentId: string) => void;
+}) {
+  const initialStudentId = () => studentId || getSavedOperator();
   const [operatorNo, setOperatorNo] = useState(initialStudentId);
   const [draft, setDraft] = useState(initialStudentId);
   const [phase, setPhase] = useState<Phase>(() =>
-    getSavedOperator() ? "loading" : "setup",
+    initialStudentId() ? "loading" : "setup",
   );
   const [report, setReport] = useState<ElectricityReport | null>(null);
   const [history, setHistory] = useState<ElectricityReport[]>([]);
@@ -68,10 +78,14 @@ export function ElectricityPage({ onBack }: { onBack?: () => void }) {
   }, []);
 
   useEffect(() => {
-    const saved = getSavedOperator();
+    const saved = initialStudentId();
     if (!saved) {
       setPhase("setup");
       return;
+    }
+    if (!studentId) {
+      saveStudentId(saved);
+      onStudentIdChange(saved);
     }
     const cache = readCache();
     if (cache && cache.operatorNo === saved && isCacheFresh(cache.savedAt)) {
@@ -90,6 +104,9 @@ export function ElectricityPage({ onBack }: { onBack?: () => void }) {
       return;
     }
     setFormError("");
+    setOperatorNo(value);
+    saveStudentId(value);
+    onStudentIdChange(value);
     void load(value);
   };
 
@@ -161,20 +178,16 @@ export function ElectricityPage({ onBack }: { onBack?: () => void }) {
             打开今日校园的「电费充值」，页面上方的「用户编号」就是你的学号。绑定后只存在本机，用来查询你自己的宿舍。
           </p>
           <div className="elec-input-row">
-            <input
+            <Input
               value={draft}
-              onChange={(event) => {
-                setDraft(event.target.value);
+              onChange={(value) => {
+                setDraft(value.replace(/\D/g, ""));
                 setFormError("");
               }}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") submit();
-              }}
               inputMode="numeric"
-              autoComplete="off"
-              spellCheck={false}
               placeholder="输入学号"
               aria-label="学号"
+              clearable
             />
           </div>
           {formError && <p className="elec-error-text">{formError}</p>}

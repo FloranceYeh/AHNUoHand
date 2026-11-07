@@ -48,7 +48,7 @@ export function ProfilePage({
       <section className="settings-list">
         <button className="settings-row" onClick={onOpenAuth}>
           <span className="settings-icon">
-            <Icon name="person" size={20} />
+            <Icon name="keyRound" size={20} />
           </span>
           <span className="settings-copy">
             <strong>登录管理</strong>

@@ -194,6 +194,9 @@ export default function App() {
     setPersonalInfo(info);
     goBack();
   };
+  const changeStudentId = useCallback((studentId: string) => {
+    setPersonalInfo((current) => ({ ...current, studentId }));
+  }, []);
 
   // 移动端登录会跳去 CAS 再跳回来，整个应用会重新加载。
   // 必须先把票据换成 token，再挂载功能页 —— 否则功能页在 token 写回前
@@ -269,7 +272,14 @@ export default function App() {
     isMenuPage = false,
   ) => {
     const onBack = isMenuPage ? undefined : goBack;
-    if (id === "electricity") return <ElectricityPage onBack={onBack} />;
+    if (id === "electricity")
+      return (
+        <ElectricityPage
+          onBack={onBack}
+          studentId={personalInfo.studentId}
+          onStudentIdChange={changeStudentId}
+        />
+      );
     if (id === "classroom") {
       return (
         <ClassroomPage onBack={onBack} onNeedLogin={() => goLogin("ybt")} />
@@ -297,7 +307,14 @@ export default function App() {
         />
       );
     }
-    if (id === "auth") return <AuthPage onBack={goBack} />;
+    if (id === "auth")
+      return (
+        <AuthPage
+          onBack={goBack}
+          studentId={personalInfo.studentId}
+          onStudentIdChange={changeStudentId}
+        />
+      );
     return <FeaturePage featureId={id} onBack={onBack} />;
   };
 
