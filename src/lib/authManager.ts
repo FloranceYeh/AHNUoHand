@@ -1,6 +1,6 @@
 /** 登录信息的展示与本地会话标记。各平台的凭证仍由各自模块管理。 */
 
-export type PlatformId = "ybt" | "jw" | "zongwu";
+export type PlatformId = "ybt" | "jw" | "schoolcard" | "zongwu";
 
 export interface PlatformInfo {
   id: PlatformId;
@@ -27,6 +27,14 @@ export const PLATFORMS: PlatformInfo[] = [
     host: "jw.ahnu.edu.cn",
     requiresLogin: true,
     authHint: "教务系统网页登录会话",
+  },
+  {
+    id: "schoolcard",
+    name: "完美校园一卡通",
+    description: "查询卡余额与消费记录",
+    host: "ecardh5.17wanxiao.com",
+    requiresLogin: true,
+    authHint: "学校统一认证后的完美校园会话",
   },
   {
     id: "zongwu",
@@ -123,7 +131,9 @@ export function statusOf(info: PlatformInfo): PlatformStatus {
       ? Boolean(safeGet(TOKEN_KEY))
       : info.id === "jw"
         ? false // Cookie 由 WebView 管理，前端无法可靠检查
-        : Boolean(safeGet(OPERATOR_KEY));
+        : info.id === "schoolcard"
+          ? Boolean(safeGet("ahnu.schoolcard.report.v2"))
+          : Boolean(safeGet(OPERATOR_KEY));
   const session = readMap(SESSION_KEY);
   const stamps = readMap(STAMP_KEY);
   return {
@@ -138,7 +148,12 @@ export function statusOf(info: PlatformInfo): PlatformStatus {
         ? (stamps[info.id] as number)
         : undefined,
     hasCredential,
-    hasOfflineData: info.id === "jw" ? Boolean(safeGet(TIMETABLE_KEY)) : false,
+    hasOfflineData:
+      info.id === "jw"
+        ? Boolean(safeGet(TIMETABLE_KEY))
+        : info.id === "schoolcard"
+          ? Boolean(safeGet("ahnu.schoolcard.report.v2"))
+          : false,
   };
 }
 
@@ -158,6 +173,13 @@ export function logout(id: PlatformId): void {
     try {
       localStorage.removeItem(OPERATOR_KEY);
       localStorage.removeItem(ELECTRICITY_REPORT_KEY);
+    } catch {
+      /* ignore */
+    }
+  } else if (id === "schoolcard") {
+    try {
+      localStorage.removeItem("ahnu.schoolcard.report.v2");
+      localStorage.removeItem("ahnu.schoolcard.mobileResult");
     } catch {
       /* ignore */
     }
@@ -188,6 +210,7 @@ export function clearTimetableCache(): void {
 export function logoutAll(): void {
   logout("ybt");
   logout("jw");
+  logout("schoolcard");
   logout("zongwu");
 }
 
@@ -205,7 +228,10 @@ export function takeLoginRequest(): PlatformId | null {
   try {
     const value = localStorage.getItem(REQUEST_KEY);
     if (value) localStorage.removeItem(REQUEST_KEY);
-    return value === "ybt" || value === "jw" || value === "zongwu"
+    return value === "ybt" ||
+      value === "jw" ||
+      value === "schoolcard" ||
+      value === "zongwu"
       ? value
       : null;
   } catch {

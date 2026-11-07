@@ -30,6 +30,8 @@ import {
   ChevronsLeftRight,
   KeyRound,
   IdCard,
+  ChevronDown,
+  ArrowLeftRight,
 } from "lucide-react";
 
 const icons = {
@@ -44,6 +46,7 @@ const icons = {
   chat: MessageCircleMore,
   arrow: ArrowLeft,
   chevron: ChevronRight,
+  chevronDown: ChevronDown,
   search: Search,
   spark: Sparkles,
   clock: Clock3,
@@ -63,7 +66,8 @@ const icons = {
   layoutGrid: LayoutGrid,
   leftRight: ChevronsLeftRight,
   keyRound: KeyRound,
-  idCard: IdCard
+  idCard: IdCard,
+  arrowLR: ArrowLeftRight,
 };
 
 interface IconProps {

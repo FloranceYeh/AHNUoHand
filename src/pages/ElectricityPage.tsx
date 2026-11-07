@@ -509,10 +509,12 @@ export function ElectricityPage({
               className="elec-ghost"
               onClick={() => void load(operatorNo)}
             >
-              刷新数据
+              <Icon name="refresh" size={16} />
+              <span>刷新数据</span>
             </button>
             <button className="elec-ghost" onClick={changeOperator}>
-              更换编号
+              <Icon name="arrowLR" size={16} />
+              <span>更换编号</span>
             </button>
           </div>
         </div>

@@ -39,7 +39,61 @@ static PENDING_HOST: Mutex<Option<String>> = Mutex::new(None);
 /// 教务登录后在主 WebView 读取的课表，等应用页重新加载后取回。
 static PENDING_TIMETABLE: Mutex<Option<String>> = Mutex::new(None);
 
+/// 完美校园一卡通查询结果，等应用页重新加载后取回。
+static PENDING_SCHOOLCARD: Mutex<Option<String>> = Mutex::new(None);
+static PENDING_SCHOOLCARD_MONTH: Mutex<Option<String>> = Mutex::new(None);
+
 const JW_COURSE_TABLE: &str = "https://jw.ahnu.edu.cn/student/for-std/course-table";
+const SCHOOLCARD_EXTRACT_SCRIPT: &str = r#"(() => {
+  const selectedMonth = window.__AHNU_SCHOOLCARD_MONTH__ || '';
+  const key = '__AHNU_SCHOOLCARD_RESULT_' + selectedMonth.replace(/[^0-9]/g, '') + '__';
+  const pad = (value) => String(value).padStart(2, '0');
+  const now = new Date();
+  const year = selectedMonth ? Number(selectedMonth.slice(0, 4)) : now.getFullYear();
+  const month = selectedMonth ? Number(selectedMonth.slice(5, 7)) : now.getMonth() + 1;
+  const beginDate = year + '-' + pad(month) + '-01';
+  const endDate = year + '-' + pad(month) + '-' + new Date(year, month, 0).getDate();
+  const post = (body) => fetch('/ecardh5/bootcallback', {
+    method: 'POST',
+    credentials: 'include',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'},
+    body,
+  }).then((response) => response.json());
+  if (!window[key]) {
+    window[key] = {state: 'loading'};
+    Promise.all([
+      post('gotowhere=XYK_BASE_INFO'),
+      post('gotowhere=userInfo'),
+      post('beginIndex=0&pageSize=100&type=-1&beginDate=' + beginDate + '&endDate=' + endDate + '&gotowhere=XYK_TRADE_DETAIL'),
+    ]).then(([base, user, trade]) => {
+      if (!base || base.result_ !== true || !trade || trade.result_ !== true) throw new Error('完美校园会话已失效，请在登录管理中重新连接');
+      const balance = base && base.data ? base.data : {};
+      const userInfo = user && user.data ? user.data : {};
+      const rows = trade && trade.data && Array.isArray(trade.data.data) ? trade.data.data : [];
+      window[key] = {
+        state: 'ready',
+        month: year + '-' + pad(month),
+        cardNo: String(userInfo.thirdId || ''),
+        expiry: String(balance.nouseDate || ''),
+        balance: Number(balance.main_fare || balance.my_fare || 0),
+        subsidy: Number(balance.subsidy_fare || 0),
+        main: Number(balance.main_fare || 0),
+        fund: Number(balance.fund_fare || 0),
+        transactions: rows.map((row) => ({
+          description: String(row.description || row.accdscrp || '交易'),
+          amount: Number(row.amount || 0),
+          date: String(row.businessopdt || ''),
+          terminal: String(row.term_name || ''),
+          orderNo: String(row.orderno || ''),
+          type: String(row.type || '0'),
+        })),
+      };
+    }).catch((error) => {
+      window[key] = {state: 'error', message: error instanceof Error ? error.message : '请求失败'};
+    });
+  }
+  return JSON.stringify(window[key]);
+})()"#;
 
 const JW_EXTRACT_SCRIPT: &str = r#"(() => {
   const cell = document.querySelector('td.td-content, td[class*="td-content"]');
@@ -155,6 +209,191 @@ pub async fn mobile_take_timetable() -> Result<Option<String>, String> {
     }
 }
 
+/// 完美校园一卡通查询完成后由应用页取回一次结果。
+#[tauri::command]
+pub async fn mobile_take_schoolcard() -> Result<Option<String>, String> {
+    match PENDING_SCHOOLCARD.lock() {
+        Ok(mut pending) => Ok(pending.take()),
+        Err(_) => Err("状态异常".to_string()),
+    }
+}
+
+#[tauri::command]
+pub async fn mobile_begin_schoolcard(
+    app: tauri::AppHandle,
+    url: String,
+    month: String,
+) -> Result<(), String> {
+    if !url.starts_with("https://ids.ahnu.edu.cn/authserver/login?service=") {
+        return Err("一卡通统一认证地址无效".to_string());
+    }
+    if let Ok(mut host) = PENDING_HOST.lock() {
+        *host = Some("hub.17wanxiao.com".to_string());
+    }
+    if let Ok(mut selected) = PENDING_SCHOOLCARD_MONTH.lock() {
+        *selected = Some(month);
+    }
+    let window = app
+        .get_webview_window("main")
+        .ok_or_else(|| "找不到主窗口".to_string())?;
+    window
+        .eval("window.location.replace('about:blank');")
+        .map_err(|error| format!("无法进入一卡通登录中转页：{error}"))?;
+    tokio_sleep(180).await;
+    window
+        .eval(&format!("window.location.replace({url:?});"))
+        .map_err(|error| format!("无法打开一卡通统一认证：{error}"))?;
+    println!("[mobile_login] begin_schoolcard via about:blank");
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn query_schoolcard_silent(
+    app: tauri::AppHandle,
+    month: String,
+) -> Result<String, String> {
+    let (year, month_number) = month
+        .split_once('-')
+        .and_then(|(year, month)| Some((year.parse::<i32>().ok()?, month.parse::<u32>().ok()?)))
+        .filter(|(year, month)| *year >= 2000 && (1..=12).contains(month))
+        .ok_or_else(|| "查询月份无效".to_string())?;
+    let days = match month_number {
+        2 if year % 4 == 0 && (year % 100 != 0 || year % 400 == 0) => 29,
+        2 => 28,
+        4 | 6 | 9 | 11 => 30,
+        _ => 31,
+    };
+    let origin = "https://ecardh5.17wanxiao.com";
+    let api = format!("{origin}/ecardh5/bootcallback");
+    let cookie_url = api.parse().map_err(|_| "一卡通接口地址无效".to_string())?;
+    let webview = app
+        .get_webview_window("main")
+        .ok_or_else(|| "找不到主窗口".to_string())?;
+    let cookies = webview
+        .cookies_for_url(cookie_url)
+        .map_err(|error| format!("读取完美校园登录状态失败：{error}"))?;
+    let cookie_header = cookies
+        .iter()
+        .map(|cookie| format!("{}={}", cookie.name(), cookie.value()))
+        .collect::<Vec<_>>()
+        .join("; ");
+    if cookie_header.is_empty() {
+        return Err("尚未登录完美校园，请先打开登录入口连接一次".to_string());
+    }
+
+    let client = reqwest::Client::new();
+    let post = |body: String| {
+        client
+            .post(&api)
+            .header(reqwest::header::COOKIE, cookie_header.clone())
+            .header(reqwest::header::ORIGIN, origin)
+            .header(
+                reqwest::header::REFERER,
+                "https://ecardh5.17wanxiao.com/ecardh5/ecard_t/",
+            )
+            .header(
+                reqwest::header::CONTENT_TYPE,
+                "application/x-www-form-urlencoded;charset=UTF-8",
+            )
+            .body(body)
+    };
+    let begin_date = format!("{year}-{month_number:02}-01");
+    let end_date = format!("{year}-{month_number:02}-{days:02}");
+    let balance_response = post("gotowhere=XYK_BASE_INFO".to_string())
+        .send()
+        .await
+        .map_err(|error| format!("查询一卡通余额失败：{error}"))?;
+    let user_response = post("gotowhere=userInfo".to_string())
+        .send()
+        .await
+        .map_err(|error| format!("查询一卡通信息失败：{error}"))?;
+    let trade_response = post(format!("beginIndex=0&pageSize=100&type=-1&beginDate={begin_date}&endDate={end_date}&gotowhere=XYK_TRADE_DETAIL"))
+        .send()
+        .await
+        .map_err(|error| format!("查询一卡通交易失败：{error}"))?;
+    if !balance_response.status().is_success()
+        || !user_response.status().is_success()
+        || !trade_response.status().is_success()
+    {
+        return Err("完美校园接口暂时不可用，请稍后重试".to_string());
+    }
+    let balance: serde_json::Value = balance_response
+        .json()
+        .await
+        .map_err(|error| format!("无法解析一卡通余额：{error}"))?;
+    let user: serde_json::Value = user_response
+        .json()
+        .await
+        .map_err(|error| format!("无法解析一卡通信息：{error}"))?;
+    let trade: serde_json::Value = trade_response
+        .json()
+        .await
+        .map_err(|error| format!("无法解析一卡通交易：{error}"))?;
+    if balance.get("result_").and_then(serde_json::Value::as_bool) != Some(true)
+        || trade.get("result_").and_then(serde_json::Value::as_bool) != Some(true)
+    {
+        return Err("完美校园会话已失效，请重新登录".to_string());
+    }
+    let balance_data = balance.get("data").unwrap_or(&serde_json::Value::Null);
+    let user_data = user.get("data").unwrap_or(&serde_json::Value::Null);
+    let trade_rows = trade
+        .pointer("/data/data")
+        .and_then(serde_json::Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    let number = |value: Option<&serde_json::Value>| -> f64 {
+        value
+            .and_then(|value| value.as_f64().or_else(|| value.as_str()?.parse().ok()))
+            .unwrap_or(0.0)
+    };
+    let text = |value: Option<&serde_json::Value>| -> String {
+        value
+            .and_then(|value| {
+                value
+                    .as_str()
+                    .map(str::to_owned)
+                    .or_else(|| value.as_i64().map(|number| number.to_string()))
+            })
+            .unwrap_or_default()
+    };
+    let balance_main = number(balance_data.get("main_fare"));
+    let balance_value = if balance_main != 0.0 {
+        balance_main
+    } else {
+        number(balance_data.get("my_fare"))
+    };
+    let transactions = trade_rows
+        .iter()
+        .map(|row| {
+            serde_json::json!({
+                "description": text(row.get("description").or_else(|| row.get("accdscrp"))),
+                "amount": number(row.get("amount")),
+                "date": text(row.get("businessopdt")),
+                "terminal": text(row.get("term_name")),
+                "orderNo": text(row.get("orderno")),
+                "type": text(row.get("type")),
+            })
+        })
+        .collect::<Vec<_>>();
+    let fetched_at = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis();
+    serde_json::to_string(&serde_json::json!({
+        "state": "ready",
+        "month": month,
+        "fetchedAt": fetched_at,
+        "cardNo": text(user_data.get("thirdId")),
+        "expiry": text(balance_data.get("nouseDate")),
+        "balance": balance_value,
+        "subsidy": number(balance_data.get("subsidy_fare")),
+        "main": balance_main,
+        "fund": number(balance_data.get("fund_fare")),
+        "transactions": transactions,
+    }))
+    .map_err(|error| format!("无法序列化一卡通结果：{error}"))
+}
+
 /// 记录「正在等某个站点登录完成」。
 ///
 /// 页面跳转由前端自己做（`window.location.href = url`）——
@@ -188,6 +427,10 @@ fn is_jw_logged_in(url: &str) -> bool {
         && !url.contains("/logout")
 }
 
+fn is_schoolcard_logged_in(url: &str) -> bool {
+    url.contains("ecardh5.17wanxiao.com/ecardh5/ecard_t/")
+}
+
 fn retry_later(app: tauri::AppHandle, action: fn(&tauri::AppHandle, u8), attempt: u8) {
     std::thread::spawn(move || {
         std::thread::sleep(std::time::Duration::from_millis(900));
@@ -196,7 +439,9 @@ fn retry_later(app: tauri::AppHandle, action: fn(&tauri::AppHandle, u8), attempt
 }
 
 fn read_jw_semester(app: &tauri::AppHandle, attempt: u8) {
-    let Some(window) = app.get_webview_window("main") else { return; };
+    let Some(window) = app.get_webview_window("main") else {
+        return;
+    };
     let handle = app.clone();
     let _ = window.eval_with_callback(JW_SEMESTER_SCRIPT, move |value| {
         let id = decode_webview_string(&value).unwrap_or_default();
@@ -214,7 +459,9 @@ fn read_jw_semester(app: &tauri::AppHandle, attempt: u8) {
 }
 
 fn read_jw_grid(app: &tauri::AppHandle, attempt: u8) {
-    let Some(window) = app.get_webview_window("main") else { return; };
+    let Some(window) = app.get_webview_window("main") else {
+        return;
+    };
     let handle = app.clone();
     let _ = window.eval_with_callback(JW_EXTRACT_SCRIPT, move |value| {
         let result = decode_webview_string(&value)
@@ -223,6 +470,46 @@ fn read_jw_grid(app: &tauri::AppHandle, attempt: u8) {
             retry_later(handle.clone(), read_jw_grid, attempt + 1);
         } else {
             finish_mobile_jw(&handle, result);
+        }
+    });
+}
+
+fn read_schoolcard(app: &tauri::AppHandle, attempt: u8) {
+    let Some(window) = app.get_webview_window("main") else {
+        return;
+    };
+    let handle = app.clone();
+    let month = PENDING_SCHOOLCARD_MONTH
+        .lock()
+        .ok()
+        .and_then(|selected| selected.clone())
+        .unwrap_or_default();
+    let _ = window.eval(&format!("window.__AHNU_SCHOOLCARD_MONTH__ = {month:?};"));
+    let _ = window.eval_with_callback(SCHOOLCARD_EXTRACT_SCRIPT, move |value| {
+        let result = decode_webview_string(&value).unwrap_or_default();
+        println!(
+            "[mobile_login] schoolcard extract attempt={attempt} result={}",
+            if result.contains("\"state\":\"ready\"") {
+                "ready"
+            } else if result.contains("\"state\":\"error\"") {
+                "error"
+            } else if result.is_empty() {
+                "empty"
+            } else {
+                "loading"
+            }
+        );
+        if result.is_empty() || result.contains("\"state\":\"loading\"") {
+            if attempt < 30 {
+                retry_later(handle.clone(), read_schoolcard, attempt + 1);
+            } else {
+                finish_mobile_schoolcard(
+                    &handle,
+                    r#"{"state":"error","message":"一卡通页面没有响应"}"#.to_string(),
+                );
+            }
+        } else {
+            finish_mobile_schoolcard(&handle, result);
         }
     });
 }
@@ -238,7 +525,14 @@ pub fn handle_page_load(app: &tauri::AppHandle, url: &str) {
     // 教务这类没有票据的系统：等它自己落到登录后的页面，就送回应用
     let waiting_host = PENDING_HOST.lock().ok().and_then(|host| host.clone());
     if let Some(host) = waiting_host {
-        let matches_site = url.contains(&host);
+        let matches_site = url.contains(&host)
+            || ((host == "hub.17wanxiao.com" || host == "ecardh5.17wanxiao.com")
+                && is_schoolcard_logged_in(url));
+        if matches_site && is_schoolcard_logged_in(url) {
+            println!("[mobile_login] schoolcard destination matched host={host}");
+            read_schoolcard(app, 0);
+            return;
+        }
         if matches_site && is_jw_logged_in(url) {
             if let Some(window) = app.get_webview_window("main") {
                 if !url.contains("/for-std/course-table") {
@@ -306,6 +600,22 @@ fn finish_mobile_jw(app: &tauri::AppHandle, result: String) {
     }
     if let Ok(mut host) = PENDING_HOST.lock() {
         *host = None;
+    }
+    if let Some(window) = app.get_webview_window("main") {
+        let script = format!("window.location.replace({APP_URL:?});");
+        let _ = window.eval(&script);
+    }
+}
+
+fn finish_mobile_schoolcard(app: &tauri::AppHandle, result: String) {
+    if let Ok(mut pending) = PENDING_SCHOOLCARD.lock() {
+        *pending = Some(result);
+    }
+    if let Ok(mut host) = PENDING_HOST.lock() {
+        *host = None;
+    }
+    if let Ok(mut month) = PENDING_SCHOOLCARD_MONTH.lock() {
+        *month = None;
     }
     if let Some(window) = app.get_webview_window("main") {
         let script = format!("window.location.replace({APP_URL:?});");

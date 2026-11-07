@@ -22,6 +22,7 @@ import {
   forgetOperator,
 } from "../lib/electricity";
 import { getStudentId, saveStudentId } from "../lib/profile";
+import { querySchoolCard } from "../lib/schoolcard";
 
 /**
  * 登录管理：校园平台的**唯一登录入口**。
@@ -76,6 +77,11 @@ export function AuthPage({
       if (id === "jw") {
         // 移动端会跳走，页面卸载；桌面端开窗口后回来继续
         await loginJw();
+        return;
+      }
+      if (id === "schoolcard") {
+        await querySchoolCard(undefined, undefined, true);
+        refresh();
         return;
       }
       // 后勤只要学号，不需要密码
@@ -184,6 +190,7 @@ export function AuthPage({
             (id !== "zongwu" && id !== "jw" && !logged) ||
             (id === "zongwu" && !bound && !binding) ||
             id === "jw" ||
+            id === "schoolcard" ||
             (id === "ybt" && item.hasCredential) ||
             bound;
           return (
@@ -258,6 +265,30 @@ export function AuthPage({
                       onClick={() => void startLogin("jw")}
                     >
                       {isBusy ? "正在打开…" : "打开教务系统"}
+                    </button>
+                  )}
+                  {id === "schoolcard" && (
+                    <button
+                      className="elec-primary auth-login-btn"
+                      disabled={isBusy}
+                      onClick={() => void startLogin("schoolcard")}
+                    >
+                      {isBusy
+                        ? "正在打开…"
+                        : logged
+                          ? "重新查询"
+                          : "登录并查询"}
+                    </button>
+                  )}
+                  {id === "schoolcard" && item.hasCredential && (
+                    <button
+                      className="auth-remove"
+                      onClick={() => {
+                        remove("schoolcard");
+                        refresh();
+                      }}
+                    >
+                      清除一卡通缓存
                     </button>
                   )}
                   {id === "jw" && item.hasOfflineData && (

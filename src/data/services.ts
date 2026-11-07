@@ -31,7 +31,7 @@ export const campusServices: CampusService[] = [
     description: "完美校园一卡通相关服务",
     icon: "idCard",
     category: "life",
-    status: "coming-soon",
+    status: "available",
   },
   {
     id: "library",

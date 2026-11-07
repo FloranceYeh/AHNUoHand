@@ -19,7 +19,7 @@ const accentOptions = [
     label: (
       <span className="appearance-accent-option">
         <i className="teal" />
-        青绿
+        <span>青绿</span>
       </span>
     ),
     value: "teal",
@@ -28,7 +28,7 @@ const accentOptions = [
     label: (
       <span className="appearance-accent-option">
         <i className="blue" />
-        海蓝
+        <span>海蓝</span>
       </span>
     ),
     value: "blue",
@@ -37,7 +37,7 @@ const accentOptions = [
     label: (
       <span className="appearance-accent-option">
         <i className="violet" />
-        柔紫
+        <span>柔紫</span>
       </span>
     ),
     value: "violet",
@@ -46,7 +46,7 @@ const accentOptions = [
     label: (
       <span className="appearance-accent-option">
         <i className="amber" />
-        琥珀
+        <span>琥珀</span>
       </span>
     ),
     value: "amber",
@@ -55,7 +55,7 @@ const accentOptions = [
     label: (
       <span className="appearance-accent-option">
         <i className="rose" />
-        玫红
+        <span>玫红</span>
       </span>
     ),
     value: "rose",

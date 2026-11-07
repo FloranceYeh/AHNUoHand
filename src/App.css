@@ -293,6 +293,11 @@ textarea:focus-visible {
   background: var(--color-primary-strong);
 }
 .elec-ghost {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
   min-height: var(--size-6xl);
   border: 1px solid var(--color-line);
   border-radius: var(--radius-md);
@@ -1335,7 +1340,6 @@ textarea:focus-visible {
   gap: var(--space-xs);
 }
 .appearance-accent-option i {
-  flex: 0 0 11px;
   width: var(--size-md);
   height: var(--size-md);
   border-radius: 50%;
@@ -3353,6 +3357,171 @@ textarea:focus-visible {
 }
 .boot-wait .tt-progress {
   margin: 0;
+}
+
+/* Campus card ------------------------------------------------------------- */
+.schoolcard-connect {
+  display: grid;
+  gap: var(--space-2xl);
+}
+.schoolcard-connect {
+  align-items: flex-start;
+}
+.schoolcard-connect h2 {
+  margin: 0;
+  font-size: var(--text-subheading);
+}
+.schoolcard-progress {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: var(--text-caption);
+}
+.schoolcard-transactions {
+  gap: 0;
+}
+.schoolcard-transaction-list {
+  display: grid;
+}
+.schoolcard-transaction {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  padding: var(--space-lg) 0;
+  border-top: 1px solid var(--color-line);
+}
+.schoolcard-transaction:first-child {
+  border-top: 0;
+}
+.schoolcard-transaction strong,
+.schoolcard-transaction small {
+  display: block;
+}
+.schoolcard-transaction strong {
+  color: var(--color-ink);
+  font-size: var(--text-label);
+  font-weight: 650;
+}
+.schoolcard-transaction small {
+  margin-top: var(--space-2xs);
+  color: var(--color-muted);
+  font-size: var(--text-micro);
+}
+.schoolcard-transaction b {
+  flex-shrink: 0;
+  font-size: var(--text-label);
+  font-variant-numeric: tabular-nums;
+}
+.schoolcard-transaction b.negative,
+.schoolcard-transaction b.positive {
+  color: var(--color-ink);
+}
+.schoolcard-refresh {
+  justify-self: center;
+}
+.schoolcard-controls {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-sm);
+}
+.schoolcard-month-control {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  min-height: var(--size-7xl);
+  padding: var(--space-sm) var(--space-lg);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  text-align: left;
+}
+.schoolcard-month-control .elec-label {
+  margin-right: auto;
+  color: var(--color-muted);
+}
+.schoolcard-month-control strong {
+  font-size: var(--text-label);
+}
+.schoolcard-control-action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+.schoolcard-chart {
+  margin-top: 0;
+}
+.schoolcard-analysis-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xl);
+}
+.schoolcard-analysis-grid > div {
+  display: grid;
+  gap: var(--space-xs);
+  min-width: 0;
+  padding: var(--space-md);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-subtle);
+}
+.schoolcard-analysis-grid span {
+  color: var(--color-muted);
+  font-size: var(--text-micro);
+}
+.schoolcard-analysis-grid strong {
+  overflow: hidden;
+  color: var(--color-ink);
+  font-size: var(--text-caption);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.schoolcard-merchant-list {
+  background-color: var(--color-surface);
+  display: grid;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+}
+.schoolcard-merchant {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  width: 100%;
+  padding: var(--space-md);
+  border: 0;
+  border-top: 1px solid var(--color-line);
+  background: none;
+  color: var(--color-ink);
+  text-align: left;
+}
+.schoolcard-merchant-meta {
+  display: flex;
+  flex-wrap: nowrap;
+  padding: 0 var(--space-px);
+}
+.schoolcard-merchant:first-child {
+  border-top: 0;
+}
+.schoolcard-merchant span,
+.schoolcard-merchant small {
+  display: block;
+}
+.schoolcard-merchant strong {
+  font-size: var(--text-label);
+}
+.schoolcard-merchant small {
+  margin-top: var(--space-2xs);
+  color: var(--color-muted);
+  font-size: var(--text-micro);
+}
+.schoolcard-merchant b {
+  flex-shrink: 0;
+  font-size: var(--text-label);
+  font-variant-numeric: tabular-nums;
 }
 
 @media (prefers-reduced-motion: reduce) {

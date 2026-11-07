@@ -15,6 +15,7 @@ import { ClassroomPage } from "./pages/ClassroomPage";
 import { TimetablePage } from "./pages/TimetablePage";
 import { CalendarPage } from "./pages/CalendarPage";
 import { AuthPage } from "./pages/AuthPage";
+import { SchoolCardPage } from "./pages/SchoolCardPage";
 import {
   hasPendingLogin,
   resumeMobileLogin,
@@ -30,6 +31,10 @@ import {
   hasPendingTimetableLogin,
   resumeMobileTimetableLogin,
 } from "./lib/timetableSession";
+import {
+  hasPendingSchoolCardLogin,
+  resumeMobileSchoolCardLogin,
+} from "./lib/schoolcard";
 import type {
   CampusServiceId,
   FeatureId,
@@ -203,7 +208,10 @@ export default function App() {
   // 就已完成初始化，会误判为「未登录」，用户回来还得再点一次。
   // 桌面端没有待处理票据时立即返回，不受影响。
   const [restoring, setRestoring] = useState(
-    () => hasPendingLogin() || hasPendingTimetableLogin(),
+    () =>
+      hasPendingLogin() ||
+      hasPendingTimetableLogin() ||
+      hasPendingSchoolCardLogin(),
   );
 
   useEffect(() => {
@@ -218,6 +226,7 @@ export default function App() {
       } catch {
         returnedFromJw = false;
       }
+      await resumeMobileSchoolCardLogin();
       // 换完票再取「该回到哪一页」，避免中途重载时把标记消费掉
       const back = takeReturnTo();
       if (back) pushRoute({ type: "feature", id: back as FeatureId });
@@ -315,6 +324,7 @@ export default function App() {
           onStudentIdChange={changeStudentId}
         />
       );
+    if (id === "schoolcard") return <SchoolCardPage onBack={onBack} />;
     return <FeaturePage featureId={id} onBack={onBack} />;
   };
 
