@@ -26,6 +26,14 @@ export const campusServices: CampusService[] = [
     status: "available",
   },
   {
+    id: "schoolcard",
+    title: "校园一卡通",
+    description: "完美校园一卡通相关服务",
+    icon: "idCard",
+    category: "life",
+    status: "coming-soon",
+  },
+  {
     id: "library",
     title: "图书馆",
     description: "馆藏与座位服务",
@@ -79,6 +87,13 @@ export const featureDetails = {
     icon: "bolt",
     description: "校园缴费接口接入后，可查询宿舍电费余额与用电情况。",
     points: ["查看宿舍电费余额", "了解近期用电情况", "余额不足时及时提醒"],
+  },
+  schoolcard: {
+    title: "校园一卡通",
+    eyebrow: "生活服务",
+    icon: "idCard",
+    description: "完美校园一卡通相关服务，包括充值、消费记录等。",
+    points: ["校园卡充值", "消费记录查询", "余额提醒"],
   },
   library: {
     title: "图书馆",

@@ -14,6 +14,7 @@ import {
   clearToken,
   formatPeriods,
   getToken,
+  isMobile,
   loadBuildings,
   loadCurrentTerm,
   loadClassroomFavorites,
@@ -30,6 +31,46 @@ import {
 
 type Phase = "login" | "loading" | "ready" | "error";
 type DisplayRoom = EmptyRoom & { favoriteKey?: string };
+type PendingRoomQuery = {
+  campus: string;
+  buildingCode: string;
+  week: string;
+  weekday: string;
+  savedAt: number;
+};
+
+const PENDING_ROOM_QUERY_KEY = "ahnu.classroom.pendingRoomQuery";
+const PENDING_ROOM_QUERY_TTL = 30 * 60 * 1000;
+
+function readPendingRoomQuery(): PendingRoomQuery | null {
+  try {
+    const raw = localStorage.getItem(PENDING_ROOM_QUERY_KEY);
+    if (!raw) return null;
+    const pending = JSON.parse(raw) as PendingRoomQuery;
+    if (
+      !pending.campus ||
+      !pending.buildingCode ||
+      !pending.week ||
+      !pending.weekday ||
+      !Number.isFinite(pending.savedAt) ||
+      Date.now() - pending.savedAt > PENDING_ROOM_QUERY_TTL
+    ) {
+      localStorage.removeItem(PENDING_ROOM_QUERY_KEY);
+      return null;
+    }
+    return pending;
+  } catch {
+    return null;
+  }
+}
+
+function clearPendingRoomQuery(): void {
+  try {
+    localStorage.removeItem(PENDING_ROOM_QUERY_KEY);
+  } catch {
+    /* Ignore unavailable storage. */
+  }
+}
 
 export function ClassroomPage({
   onBack,
@@ -67,6 +108,7 @@ export function ClassroomPage({
     null,
   );
   const suppressBuildingClick = useRef(false);
+  const restoreQueryAfterLogin = useRef(false);
 
   const campusCode = useMemo(
     () => CAMPUSES.find((item) => item.name === campus)?.code ?? "1",
@@ -230,8 +272,16 @@ export function ClassroomPage({
       setTerm(current);
       setWeekdays(days);
       setWeekList(weeks.filter((item) => Number(item.value) <= 30));
-      setWeekday(current.weekday || days[0]?.value || "");
-      setWeek(current.week || "1");
+      const pending = readPendingRoomQuery();
+      if (pending && CAMPUSES.some((item) => item.name === pending.campus)) {
+        restoreQueryAfterLogin.current = true;
+        setCampus(pending.campus);
+        setWeekday(pending.weekday);
+        setWeek(pending.week);
+      } else {
+        setWeekday(current.weekday || days[0]?.value || "");
+        setWeek(current.week || "1");
+      }
       setPhase("ready");
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : "加载失败";
@@ -249,7 +299,13 @@ export function ClassroomPage({
     try {
       const list = await loadBuildings(campusName);
       setBuildings(list);
-      setBuildingCode(list[0]?.code ?? "");
+      const pending = readPendingRoomQuery();
+      setBuildingCode(
+        pending?.campus === campusName &&
+          list.some((building) => building.code === pending.buildingCode)
+          ? pending.buildingCode
+          : (list[0]?.code ?? ""),
+      );
     } catch {
       setBuildings([]);
       setBuildingCode("");
@@ -276,6 +332,22 @@ export function ClassroomPage({
     }
     setBusy(true);
     setError("");
+    if (isMobile()) {
+      try {
+        localStorage.setItem(
+          PENDING_ROOM_QUERY_KEY,
+          JSON.stringify({
+            campus,
+            buildingCode,
+            week,
+            weekday,
+            savedAt: Date.now(),
+          }),
+        );
+      } catch {
+        /* A query can still run if storage is unavailable. */
+      }
+    }
     try {
       const result = await queryEmptyRooms({
         week,
@@ -285,9 +357,11 @@ export function ClassroomPage({
       });
       setRooms(result);
       setQueried(true);
+      clearPendingRoomQuery();
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : "查询失败";
       setError(message);
+      clearPendingRoomQuery();
       if (message.includes("登录")) {
         clearToken();
         setPhase("login");
@@ -296,6 +370,29 @@ export function ClassroomPage({
       setBusy(false);
     }
   };
+
+  useEffect(() => {
+    if (
+      phase !== "ready" ||
+      !restoreQueryAfterLogin.current ||
+      !buildings.length ||
+      !buildingCode
+    ) {
+      return;
+    }
+    const pending = readPendingRoomQuery();
+    if (
+      !pending ||
+      pending.campus !== campus ||
+      pending.buildingCode !== buildingCode
+    ) {
+      restoreQueryAfterLogin.current = false;
+      clearPendingRoomQuery();
+      return;
+    }
+    restoreQueryAfterLogin.current = false;
+    void doQuery();
+  }, [phase, buildings, buildingCode, campus, week, weekday]);
 
   const signOut = () => {
     clearToken();
@@ -428,10 +525,10 @@ export function ClassroomPage({
                     />
                   </div>
                   {buildings.length > 3 && (
-                    <p className="cls-scroll-hint">
+                    <div className="cls-scroll-hint">
                       <Icon name="leftRight" size={15} />
-                      左右滑动查看更多楼栋 · 长按置顶
-                    </p>
+                      <span>左右滑动查看更多楼栋 · 长按置顶</span>
+                    </div>
                   )}
                 </>
               ) : (

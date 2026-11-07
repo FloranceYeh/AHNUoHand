@@ -1387,11 +1387,16 @@ textarea:focus-visible {
 :root[data-content-mode="simple"] .personal-avatar-picker small,
 :root[data-content-mode="simple"] .profile-hint,
 :root[data-content-mode="simple"] .empty-state span,
-:root[data-content-mode="simple"] .cal-holiday-note {
+:root[data-content-mode="simple"] .cal-holiday-note,
+:root[data-content-mode="simple"] .cls-scroll-hint span {
   display: none;
 }
 :root[data-content-mode="simple"] .service-title {
   margin: var(--size-md) 0;
+}
+:root[data-content-mode="simple"] .cls-scroll-hint {
+  display: flex;
+  padding: 0;
 }
 @media (max-width: 380px) {
   .appearance-control {
@@ -1852,8 +1857,10 @@ textarea:focus-visible {
 }
 
 /* Empty classrooms -------------------------------------------------------- */
-.cls-report .elec-card + .elec-card {
-  margin-top: var(--space-lg);
+.cls-report {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xl);
 }
 .cls-filter-card,
 .cls-results-card {
@@ -2079,7 +2086,7 @@ textarea:focus-visible {
   line-height: 1.35;
   text-align: center;
 }
-.cls-scroll-hint span {
+.cls-scroll-hint div {
   color: var(--color-primary-strong);
   font-size: var(--text-subheading);
   line-height: 1;
@@ -3255,7 +3262,7 @@ textarea:focus-visible {
 }
 .auth-meta {
   display: grid;
-  gap: var(--space-xs);
+  gap: var(--space-sm);
   margin: 0;
 }
 .auth-meta > div {
@@ -3264,7 +3271,6 @@ textarea:focus-visible {
   font-size: var(--text-caption);
 }
 .auth-meta dt {
-  flex: 0 0 46px;
   color: var(--color-muted);
 }
 .auth-meta dd {

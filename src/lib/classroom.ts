@@ -21,6 +21,7 @@ const ROOM_CACHE_KEY = "ahnu.classroom.rooms.v1";
 const FAVORITES_KEY = "ahnu.classroom.favorites.v1";
 const BUILDING_CACHE_TTL = 24 * 60 * 60 * 1000;
 const ROOM_CACHE_TTL = 5 * 60 * 1000;
+let renewalPromise: Promise<string> | null = null;
 
 /** 校区与代码的对应关系来自实地抓包（不同校区楼号前缀分别为 1/2/3）。 */
 export const CAMPUSES = [
@@ -367,8 +368,62 @@ function desktopLogin(): Promise<string> {
  * 避免每个功能各写一份 token 逻辑。
  */
 export async function ybtRequest<T>(path: string, token?: string): Promise<T> {
-  const headers: Record<string, string> = { Accept: "application/json" };
   const active = token ?? getToken();
+  try {
+    return await sendYbtRequest<T>(path, active);
+  } catch (cause) {
+    if (!(cause instanceof YbtSessionExpiredError)) throw cause;
+    if (!active) {
+      clearToken();
+      throw new Error("请先登录一站式服务大厅");
+    }
+
+    clearToken();
+    let renewed: string;
+    try {
+      renewed = await renewYbtSession(path);
+    } catch (renewalError) {
+      const detail =
+        renewalError instanceof Error ? `：${renewalError.message}` : "";
+      throw new Error(`服务大厅会话已失效，自动续期失败${detail}`);
+    }
+
+    try {
+      return await sendYbtRequest<T>(path, renewed);
+    } catch (retryError) {
+      if (retryError instanceof YbtSessionExpiredError) {
+        clearToken();
+        throw new Error("服务大厅登录已过期，请重新登录");
+      }
+      throw retryError;
+    }
+  }
+}
+
+class YbtSessionExpiredError extends Error {}
+
+async function renewYbtSession(path: string): Promise<string> {
+  if (!renewalPromise) {
+    if (isMobile()) {
+      const feature = path.startsWith("/applets/workhall/")
+        ? "calendar"
+        : "classroom";
+      rememberReturnTo(feature);
+    }
+    renewalPromise = login()
+      .catch((cause) => {
+        if (isMobile()) takeReturnTo();
+        throw cause;
+      })
+      .finally(() => {
+        renewalPromise = null;
+      });
+  }
+  return renewalPromise;
+}
+
+async function sendYbtRequest<T>(path: string, active: string): Promise<T> {
+  const headers: Record<string, string> = { Accept: "application/json" };
   if (active) headers["X-Access-Token"] = active;
   let response: Response;
   try {
@@ -381,14 +436,23 @@ export async function ybtRequest<T>(path: string, token?: string): Promise<T> {
   try {
     data = (await response.json()) as Envelope<T> & { status?: number };
   } catch {
+    if (response.status === 401 || response.status === 403) {
+      throw new YbtSessionExpiredError("服务大厅会话已失效");
+    }
     throw new Error(`服务返回了无法解析的内容（HTTP ${response.status}）`);
   }
 
   const message = data.message ?? data.error ?? "";
   // 令牌失效时网关返回的是 `{status:500, message:"Token失效，请重新登录"}`，没有 code 字段
-  if (/Token|登录|token/i.test(message)) {
-    clearToken();
-    throw new Error("登录已过期，请重新登录");
+  if (
+    /(?:token|令牌).*(?:失效|过期|无效|错误)|(?:登录|认证).*(?:失效|过期|超时|失败|重新)|未登录|未认证|请先登录/i.test(
+      message,
+    )
+  ) {
+    throw new YbtSessionExpiredError(message || "服务大厅会话已失效");
+  }
+  if (response.status === 401 || response.status === 403) {
+    throw new YbtSessionExpiredError("服务大厅会话已失效");
   }
   if (
     data.success === false ||

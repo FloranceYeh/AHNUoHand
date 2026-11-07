@@ -29,6 +29,7 @@ import {
   LayoutGrid,
   ChevronsLeftRight,
   KeyRound,
+  IdCard,
 } from "lucide-react";
 
 const icons = {
@@ -61,7 +62,8 @@ const icons = {
   plus: Plus,
   layoutGrid: LayoutGrid,
   leftRight: ChevronsLeftRight,
-  keyRound: KeyRound
+  keyRound: KeyRound,
+  idCard: IdCard
 };
 
 interface IconProps {

@@ -8,6 +8,7 @@ export type FeatureId =
   | "library"
   | "calendar"
   | "feedback"
+  | "schoolcard"
   /** 登录管理，只从「我的」页面进入，不出现在服务列表里 */
   | "auth";
 
