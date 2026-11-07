@@ -388,9 +388,7 @@ export function SchoolCardPage({ onBack }: { onBack?: () => void }) {
               <span />
             </div>
             <div className="tt-course-title-row">
-              <div>
-                <h2 id="tt-course-title">设置消费点别名</h2>
-              </div>
+              <h2 id="tt-course-title">设置消费点别名</h2>
             </div>
             <div className="personal-field">
               <label

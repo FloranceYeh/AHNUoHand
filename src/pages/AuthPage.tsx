@@ -3,6 +3,7 @@ import { Input } from "antd-mobile";
 import { Icon } from "../components/Icon";
 import {
   allStatuses,
+  AUTH_STATUS_CHANGE_EVENT,
   isLoggedIn,
   logout,
   logoutAll,
@@ -56,11 +57,17 @@ export function AuthPage({
   useEffect(() => {
     refresh();
     window.addEventListener("focus", refresh);
+    window.addEventListener(AUTH_STATUS_CHANGE_EVENT, refresh);
+    document.addEventListener("visibilitychange", refresh);
 
     const requested = takeLoginRequest();
     if (requested) void startLogin(requested);
 
-    return () => window.removeEventListener("focus", refresh);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener(AUTH_STATUS_CHANGE_EVENT, refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
     // 只在首次挂载跑一次
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -241,15 +248,18 @@ export function AuthPage({
 
               {hasActions && (
                 <div className="auth-actions">
-                  {id !== "zongwu" && id !== "jw" && !logged && (
-                    <button
-                      className="elec-primary auth-login-btn"
-                      disabled={isBusy}
-                      onClick={() => void startLogin(id)}
-                    >
-                      {isBusy ? "正在连接…" : "登录"}
-                    </button>
-                  )}
+                  {id !== "zongwu" &&
+                    id !== "jw" &&
+                    id !== "schoolcard" &&
+                    !logged && (
+                      <button
+                        className="elec-primary auth-login-btn"
+                        disabled={isBusy}
+                        onClick={() => void startLogin(id)}
+                      >
+                        {isBusy ? "正在连接…" : "登录"}
+                      </button>
+                    )}
                   {id === "zongwu" && !bound && !binding && (
                     <button
                       className="elec-primary auth-login-btn"
@@ -336,8 +346,12 @@ export function AuthPage({
             className="tt-sheet"
             onClick={(event) => event.stopPropagation()}
           >
-            <span className="tt-sheet-bar" style={{ background: "#c2542f" }} />
-            <h2>清除本机凭据？</h2>
+            <div className="tt-popup-handle" aria-hidden="true">
+              <span />
+            </div>
+            <div className="tt-course-title-row">
+              <h2 id="tt-course-title">清除本机凭据？</h2>
+            </div>
             <p className="auth-confirm-text">
               一站式服务大厅凭据和本机绑定学号会被清除。教务系统登录会话由
               WebView 管理，不会被此操作注销；已保存的课表也会保留。

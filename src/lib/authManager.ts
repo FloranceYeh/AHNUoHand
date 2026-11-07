@@ -52,6 +52,13 @@ const OPERATOR_KEY = "ahnu.electricity.operator";
 const ELECTRICITY_REPORT_KEY = "ahnu.electricity.report";
 const STAMP_KEY = "ahnu.auth.stamps";
 const SESSION_KEY = "ahnu.auth.session";
+export const AUTH_STATUS_CHANGE_EVENT = "ahnu-auth-status-change";
+
+function notifyAuthStatusChanged(): void {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(AUTH_STATUS_CHANGE_EVENT));
+  }
+}
 
 export type LoginState = "unknown" | "active" | "expired";
 
@@ -116,6 +123,7 @@ export function markLoggedIn(id: PlatformId): void {
   const session = readMap(SESSION_KEY);
   session[id] = "active";
   writeMap(SESSION_KEY, session, sessionStorage);
+  notifyAuthStatusChanged();
 }
 
 /** 明确遇到服务器拒绝凭证时调用。 */
@@ -123,6 +131,7 @@ export function markLoginExpired(id: PlatformId): void {
   const session = readMap(SESSION_KEY);
   session[id] = "expired";
   writeMap(SESSION_KEY, session, sessionStorage);
+  notifyAuthStatusChanged();
 }
 
 export function statusOf(info: PlatformInfo): PlatformStatus {
@@ -190,6 +199,7 @@ export function logout(id: PlatformId): void {
   const session = readMap(SESSION_KEY);
   delete session[id];
   writeMap(SESSION_KEY, session, sessionStorage);
+  notifyAuthStatusChanged();
 }
 
 /** 清除课表离线副本。不会伪称为教务系统退出登录。 */
@@ -205,6 +215,7 @@ export function clearTimetableCache(): void {
   const session = readMap(SESSION_KEY);
   delete session.jw;
   writeMap(SESSION_KEY, session, sessionStorage);
+  notifyAuthStatusChanged();
 }
 
 export function logoutAll(): void {
