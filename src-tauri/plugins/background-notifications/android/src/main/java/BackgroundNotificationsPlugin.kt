@@ -1,6 +1,7 @@
 package com.plugin.background_notifications
 
 import android.app.Activity
+import android.app.Application
 import android.app.job.JobInfo
 import android.app.job.JobScheduler
 import android.content.ComponentName
@@ -9,6 +10,7 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Intent
 import android.os.Build
+import android.os.Bundle
 import android.util.Base64
 import android.graphics.BitmapFactory
 import androidx.core.app.NotificationCompat
@@ -27,6 +29,9 @@ import org.json.JSONObject
 
 private const val JOB_ID = 84321
 private const val PREFS = "ahnu_notification_poll"
+private const val ICON_PREFS = "ahnu_application_icon"
+private const val ICON_ACCENT = "accent"
+private const val ICON_CLEANUP_PENDING = "cleanupPending"
 
 @InvokeArg
 class ConfigureArgs {
@@ -53,6 +58,31 @@ class SyncIconArgs {
 
 @TauriPlugin
 class BackgroundNotificationsPlugin(private val activity: Activity) : Plugin(activity) {
+  private val iconAliases = linkedMapOf(
+    "teal" to "ThemeIconTeal",
+    "blue" to "ThemeIconBlue",
+    "violet" to "ThemeIconViolet",
+    "amber" to "ThemeIconAmber",
+    "rose" to "ThemeIconRose",
+  )
+
+  private val activityLifecycleCallbacks = object : Application.ActivityLifecycleCallbacks {
+    override fun onActivityStopped(stoppedActivity: Activity) {
+      if (stoppedActivity === activity) cleanupPendingIcon()
+    }
+
+    override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
+    override fun onActivityStarted(activity: Activity) = Unit
+    override fun onActivityResumed(activity: Activity) = Unit
+    override fun onActivityPaused(activity: Activity) = Unit
+    override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
+    override fun onActivityDestroyed(activity: Activity) = Unit
+  }
+
+  init {
+    activity.application.registerActivityLifecycleCallbacks(activityLifecycleCallbacks)
+  }
+
   @Command
   fun notify(invoke: Invoke) {
     try {
@@ -146,49 +176,74 @@ class BackgroundNotificationsPlugin(private val activity: Activity) : Plugin(act
   fun syncIcon(invoke: Invoke) {
     try {
       val args = invoke.parseArgs(SyncIconArgs::class.java)
-      val aliases = mapOf(
-        "teal" to "ThemeIconTeal",
-        "blue" to "ThemeIconBlue",
-        "violet" to "ThemeIconViolet",
-        "amber" to "ThemeIconAmber",
-        "rose" to "ThemeIconRose",
-      )
-      val selected = aliases[args.accent]
+      val selected = iconAliases[args.accent]
         ?: throw IllegalArgumentException("不支持的应用主题色")
-      val packageManager = activity.packageManager
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        // Android 13+ supports one transaction, avoiding a launcher frame with
-        // both aliases enabled (or with no launcher icon enabled).
-        val settings = aliases.values.map { alias ->
-          PackageManager.ComponentEnabledSetting(
-            ComponentName(activity.packageName, "${activity.packageName}.$alias"),
-            if (alias == selected) {
-              PackageManager.COMPONENT_ENABLED_STATE_ENABLED
-            } else {
-              PackageManager.COMPONENT_ENABLED_STATE_DISABLED
-            },
-            PackageManager.DONT_KILL_APP,
-          )
-        }
-        packageManager.setComponentEnabledSettings(settings)
-      } else {
-        // This API was added in Android 13. Keep the same behavior on older
-        // releases with the legacy per-component API.
-        aliases.values.forEach { alias ->
-          packageManager.setComponentEnabledSetting(
-            ComponentName(activity.packageName, "${activity.packageName}.$alias"),
-            if (alias == selected) {
-              PackageManager.COMPONENT_ENABLED_STATE_ENABLED
-            } else {
-              PackageManager.COMPONENT_ENABLED_STATE_DISABLED
-            },
-            PackageManager.DONT_KILL_APP,
-          )
-        }
-      }
+      // Disabling any launcher alias while the installed app is in the
+      // foreground can terminate its task. Keep every currently enabled alias
+      // for now and remove stale aliases after the activity stops.
+      val keepEnabled = currentlyEnabledAliases() + selected
+      applyIconState(keepEnabled)
+      activity.getSharedPreferences(ICON_PREFS, Context.MODE_PRIVATE)
+        .edit()
+        .putString(ICON_ACCENT, selected)
+        .putBoolean(ICON_CLEANUP_PENDING, keepEnabled.any { it != selected })
+        .apply()
       invoke.resolve()
     } catch (error: Exception) {
       invoke.reject(error.message ?: "应用图标同步失败")
+    }
+  }
+
+  private fun currentlyEnabledAliases(): Set<String> {
+    val packageManager = activity.packageManager
+    return iconAliases.values.filterTo(mutableSetOf()) { alias ->
+      val component = ComponentName(activity.packageName, "${activity.packageName}.$alias")
+      when (packageManager.getComponentEnabledSetting(component)) {
+        PackageManager.COMPONENT_ENABLED_STATE_ENABLED -> true
+        PackageManager.COMPONENT_ENABLED_STATE_DISABLED -> false
+        else -> runCatching { packageManager.getActivityInfo(component, 0).enabled }
+          .getOrDefault(false)
+      }
+    }
+  }
+
+  private fun cleanupPendingIcon() {
+    val preferences = activity.getSharedPreferences(ICON_PREFS, Context.MODE_PRIVATE)
+    if (!preferences.getBoolean(ICON_CLEANUP_PENDING, false)) return
+    val selected = preferences.getString(ICON_ACCENT, null) ?: return
+    runCatching { applyIconState(setOf(selected)) }
+      .onSuccess {
+        preferences.edit().putBoolean(ICON_CLEANUP_PENDING, false).apply()
+      }
+  }
+
+  private fun applyIconState(enabledAliases: Set<String>) {
+    val packageManager = activity.packageManager
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+      val settings = iconAliases.values.map { alias ->
+        PackageManager.ComponentEnabledSetting(
+          ComponentName(activity.packageName, "${activity.packageName}.$alias"),
+          if (alias in enabledAliases) {
+            PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+          } else {
+            PackageManager.COMPONENT_ENABLED_STATE_DISABLED
+          },
+          PackageManager.DONT_KILL_APP,
+        )
+      }
+      packageManager.setComponentEnabledSettings(settings)
+    } else {
+      iconAliases.values.forEach { alias ->
+        packageManager.setComponentEnabledSetting(
+          ComponentName(activity.packageName, "${activity.packageName}.$alias"),
+          if (alias in enabledAliases) {
+            PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+          } else {
+            PackageManager.COMPONENT_ENABLED_STATE_DISABLED
+          },
+          PackageManager.DONT_KILL_APP,
+        )
+      }
     }
   }
 

@@ -14,6 +14,7 @@ dist-ssr
 *.jks
 *.keystore
 signing-credentials.txt
+src-tauri/plugins/background-notifications/android/.gradle/
 
 # Editor directories and files
 .vscode/*

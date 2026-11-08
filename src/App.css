@@ -1506,11 +1506,15 @@ textarea:focus-visible {
   padding-top: var(--space-md);
   padding-bottom: var(--space-md);
 }
+.appearance-label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+}
 .appearance-label strong {
   display: block;
   color: var(--color-ink);
   font-size: var(--text-caption);
-  margin-bottom: var(--space-sm);
 }
 .appearance-label small {
   display: block;
