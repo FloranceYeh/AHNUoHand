@@ -108,12 +108,43 @@ jobs:
       - name: Build Android APK and AAB
         run: pnpm tauri android build --split-per-abi --ci
 
+      - name: Prepare release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag_version="${GITHUB_REF_NAME#v}"
+          release_prefix="AHNUoHand-v${tag_version}-"
+          mkdir -p release-assets
+          count=0
+          while IFS= read -r -d '' artifact; do
+            filename="$(basename "$artifact")"
+            cp "$artifact" "release-assets/${release_prefix}${filename}"
+            count=$((count + 1))
+          done < <(find src-tauri/gen/android/app/build/outputs -type f \( -name '*.apk' -o -name '*.aab' \) -print0)
+          if [[ "$count" -eq 0 ]]; then
+            echo "No Android APK or AAB artifacts were produced."
+            exit 1
+          fi
+
+      - name: Remove legacy release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          release_prefix="AHNUoHand-${GITHUB_REF_NAME}-"
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release view "$GITHUB_REF_NAME" --json assets --jq '.assets[].name' | while IFS= read -r asset; do
+              [[ "$asset" == "${release_prefix}"* ]] || gh release delete-asset "$GITHUB_REF_NAME" "$asset" --yes
+            done
+          fi
+
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          name: AHNUoHand ${{ github.ref_name }}
+          name: AHNUoHand-${{ github.ref_name }}
           body_path: release-notes.md
           fail_on_unmatched_files: true
           files: |
-            src-tauri/gen/android/app/build/outputs/**/*.apk
-            src-tauri/gen/android/app/build/outputs/**/*.aab
+            release-assets/*.apk
+            release-assets/*.aab
