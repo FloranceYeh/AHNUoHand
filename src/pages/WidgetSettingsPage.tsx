@@ -77,6 +77,19 @@ export function WidgetSettingsPage({
             onChange={(checked) => onChange({ showTeacher: checked })}
           />
         </div>
+        <div className="settings-row widget-settings-row">
+          <span className="settings-icon">
+            <Icon name="calendar" size={20} />
+          </span>
+          <span className="settings-copy">
+            <strong>显示周末</strong>
+            <small>一周课程小组件显示周六和周日</small>
+          </span>
+          <Switch
+            checked={settings.showWeekend}
+            onChange={(checked) => onChange({ showWeekend: checked })}
+          />
+        </div>
         <div className="settings-row widget-settings-row widget-settings-stepper-row">
           <span className="settings-icon">
             <Icon name="layoutGrid" size={20} />
@@ -91,6 +104,22 @@ export function WidgetSettingsPage({
             step={1}
             value={settings.maxCourses}
             onChange={(value) => onChange({ maxCourses: value })}
+          />
+        </div>
+        <div className="settings-row widget-settings-row widget-settings-stepper-row">
+          <span className="settings-icon">
+            <Icon name="layoutGrid" size={20} />
+          </span>
+          <span className="settings-copy">
+            <strong>每格高度</strong>
+            <small>调整一周课程小组件的节次高度</small>
+          </span>
+          <Stepper
+            min={28}
+            max={64}
+            step={2}
+            value={settings.weekCellHeight}
+            onChange={(value) => onChange({ weekCellHeight: value })}
           />
         </div>
       </section>

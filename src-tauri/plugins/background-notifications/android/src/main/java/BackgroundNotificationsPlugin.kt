@@ -20,6 +20,7 @@ import android.app.NotificationManager
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
+import androidx.glance.appwidget.updateAll
 import app.tauri.annotation.Command
 import app.tauri.annotation.InvokeArg
 import app.tauri.annotation.TauriPlugin
@@ -218,8 +219,16 @@ class BackgroundNotificationsPlugin(private val activity: Activity) : Plugin(act
         settings.put("maxCourses", maxCourses)
         editor.putString(WIDGET_SETTINGS, settings.toString())
       }
-      editor.apply()
-      TimetableWidgetProvider.updateAll(activity)
+      // The widget renderer reads SharedPreferences immediately. Commit here
+      // so a settings-only change can never render the previous snapshot.
+      if (!editor.commit()) throw IllegalStateException("课表小组件设置保存失败")
+      // Glance owns the RemoteViews translation and updates only widgets that
+      // are actually pinned on the launcher.
+      kotlinx.coroutines.runBlocking {
+        GlanceTodayTimetableWidget().updateAll(activity)
+        GlanceUpcomingTimetableWidget().updateAll(activity)
+        GlanceWeeklyTimetableWidget().updateAll(activity)
+      }
       invoke.resolve()
     } catch (error: Exception) {
       invoke.reject(error.message ?: "课表小组件同步失败")

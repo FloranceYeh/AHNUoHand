@@ -1,3 +1,13 @@
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath("org.jetbrains.kotlin:compose-compiler-gradle-plugin:2.2.10")
+    }
+}
+
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -5,12 +15,14 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+apply(plugin = "org.jetbrains.kotlin.plugin.compose")
+
 android {
     namespace = "com.plugin.background_notifications"
     compileSdk = 36
 
     defaultConfig {
-        minSdk = 21
+        minSdk = 24
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
@@ -19,6 +31,10 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
+    buildFeatures {
+        compose = true
     }
 }
 
@@ -34,6 +50,7 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.6.0")
     implementation("androidx.core:core-ktx:1.9.0")
     implementation("com.google.android.material:material:1.7.0")
+    implementation("androidx.glance:glance-appwidget:1.1.1")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")

@@ -12,6 +12,7 @@ interface WidgetPayload {
   maxWeek: number;
   week: number;
   slots: CourseSlot[];
+  times?: string[];
 }
 
 /** 将最近一次课表缓存同步给 Android 桌面小组件。 */
@@ -30,6 +31,7 @@ export async function syncTimetableWidget(
     maxWeek,
     week: currentWeek,
     slots,
+    times: grid.times,
   };
   await invoke("plugin:background-notifications|sync_widget", {
     payload: {

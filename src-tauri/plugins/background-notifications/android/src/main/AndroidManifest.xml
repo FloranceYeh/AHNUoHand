@@ -25,7 +25,7 @@
             android:name=".ScheduledNotificationReceiver"
             android:exported="false" />
         <receiver
-            android:name=".TimetableWidgetProvider"
+            android:name=".GlanceTodayTimetableWidgetReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -35,7 +35,7 @@
                 android:resource="@xml/timetable_widget_info" />
         </receiver>
         <receiver
-            android:name=".UpcomingTimetableWidgetProvider"
+            android:name=".GlanceUpcomingTimetableWidgetReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -45,7 +45,7 @@
                 android:resource="@xml/upcoming_timetable_widget_info" />
         </receiver>
         <receiver
-            android:name=".WeeklyTimetableWidgetProvider"
+            android:name=".GlanceWeeklyTimetableWidgetReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
