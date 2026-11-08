@@ -51,8 +51,8 @@ export const campusServices: CampusService[] = [
   },
   {
     id: "feedback",
-    title: "意见反馈",
-    description: "告诉我们你需要的校园服务",
+    title: "讨论与反馈",
+    description: "提交建议与反馈问题",
     icon: "chat",
     category: "campus",
     status: "coming-soon",
@@ -110,7 +110,7 @@ export const featureDetails = {
     points: ["校历与节假日", "考试周安排", "校园活动提醒"],
   },
   feedback: {
-    title: "意见反馈",
+    title: "讨论与反馈",
     eyebrow: "校园服务",
     icon: "chat",
     description: "反馈入口正在规划中，欢迎期待更多贴近校园生活的功能。",

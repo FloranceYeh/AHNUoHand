@@ -6,6 +6,7 @@ import { AppShell } from "./components/layout/AppShell";
 import { HomePage } from "./pages/HomePage";
 import { ServicesPage } from "./pages/ServicesPage";
 import { ProfilePage } from "./pages/ProfilePage";
+import { AboutPage } from "./pages/AboutPage";
 import { AppearancePage } from "./pages/AppearancePage";
 import { HomeNavigationPage } from "./pages/HomeNavigationPage";
 import { PersonalInfoPage } from "./pages/PersonalInfoPage";
@@ -75,7 +76,8 @@ type AppRoute =
   | { type: "appearance" }
   | { type: "home-navigation" }
   | { type: "personal-info" }
-  | { type: "notifications" };
+  | { type: "notifications" }
+  | { type: "about" };
 
 interface StackScreen {
   key: number;
@@ -416,6 +418,8 @@ export default function App() {
       onChange={setNotificationSettings}
       onBack={goBack}
     />
+  ) : currentRoute.type === "about" ? (
+    <AboutPage onBack={goBack} />
   ) : currentRoute.tab === "home" ? (
     <HomePage
       onOpenFeature={openFeature}
@@ -432,6 +436,7 @@ export default function App() {
       onOpenAppearance={() => pushRoute({ type: "appearance" })}
       onOpenHomeNavigation={() => pushRoute({ type: "home-navigation" })}
       onOpenNotifications={() => pushRoute({ type: "notifications" })}
+      onOpenAbout={() => pushRoute({ type: "about" })}
       profile={personalInfo}
       onOpenPersonalInfo={() => pushRoute({ type: "personal-info" })}
     />

@@ -1649,6 +1649,7 @@ textarea:focus-visible {
 }
 .settings-copy {
   display: grid;
+  min-width: 0;
   flex: 1;
   gap: var(--space-2xs);
 }
@@ -1658,6 +1659,9 @@ textarea:focus-visible {
 .settings-copy small {
   color: var(--color-muted);
   font-size: var(--text-micro);
+}
+.about-link-row .settings-copy small {
+  overflow-wrap: anywhere;
 }
 .profile-version {
   display: grid;

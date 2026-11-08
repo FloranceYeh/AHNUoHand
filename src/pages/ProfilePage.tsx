@@ -2,15 +2,12 @@ import { Icon } from "../components/Icon";
 import type { PersonalInfo } from "../lib/profile";
 import { APP_NAME, APP_VERSION } from "../lib/appVersion";
 
-const settings = [
-  { icon: "chat", title: "关于与反馈", description: "了解应用并提出建议" },
-];
-
 export function ProfilePage({
   onOpenAuth,
   onOpenAppearance,
   onOpenHomeNavigation,
   onOpenNotifications,
+  onOpenAbout,
   profile,
   onOpenPersonalInfo,
 }: {
@@ -18,6 +15,7 @@ export function ProfilePage({
   onOpenAppearance: () => void;
   onOpenHomeNavigation: () => void;
   onOpenNotifications: () => void;
+  onOpenAbout: () => void;
   profile: PersonalInfo;
   onOpenPersonalInfo: () => void;
 }) {
@@ -88,18 +86,16 @@ export function ProfilePage({
           </span>
           <Icon name="chevron" size={18} className="service-chevron" />
         </button>
-        {settings.map((item) => (
-          <button className="settings-row" key={item.title}>
-            <span className="settings-icon">
-              <Icon name={item.icon} size={20} />
-            </span>
-            <span className="settings-copy">
-              <strong>{item.title}</strong>
-              <small>{item.description}</small>
-            </span>
-            <Icon name="chevron" size={18} className="service-chevron" />
-          </button>
-        ))}
+        <button className="settings-row" onClick={onOpenAbout}>
+          <span className="settings-icon">
+            <Icon name="chat" size={20} />
+          </span>
+          <span className="settings-copy">
+            <strong>关于与反馈</strong>
+            <small>项目主页、源码与反馈渠道</small>
+          </span>
+          <Icon name="chevron" size={18} className="service-chevron" />
+        </button>
       </section>
       <div className="profile-version">
         {APP_NAME} <span>版本 {APP_VERSION}</span>

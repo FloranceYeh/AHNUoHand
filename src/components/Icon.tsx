@@ -33,6 +33,10 @@ import {
   ChevronDown,
   ArrowLeftRight,
   Bell,
+  GitBranch,
+  Globe2,
+  ExternalLink,
+  MessageCircle,
 } from "lucide-react";
 
 const icons = {
@@ -45,6 +49,7 @@ const icons = {
   book: BookOpen,
   event: CalendarRange,
   chat: MessageCircleMore,
+  message: MessageCircle,
   arrow: ArrowLeft,
   chevron: ChevronRight,
   chevronDown: ChevronDown,
@@ -70,6 +75,9 @@ const icons = {
   idCard: IdCard,
   arrowLR: ArrowLeftRight,
   bell: Bell,
+  gitBranch: GitBranch,
+  globe: Globe2,
+  externalLink: ExternalLink,
 };
 
 interface IconProps {

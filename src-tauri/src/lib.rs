@@ -3,6 +3,18 @@ mod mobile_login;
 mod windows;
 
 #[tauri::command]
+fn open_qq_contact(app: tauri::AppHandle) -> Result<(), String> {
+    use tauri_plugin_opener::OpenerExt;
+
+    app.opener()
+        .open_url(
+            "mqqwpa://im/chat?chat_type=wpa&uin=3393314989&version=1&src_type=web",
+            None::<&str>,
+        )
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
 fn exit_app(app: tauri::AppHandle) {
     app.exit(0);
 }
@@ -26,6 +38,7 @@ pub fn run() {
 
     builder
         .invoke_handler(tauri::generate_handler![
+            open_qq_contact,
             exit_app,
             classroom::classroom_login,
             windows::open_login_window,
