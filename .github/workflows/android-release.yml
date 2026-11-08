@@ -68,13 +68,7 @@ jobs:
           packages: platform-tools
 
       - name: Install Android SDK and NDK
-        run: sdkmanager "platforms;android-36" "build-tools;36.0.0" "ndk;29.0.13846066"
-
-      - name: Use installed Android API level
-        shell: bash
-        run: |
-          sed -i 's/compileSdk = 37/compileSdk = 36/; s/targetSdk = 37/targetSdk = 36/' \
-            src-tauri/gen/android/app/build.gradle.kts
+        run: sdkmanager --channel=1 "platforms;android-37" "build-tools;36.0.0" "ndk;29.0.13846066"
 
       - name: Set up Rust Android targets
         uses: dtolnay/rust-toolchain@stable
