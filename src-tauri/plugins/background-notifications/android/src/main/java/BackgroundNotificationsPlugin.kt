@@ -34,6 +34,7 @@ private const val ICON_ACCENT = "accent"
 private const val ICON_CLEANUP_PENDING = "cleanupPending"
 const val WIDGET_PREFS = "ahnu_timetable_widget"
 const val WIDGET_DATA = "data"
+const val WIDGET_SETTINGS = "settings"
 
 @InvokeArg
 class ConfigureArgs {
@@ -60,7 +61,8 @@ class SyncIconArgs {
 
 @InvokeArg
 class SyncWidgetArgs {
-  lateinit var data: String
+  var data: String = ""
+  var settings: String = ""
 }
 
 @TauriPlugin
@@ -205,11 +207,18 @@ class BackgroundNotificationsPlugin(private val activity: Activity) : Plugin(act
   fun syncWidget(invoke: Invoke) {
     try {
       val args = invoke.parseArgs(SyncWidgetArgs::class.java)
-      org.json.JSONObject(args.data)
-      activity.getSharedPreferences(WIDGET_PREFS, Context.MODE_PRIVATE)
-        .edit()
-        .putString(WIDGET_DATA, args.data)
-        .apply()
+      val editor = activity.getSharedPreferences(WIDGET_PREFS, Context.MODE_PRIVATE).edit()
+      if (args.data.isNotBlank()) {
+        org.json.JSONObject(args.data)
+        editor.putString(WIDGET_DATA, args.data)
+      }
+      if (args.settings.isNotBlank()) {
+        val settings = org.json.JSONObject(args.settings)
+        val maxCourses = settings.optInt("maxCourses", 4).coerceIn(1, 8)
+        settings.put("maxCourses", maxCourses)
+        editor.putString(WIDGET_SETTINGS, settings.toString())
+      }
+      editor.apply()
       TimetableWidgetProvider.updateAll(activity)
       invoke.resolve()
     } catch (error: Exception) {

@@ -7,6 +7,7 @@ export function ProfilePage({
   onOpenAppearance,
   onOpenHomeNavigation,
   onOpenNotifications,
+  onOpenWidgetSettings,
   onOpenAbout,
   profile,
   onOpenPersonalInfo,
@@ -15,6 +16,7 @@ export function ProfilePage({
   onOpenAppearance: () => void;
   onOpenHomeNavigation: () => void;
   onOpenNotifications: () => void;
+  onOpenWidgetSettings: () => void;
   onOpenAbout: () => void;
   profile: PersonalInfo;
   onOpenPersonalInfo: () => void;
@@ -83,6 +85,16 @@ export function ProfilePage({
           <span className="settings-copy">
             <strong>通知订阅</strong>
             <small>课前提醒、用电与一卡通余额预警</small>
+          </span>
+          <Icon name="chevron" size={18} className="service-chevron" />
+        </button>
+        <button className="settings-row" onClick={onOpenWidgetSettings}>
+          <span className="settings-icon">
+            <Icon name="calendar" size={20} />
+          </span>
+          <span className="settings-copy">
+            <strong>小组件设置</strong>
+            <small>自定义桌面课表小组件的显示内容</small>
           </span>
           <Icon name="chevron" size={18} className="service-chevron" />
         </button>

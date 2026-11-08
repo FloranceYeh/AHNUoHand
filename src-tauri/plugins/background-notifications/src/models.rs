@@ -30,6 +30,9 @@ pub struct SyncIconRequest {
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SyncWidgetRequest {
-  pub data: String,
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub data: Option<String>,
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub settings: Option<String>,
 }
 

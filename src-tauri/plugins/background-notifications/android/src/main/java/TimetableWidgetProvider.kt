@@ -81,6 +81,10 @@ class TimetableWidgetProvider : AppWidgetProvider() {
 
       runCatching {
         val payload = JSONObject(raw)
+        val settings = context.getSharedPreferences(WIDGET_PREFS, Context.MODE_PRIVATE)
+          .getString(WIDGET_SETTINGS, null)
+          ?.let { JSONObject(it) }
+          ?: JSONObject()
         val week = currentWeek(payload)
         val today = Calendar.getInstance()
         val weekday = currentWeekday(today)
@@ -104,7 +108,7 @@ class TimetableWidgetProvider : AppWidgetProvider() {
           TimetableWidgetMode.UPCOMING -> "${formatDate(today)} · ${formatDate(offsetDay(today, 1))}"
           TimetableWidgetMode.WEEK -> "${WEEKDAYS[1]}至${WEEKDAYS[7]}"
         })
-        showCourses(views, courses, when (mode) {
+        showCourses(views, courses, settings, when (mode) {
           TimetableWidgetMode.TODAY -> "今日没有课程"
           TimetableWidgetMode.UPCOMING -> "今天和明天没有课程"
           TimetableWidgetMode.WEEK -> "本周没有课程"
@@ -195,7 +199,12 @@ class TimetableWidgetProvider : AppWidgetProvider() {
       return false
     }
 
-    private fun showCourses(views: RemoteViews, courses: List<JSONObject>, emptyMessage: String) {
+    private fun showCourses(
+      views: RemoteViews,
+      courses: List<JSONObject>,
+      settings: JSONObject,
+      emptyMessage: String,
+    ) {
       val titleIds = intArrayOf(
         R.id.widget_course_title_1,
         R.id.widget_course_title_2,
@@ -229,12 +238,24 @@ class TimetableWidgetProvider : AppWidgetProvider() {
       views.setViewVisibility(R.id.widget_empty, if (courses.isEmpty()) View.VISIBLE else View.GONE)
       views.setViewVisibility(R.id.widget_course_list, if (courses.isEmpty()) View.GONE else View.VISIBLE)
       if (courses.isEmpty()) views.setTextViewText(R.id.widget_empty, emptyMessage)
-      courses.take(rowIds.size).forEachIndexed { index, course ->
+      val maxCourses = settings.optInt("maxCourses", 4).coerceIn(1, rowIds.size)
+      val showTime = settings.optBoolean("showTime", true)
+      val showPlace = settings.optBoolean("showPlace", true)
+      val showTeacher = settings.optBoolean("showTeacher", true)
+      val visibleCourses = courses.take(maxCourses)
+      visibleCourses.forEachIndexed { index, course ->
         val time = course.optString("timeRange").replace('-', '–')
         val period = course.optInt("period", 0)
-        val title = listOf(course.optString("widgetDay"), time, course.optString("name"))
+        val title = listOf(
+          course.optString("widgetDay"),
+          if (showTime) time else "",
+          course.optString("name"),
+        )
           .filter { it.isNotBlank() }.joinToString("  ")
-        val details = listOf(course.optString("place"), course.optString("teacher"))
+        val details = listOf(
+          if (showPlace) course.optString("place") else "",
+          if (showTeacher) course.optString("teacher") else "",
+        )
           .filter { it.isNotBlank() }
           .joinToString(" · ")
           .ifBlank { "第 ${period} 节" }
@@ -242,8 +263,8 @@ class TimetableWidgetProvider : AppWidgetProvider() {
         views.setTextViewText(titleIds[index], title)
         views.setTextViewText(detailIds[index], details)
       }
-      for (index in courses.size until rowIds.size) views.setViewVisibility(rowIds[index], View.GONE)
-      val remaining = courses.size - rowIds.size
+      for (index in visibleCourses.size until rowIds.size) views.setViewVisibility(rowIds[index], View.GONE)
+      val remaining = courses.size - visibleCourses.size
       views.setViewVisibility(R.id.widget_more, if (remaining > 0) View.VISIBLE else View.GONE)
       if (remaining > 0) views.setTextViewText(R.id.widget_more, "还有 $remaining 节课")
     }

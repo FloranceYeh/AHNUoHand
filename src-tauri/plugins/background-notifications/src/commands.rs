@@ -22,7 +22,6 @@ pub(crate) async fn notify<R: Runtime>(
     #[cfg(desktop)]
     { let _ = (app, payload); Ok(()) }
 }
-
 #[command]
 pub(crate) async fn schedule<R: Runtime>(
     app: AppHandle<R>,
@@ -33,7 +32,6 @@ pub(crate) async fn schedule<R: Runtime>(
     #[cfg(desktop)]
     { let _ = (app, payload); Ok(()) }
 }
-
 #[command]
 pub(crate) async fn sync_icon<R: Runtime>(
     app: AppHandle<R>,
@@ -55,3 +53,4 @@ pub(crate) async fn sync_widget<R: Runtime>(
     #[cfg(desktop)]
     { let _ = (app, payload); Ok(()) }
 }
+

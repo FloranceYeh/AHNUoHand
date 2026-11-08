@@ -11,6 +11,7 @@ import { AppearancePage } from "./pages/AppearancePage";
 import { HomeNavigationPage } from "./pages/HomeNavigationPage";
 import { PersonalInfoPage } from "./pages/PersonalInfoPage";
 import { NotificationSettingsPage } from "./pages/NotificationSettingsPage";
+import { WidgetSettingsPage } from "./pages/WidgetSettingsPage";
 import { FeaturePage } from "./pages/FeaturePage";
 import { ElectricityPage } from "./pages/ElectricityPage";
 import { ClassroomPage } from "./pages/ClassroomPage";
@@ -58,6 +59,12 @@ import {
   savePersonalInfo,
   type PersonalInfo,
 } from "./lib/profile";
+import {
+  readTimetableWidgetSettings,
+  saveTimetableWidgetSettings,
+  type TimetableWidgetSettings,
+} from "./lib/timetableWidgetSettings";
+import { syncTimetableWidgetSettings } from "./lib/timetableWidget";
 import "./styles/tokens.css";
 import "./App.css";
 
@@ -77,6 +84,7 @@ type AppRoute =
   | { type: "home-navigation" }
   | { type: "personal-info" }
   | { type: "notifications" }
+  | { type: "widget-settings" }
   | { type: "about" };
 
 interface StackScreen {
@@ -107,6 +115,8 @@ export default function App() {
     useState<PersonalInfo>(readPersonalInfo);
   const [notificationSettings, setNotificationSettings] =
     useState<NotificationSettings>(readNotificationSettings);
+  const [widgetSettings, setWidgetSettings] =
+    useState<TimetableWidgetSettings>(readTimetableWidgetSettings);
   const lastHomeBackRef = useRef(0);
   const exitPromptTimerRef = useRef<number | null>(null);
   const [exitPromptVisible, setExitPromptVisible] = useState(false);
@@ -249,6 +259,12 @@ export default function App() {
     const timer = window.setInterval(poll, 60_000);
     return () => window.clearInterval(timer);
   }, [notificationSettings]);
+  useEffect(() => {
+    saveTimetableWidgetSettings(widgetSettings);
+    void syncTimetableWidgetSettings(widgetSettings).catch((error) => {
+      console.error("timetable widget settings sync failed", error);
+    });
+  }, [widgetSettings]);
   const changePersonalInfo = (info: PersonalInfo) => {
     savePersonalInfo(info);
     setPersonalInfo(info);
@@ -418,6 +434,14 @@ export default function App() {
       onChange={setNotificationSettings}
       onBack={goBack}
     />
+  ) : currentRoute.type === "widget-settings" ? (
+    <WidgetSettingsPage
+      settings={widgetSettings}
+      onChange={(changes) =>
+        setWidgetSettings((current) => ({ ...current, ...changes }))
+      }
+      onBack={goBack}
+    />
   ) : currentRoute.type === "about" ? (
     <AboutPage onBack={goBack} />
   ) : currentRoute.tab === "home" ? (
@@ -436,6 +460,7 @@ export default function App() {
       onOpenAppearance={() => pushRoute({ type: "appearance" })}
       onOpenHomeNavigation={() => pushRoute({ type: "home-navigation" })}
       onOpenNotifications={() => pushRoute({ type: "notifications" })}
+      onOpenWidgetSettings={() => pushRoute({ type: "widget-settings" })}
       onOpenAbout={() => pushRoute({ type: "about" })}
       profile={personalInfo}
       onOpenPersonalInfo={() => pushRoute({ type: "personal-info" })}

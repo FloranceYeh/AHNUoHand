@@ -2,6 +2,10 @@ import { invoke } from "@tauri-apps/api/core";
 import { isMobile } from "./classroom";
 import { parseCellText, type CourseSlot } from "./timetable";
 import type { GridResult } from "./timetableSession";
+import {
+  readTimetableWidgetSettings,
+  type TimetableWidgetSettings,
+} from "./timetableWidgetSettings";
 
 interface WidgetPayload {
   startDate?: string;
@@ -28,6 +32,19 @@ export async function syncTimetableWidget(
     slots,
   };
   await invoke("plugin:background-notifications|sync_widget", {
-    payload: { data: JSON.stringify(payload) },
+    payload: {
+      data: JSON.stringify(payload),
+      settings: JSON.stringify(readTimetableWidgetSettings()),
+    },
+  });
+}
+
+/** 在不重新读取课表的情况下刷新小组件显示设置。 */
+export async function syncTimetableWidgetSettings(
+  settings: TimetableWidgetSettings,
+): Promise<void> {
+  if (!isMobile() || !/Android/i.test(navigator.userAgent)) return;
+  await invoke("plugin:background-notifications|sync_widget", {
+    payload: { settings: JSON.stringify(settings) },
   });
 }
