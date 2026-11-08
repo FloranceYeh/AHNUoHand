@@ -1,0 +1,117 @@
+name: Android Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build and publish Android release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Verify tag matches app version
+        shell: bash
+        run: |
+          tag_version="${GITHUB_REF_NAME#v}"
+          app_version="$(node -p "require('./package.json').version")"
+          if [[ "$tag_version" != "$app_version" ]]; then
+            echo "Tag v${tag_version} does not match package.json version ${app_version}."
+            exit 1
+          fi
+
+      - name: Extract release notes from changelog
+        shell: bash
+        run: |
+          tag_version="${GITHUB_REF_NAME#v}"
+          awk -v version="$tag_version" '
+            $0 ~ "^## \\[" version "\\]" { found=1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md | sed '/^[[:space:]]*$/N;/^\n$/d' > release-notes.md
+          if [[ ! -s release-notes.md ]]; then
+            echo "No changelog entry found for ${tag_version}."
+            exit 1
+          fi
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.12.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK and NDK
+        run: sdkmanager "platforms;android-37" "ndk;29.0.13846066"
+
+      - name: Set up Rust Android targets
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
+
+      - name: Restore Android signing key
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [[ -z "${!name}" ]]; then
+              echo "Missing required GitHub Actions secret: ${name}"
+              exit 1
+            fi
+          done
+          mkdir -p src-tauri/gen/android/app
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > src-tauri/gen/android/app/release-key.jks
+          node <<'NODE'
+          const fs = require('node:fs');
+          const properties = [
+            'storeFile=release-key.jks',
+            `storePassword=${process.env.ANDROID_KEYSTORE_PASSWORD}`,
+            `keyAlias=${process.env.ANDROID_KEY_ALIAS}`,
+            `keyPassword=${process.env.ANDROID_KEY_PASSWORD}`,
+          ].join('\n') + '\n';
+          fs.writeFileSync('src-tauri/gen/android/app/key.properties', properties, { mode: 0o600 });
+          NODE
+
+      - name: Install JavaScript dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Android APK and AAB
+        run: pnpm tauri android build --split-per-abi --ci
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: AHNUoHand ${{ github.ref_name }}
+          body_path: release-notes.md
+          fail_on_unmatched_files: true
+          files: |
+            src-tauri/gen/android/app/build/outputs/**/*.apk
+            src-tauri/gen/android/app/build/outputs/**/*.aab
