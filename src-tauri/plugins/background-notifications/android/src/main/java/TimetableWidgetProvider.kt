@@ -15,6 +15,10 @@ import java.util.Calendar
 import java.util.Locale
 
 private const val DAY_MILLIS = 24L * 60L * 60L * 1000L
+private const val ACTION_WEEK_SHIFT = "com.plugin.background_notifications.WEEK_SHIFT"
+private const val EXTRA_WIDGET_ID = "widgetId"
+private const val EXTRA_WEEK_DELTA = "weekDelta"
+private const val WEEK_OFFSET_PREFIX = "weekOffset_"
 
 enum class TimetableWidgetMode {
   TODAY,
@@ -22,7 +26,43 @@ enum class TimetableWidgetMode {
   WEEK,
 }
 
-class TimetableWidgetProvider : AppWidgetProvider() {
+open class TimetableWidgetProvider : AppWidgetProvider() {
+  override fun onReceive(context: Context, intent: Intent) {
+    if (intent.action == ACTION_WEEK_SHIFT) {
+      val widgetId = intent.getIntExtra(EXTRA_WIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID)
+      val delta = intent.getIntExtra(EXTRA_WEEK_DELTA, 0)
+      if (widgetId != AppWidgetManager.INVALID_APPWIDGET_ID && delta != 0) {
+        val preferences = context.getSharedPreferences(WIDGET_PREFS, Context.MODE_PRIVATE)
+        val key = "$WEEK_OFFSET_PREFIX$widgetId"
+        val raw = preferences.getString(WIDGET_DATA, null)
+        val nextOffset = if (raw.isNullOrBlank()) {
+          preferences.getInt(key, 0) + delta
+        } else {
+          runCatching {
+            val payload = JSONObject(raw)
+            val base = currentWeek(payload)
+            val max = payload.optInt("maxWeek", 0)
+            val target = (base + preferences.getInt(key, 0) + delta).coerceAtLeast(1).let {
+              if (max > 0) it.coerceAtMost(max) else it
+            }
+            target - base
+          }.getOrDefault(preferences.getInt(key, 0) + delta)
+        }
+        preferences.edit().putInt(key, nextOffset).apply()
+        update(context, AppWidgetManager.getInstance(context), intArrayOf(widgetId), TimetableWidgetMode.WEEK)
+      }
+      return
+    }
+    super.onReceive(context, intent)
+  }
+
+  override fun onDeleted(context: Context, appWidgetIds: IntArray) {
+    val editor = context.getSharedPreferences(WIDGET_PREFS, Context.MODE_PRIVATE).edit()
+    appWidgetIds.forEach { editor.remove("$WEEK_OFFSET_PREFIX$it") }
+    editor.apply()
+    super.onDeleted(context, appWidgetIds)
+  }
+
   override fun onUpdate(
     context: Context,
     appWidgetManager: AppWidgetManager,
@@ -58,11 +98,10 @@ class TimetableWidgetProvider : AppWidgetProvider() {
       mode: TimetableWidgetMode,
     ) {
       if (ids.isEmpty()) return
-      val views = render(context, mode)
-      ids.forEach { id -> manager.updateAppWidget(id, views) }
+      ids.forEach { id -> manager.updateAppWidget(id, render(context, mode, id)) }
     }
 
-    private fun render(context: Context, mode: TimetableWidgetMode): RemoteViews {
+    private fun render(context: Context, mode: TimetableWidgetMode, widgetId: Int): RemoteViews {
       val views = RemoteViews(context.packageName, R.layout.timetable_widget)
       val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
         ?: Intent().setPackage(context.packageName)
@@ -71,6 +110,20 @@ class TimetableWidgetProvider : AppWidgetProvider() {
         if (android.os.Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE else 0
       val pending = PendingIntent.getActivity(context, 0, launchIntent, pendingFlags)
       views.setOnClickPendingIntent(R.id.timetable_widget_root, pending)
+
+      if (mode == TimetableWidgetMode.WEEK) {
+        views.setViewVisibility(R.id.widget_week_controls, View.VISIBLE)
+        val previous = Intent(context, WeeklyTimetableWidgetProvider::class.java).setAction(ACTION_WEEK_SHIFT)
+          .putExtra(EXTRA_WIDGET_ID, widgetId).putExtra(EXTRA_WEEK_DELTA, -1)
+        val next = Intent(context, WeeklyTimetableWidgetProvider::class.java).setAction(ACTION_WEEK_SHIFT)
+          .putExtra(EXTRA_WIDGET_ID, widgetId).putExtra(EXTRA_WEEK_DELTA, 1)
+        val flags = PendingIntent.FLAG_UPDATE_CURRENT or
+          if (android.os.Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE else 0
+        views.setOnClickPendingIntent(R.id.widget_week_prev, PendingIntent.getBroadcast(context, widgetId * 2, previous, flags))
+        views.setOnClickPendingIntent(R.id.widget_week_next, PendingIntent.getBroadcast(context, widgetId * 2 + 1, next, flags))
+      } else {
+        views.setViewVisibility(R.id.widget_week_controls, View.GONE)
+      }
 
       val raw = context.getSharedPreferences(WIDGET_PREFS, Context.MODE_PRIVATE)
         .getString(WIDGET_DATA, null)
@@ -85,7 +138,15 @@ class TimetableWidgetProvider : AppWidgetProvider() {
           .getString(WIDGET_SETTINGS, null)
           ?.let { JSONObject(it) }
           ?: JSONObject()
-        val week = currentWeek(payload)
+        val baseWeek = currentWeek(payload)
+        val offset = if (mode == TimetableWidgetMode.WEEK) {
+          context.getSharedPreferences(WIDGET_PREFS, Context.MODE_PRIVATE)
+            .getInt("$WEEK_OFFSET_PREFIX$widgetId", 0)
+        } else 0
+        val maxWeek = payload.optInt("maxWeek", 0)
+        val week = (baseWeek + offset).coerceAtLeast(1).let {
+          if (maxWeek > 0) it.coerceAtMost(maxWeek) else it
+        }
         val today = Calendar.getInstance()
         val weekday = currentWeekday(today)
         val courses = when (mode) {
@@ -99,20 +160,26 @@ class TimetableWidgetProvider : AppWidgetProvider() {
           TimetableWidgetMode.WEEK -> weeklyCourses(payload.optJSONArray("slots"), week)
         }
         views.setTextViewText(R.id.widget_week, when (mode) {
-          TimetableWidgetMode.TODAY -> "第 ${week} 周"
+          TimetableWidgetMode.TODAY -> "今日课程"
           TimetableWidgetMode.UPCOMING -> "近日课程"
-          TimetableWidgetMode.WEEK -> "第 ${week} 周课程"
+          TimetableWidgetMode.WEEK -> "一周课程"
         })
         views.setTextViewText(R.id.widget_date, when (mode) {
-          TimetableWidgetMode.TODAY -> "${today.get(Calendar.MONTH) + 1}月${today.get(Calendar.DAY_OF_MONTH)}日 ${WEEKDAYS[weekday]}"
+          TimetableWidgetMode.TODAY -> "第 ${week} 周 · ${today.get(Calendar.MONTH) + 1}月${today.get(Calendar.DAY_OF_MONTH)}日 ${WEEKDAYS[weekday]}"
           TimetableWidgetMode.UPCOMING -> "${formatDate(today)} · ${formatDate(offsetDay(today, 1))}"
-          TimetableWidgetMode.WEEK -> "${WEEKDAYS[1]}至${WEEKDAYS[7]}"
+          TimetableWidgetMode.WEEK -> "第 ${week} 周"
         })
-        showCourses(views, courses, settings, when (mode) {
+        if (mode == TimetableWidgetMode.WEEK) {
+          showWeeklyGrid(views, payload.optJSONArray("slots"), week, settings, courses.isEmpty())
+        } else if (mode == TimetableWidgetMode.UPCOMING) {
+          showUpcomingCourses(views, courses, settings)
+        } else {
+          showCourses(views, courses, settings, when (mode) {
           TimetableWidgetMode.TODAY -> "今日没有课程"
           TimetableWidgetMode.UPCOMING -> "今天和明天没有课程"
           TimetableWidgetMode.WEEK -> "本周没有课程"
-        })
+          })
+        }
       }.onFailure {
         showEmpty(views, "课表数据需要重新读取")
       }
@@ -175,7 +242,7 @@ class TimetableWidgetProvider : AppWidgetProvider() {
         val targetDay = (dayIndex % 7) + 1
         if (maxWeek > 0 && targetWeek > maxWeek) return@flatMap emptyList()
         coursesForDay(slots, targetDay, targetWeek).map { course ->
-          JSONObject(course.toString()).put("widgetDay", WEEKDAYS[targetDay])
+          JSONObject(course.toString()).put("widgetDay", if (offset == 0) "今天" else "明天")
         }
       }
     }
@@ -199,12 +266,173 @@ class TimetableWidgetProvider : AppWidgetProvider() {
       return false
     }
 
+    private val upcomingTodayTitleIds = intArrayOf(
+      R.id.widget_upcoming_today_title_1,
+      R.id.widget_upcoming_today_title_2,
+      R.id.widget_upcoming_today_title_3,
+      R.id.widget_upcoming_today_title_4,
+    )
+    private val upcomingTodayDetailIds = intArrayOf(
+      R.id.widget_upcoming_today_detail_1,
+      R.id.widget_upcoming_today_detail_2,
+      R.id.widget_upcoming_today_detail_3,
+      R.id.widget_upcoming_today_detail_4,
+    )
+    private val upcomingTodayRowIds = intArrayOf(
+      R.id.widget_upcoming_today_row_1,
+      R.id.widget_upcoming_today_row_2,
+      R.id.widget_upcoming_today_row_3,
+      R.id.widget_upcoming_today_row_4,
+    )
+    private val upcomingTomorrowTitleIds = intArrayOf(
+      R.id.widget_upcoming_tomorrow_title_1,
+      R.id.widget_upcoming_tomorrow_title_2,
+      R.id.widget_upcoming_tomorrow_title_3,
+      R.id.widget_upcoming_tomorrow_title_4,
+    )
+    private val upcomingTomorrowDetailIds = intArrayOf(
+      R.id.widget_upcoming_tomorrow_detail_1,
+      R.id.widget_upcoming_tomorrow_detail_2,
+      R.id.widget_upcoming_tomorrow_detail_3,
+      R.id.widget_upcoming_tomorrow_detail_4,
+    )
+    private val upcomingTomorrowRowIds = intArrayOf(
+      R.id.widget_upcoming_tomorrow_row_1,
+      R.id.widget_upcoming_tomorrow_row_2,
+      R.id.widget_upcoming_tomorrow_row_3,
+      R.id.widget_upcoming_tomorrow_row_4,
+    )
+    private val weekDayIds = intArrayOf(
+      R.id.widget_grid_day_1,
+      R.id.widget_grid_day_2,
+      R.id.widget_grid_day_3,
+      R.id.widget_grid_day_4,
+      R.id.widget_grid_day_5,
+      R.id.widget_grid_day_6,
+      R.id.widget_grid_day_7,
+    )
+    private val weekCellIds = arrayOf(
+      intArrayOf(R.id.widget_grid_cell_1_1, R.id.widget_grid_cell_1_2, R.id.widget_grid_cell_1_3, R.id.widget_grid_cell_1_4, R.id.widget_grid_cell_1_5, R.id.widget_grid_cell_1_6, R.id.widget_grid_cell_1_7),
+      intArrayOf(R.id.widget_grid_cell_2_1, R.id.widget_grid_cell_2_2, R.id.widget_grid_cell_2_3, R.id.widget_grid_cell_2_4, R.id.widget_grid_cell_2_5, R.id.widget_grid_cell_2_6, R.id.widget_grid_cell_2_7),
+      intArrayOf(R.id.widget_grid_cell_3_1, R.id.widget_grid_cell_3_2, R.id.widget_grid_cell_3_3, R.id.widget_grid_cell_3_4, R.id.widget_grid_cell_3_5, R.id.widget_grid_cell_3_6, R.id.widget_grid_cell_3_7),
+      intArrayOf(R.id.widget_grid_cell_4_1, R.id.widget_grid_cell_4_2, R.id.widget_grid_cell_4_3, R.id.widget_grid_cell_4_4, R.id.widget_grid_cell_4_5, R.id.widget_grid_cell_4_6, R.id.widget_grid_cell_4_7),
+      intArrayOf(R.id.widget_grid_cell_5_1, R.id.widget_grid_cell_5_2, R.id.widget_grid_cell_5_3, R.id.widget_grid_cell_5_4, R.id.widget_grid_cell_5_5, R.id.widget_grid_cell_5_6, R.id.widget_grid_cell_5_7),
+      intArrayOf(R.id.widget_grid_cell_6_1, R.id.widget_grid_cell_6_2, R.id.widget_grid_cell_6_3, R.id.widget_grid_cell_6_4, R.id.widget_grid_cell_6_5, R.id.widget_grid_cell_6_6, R.id.widget_grid_cell_6_7),
+      intArrayOf(R.id.widget_grid_cell_7_1, R.id.widget_grid_cell_7_2, R.id.widget_grid_cell_7_3, R.id.widget_grid_cell_7_4, R.id.widget_grid_cell_7_5, R.id.widget_grid_cell_7_6, R.id.widget_grid_cell_7_7),
+      intArrayOf(R.id.widget_grid_cell_8_1, R.id.widget_grid_cell_8_2, R.id.widget_grid_cell_8_3, R.id.widget_grid_cell_8_4, R.id.widget_grid_cell_8_5, R.id.widget_grid_cell_8_6, R.id.widget_grid_cell_8_7),
+      intArrayOf(R.id.widget_grid_cell_9_1, R.id.widget_grid_cell_9_2, R.id.widget_grid_cell_9_3, R.id.widget_grid_cell_9_4, R.id.widget_grid_cell_9_5, R.id.widget_grid_cell_9_6, R.id.widget_grid_cell_9_7),
+      intArrayOf(R.id.widget_grid_cell_10_1, R.id.widget_grid_cell_10_2, R.id.widget_grid_cell_10_3, R.id.widget_grid_cell_10_4, R.id.widget_grid_cell_10_5, R.id.widget_grid_cell_10_6, R.id.widget_grid_cell_10_7),
+      intArrayOf(R.id.widget_grid_cell_11_1, R.id.widget_grid_cell_11_2, R.id.widget_grid_cell_11_3, R.id.widget_grid_cell_11_4, R.id.widget_grid_cell_11_5, R.id.widget_grid_cell_11_6, R.id.widget_grid_cell_11_7),
+      intArrayOf(R.id.widget_grid_cell_12_1, R.id.widget_grid_cell_12_2, R.id.widget_grid_cell_12_3, R.id.widget_grid_cell_12_4, R.id.widget_grid_cell_12_5, R.id.widget_grid_cell_12_6, R.id.widget_grid_cell_12_7),
+      intArrayOf(R.id.widget_grid_cell_13_1, R.id.widget_grid_cell_13_2, R.id.widget_grid_cell_13_3, R.id.widget_grid_cell_13_4, R.id.widget_grid_cell_13_5, R.id.widget_grid_cell_13_6, R.id.widget_grid_cell_13_7),
+    )
+
+    private fun showUpcomingCourses(
+      views: RemoteViews,
+      courses: List<JSONObject>,
+      settings: JSONObject,
+    ) {
+      views.setViewVisibility(R.id.widget_empty, View.GONE)
+      views.setViewVisibility(R.id.widget_course_list, View.GONE)
+      views.setViewVisibility(R.id.widget_week_grid_scroll, View.GONE)
+      views.setViewVisibility(R.id.widget_course_scroll, View.VISIBLE)
+      views.setViewVisibility(R.id.widget_upcoming_columns, View.VISIBLE)
+      views.setViewVisibility(R.id.widget_more, View.GONE)
+
+      val today = courses.filter { it.optString("widgetDay") == "今天" }
+      val tomorrow = courses.filter { it.optString("widgetDay") == "明天" }
+      views.setTextViewText(R.id.widget_upcoming_today, "今天 · ${today.size}")
+      views.setTextViewText(R.id.widget_upcoming_tomorrow, "明天 · ${tomorrow.size}")
+      val maxCourses = settings.optInt("maxCourses", 4).coerceIn(1, 8)
+      showColumnCourses(views, today, settings, true, maxCourses)
+      showColumnCourses(views, tomorrow, settings, false, maxCourses)
+      val empty = today.isEmpty() && tomorrow.isEmpty()
+      views.setViewVisibility(R.id.widget_empty, if (empty) View.VISIBLE else View.GONE)
+      if (empty) views.setTextViewText(R.id.widget_empty, "今天和明天没有课程")
+    }
+
+    private fun showColumnCourses(
+      views: RemoteViews,
+      courses: List<JSONObject>,
+      settings: JSONObject,
+      isToday: Boolean,
+      maxCourses: Int,
+    ) {
+      val titleIds = if (isToday) upcomingTodayTitleIds else upcomingTomorrowTitleIds
+      val detailIds = if (isToday) upcomingTodayDetailIds else upcomingTomorrowDetailIds
+      val rowIds = if (isToday) upcomingTodayRowIds else upcomingTomorrowRowIds
+      val visible = courses.take(maxCourses.coerceAtMost(4))
+      val showTime = settings.optBoolean("showTime", true)
+      val showPlace = settings.optBoolean("showPlace", true)
+      val showTeacher = settings.optBoolean("showTeacher", true)
+      visible.forEachIndexed { index, course ->
+        val title = listOf(
+          if (showTime) course.optString("timeRange").replace('-', '–') else "",
+          course.optString("name"),
+        ).filter { it.isNotBlank() }.joinToString("  ")
+        val details = listOf(
+          if (showPlace) course.optString("place") else "",
+          if (showTeacher) course.optString("teacher") else "",
+        ).filter { it.isNotBlank() }.joinToString(" · ")
+          .ifBlank { "第 ${course.optInt("period", 0)} 节" }
+        views.setViewVisibility(rowIds[index], View.VISIBLE)
+        views.setTextViewText(titleIds[index], title)
+        views.setTextViewText(detailIds[index], details)
+      }
+      for (index in visible.size until rowIds.size) {
+        views.setViewVisibility(rowIds[index], View.GONE)
+      }
+    }
+
+    private fun showWeeklyGrid(
+      views: RemoteViews,
+      slots: JSONArray?,
+      week: Int,
+      settings: JSONObject,
+      empty: Boolean,
+    ) {
+      views.setViewVisibility(R.id.widget_course_scroll, View.GONE)
+      views.setViewVisibility(R.id.widget_course_list, View.GONE)
+      views.setViewVisibility(R.id.widget_upcoming_columns, View.GONE)
+      views.setViewVisibility(R.id.widget_week_grid_scroll, View.VISIBLE)
+      views.setViewVisibility(R.id.widget_empty, if (empty) View.VISIBLE else View.GONE)
+      views.setViewVisibility(R.id.widget_more, View.GONE)
+      if (empty) views.setTextViewText(R.id.widget_empty, "本周没有课程")
+
+      for (day in 1..7) {
+        views.setTextViewText(weekDayIds[day - 1], WEEKDAYS[day])
+      }
+      for (period in 1..13) {
+        for (day in 1..7) views.setTextViewText(weekCellIds[period - 1][day - 1], "")
+      }
+      if (slots == null) return
+      val showPlace = settings.optBoolean("showPlace", true)
+      val showTeacher = settings.optBoolean("showTeacher", true)
+      for (index in 0 until slots.length()) {
+        val course = slots.optJSONObject(index) ?: continue
+        val day = course.optInt("weekday")
+        val period = course.optInt("period")
+        val weeks = course.optJSONArray("weeks")
+        if (day !in 1..7 || period !in 1..13 || (weeks != null && weeks.length() > 0 && !contains(weeks, week))) continue
+        val label = listOf(
+          course.optString("name"),
+          if (showPlace) course.optString("place") else "",
+          if (showTeacher) course.optString("teacher") else "",
+        ).filter { it.isNotBlank() }.joinToString("\n")
+        views.setTextViewText(weekCellIds[period - 1][day - 1], label)
+      }
+    }
+
     private fun showCourses(
       views: RemoteViews,
       courses: List<JSONObject>,
       settings: JSONObject,
       emptyMessage: String,
     ) {
+      views.setViewVisibility(R.id.widget_course_scroll, View.VISIBLE)
+      views.setViewVisibility(R.id.widget_week_grid_scroll, View.GONE)
+      views.setViewVisibility(R.id.widget_upcoming_columns, View.GONE)
+      views.setViewVisibility(R.id.widget_course_list, View.VISIBLE)
       val titleIds = intArrayOf(
         R.id.widget_course_title_1,
         R.id.widget_course_title_2,
@@ -272,7 +500,11 @@ class TimetableWidgetProvider : AppWidgetProvider() {
     private fun showEmpty(views: RemoteViews, message: String) {
       views.setTextViewText(R.id.widget_week, "课表")
       views.setTextViewText(R.id.widget_date, "今天")
+      views.setViewVisibility(R.id.widget_course_scroll, View.GONE)
+      views.setViewVisibility(R.id.widget_week_grid_scroll, View.GONE)
+      views.setViewVisibility(R.id.widget_week_controls, View.GONE)
       views.setViewVisibility(R.id.widget_course_list, View.GONE)
+      views.setViewVisibility(R.id.widget_upcoming_columns, View.GONE)
       views.setViewVisibility(R.id.widget_empty, View.VISIBLE)
       views.setTextViewText(R.id.widget_empty, message)
       views.setViewVisibility(R.id.widget_more, View.GONE)
@@ -282,13 +514,13 @@ class TimetableWidgetProvider : AppWidgetProvider() {
   }
 }
 
-class UpcomingTimetableWidgetProvider : AppWidgetProvider() {
+class UpcomingTimetableWidgetProvider : TimetableWidgetProvider() {
   override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
     TimetableWidgetProvider.updateMode(context, manager, ids, TimetableWidgetMode.UPCOMING)
   }
 }
 
-class WeeklyTimetableWidgetProvider : AppWidgetProvider() {
+class WeeklyTimetableWidgetProvider : TimetableWidgetProvider() {
   override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
     TimetableWidgetProvider.updateMode(context, manager, ids, TimetableWidgetMode.WEEK)
   }

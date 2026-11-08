@@ -5,4 +5,5 @@
     <color name="widget_primary_text">#F5FFFC</color>
     <color name="widget_secondary_text">#B7D8D0</color>
     <color name="widget_muted_text">#8EBBB0</color>
+    <color name="widget_divider">#49756B</color>
 </resources>
