@@ -8,6 +8,7 @@ Default permissions for the plugin
 - `allow-notify`
 - `allow-schedule`
 - `allow-sync-icon`
+- `allow-sync-widget`
 
 ## Permission Table
 
@@ -144,6 +145,32 @@ Enables the sync_icon command without any pre-configured scope.
 <td>
 
 Denies the sync_icon command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`background-notifications:allow-sync-widget`
+
+</td>
+<td>
+
+Enables the sync_widget command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`background-notifications:deny-sync-widget`
+
+</td>
+<td>
+
+Denies the sync_widget command without any pre-configured scope.
 
 </td>
 </tr>

@@ -42,4 +42,8 @@ impl<R: Runtime> BackgroundNotifications<R> {
   pub fn sync_icon(&self, payload: SyncIconRequest) -> crate::Result<()> {
     self.0.run_mobile_plugin("syncIcon", payload).map_err(Into::into)
   }
+
+  pub fn sync_widget(&self, payload: SyncWidgetRequest) -> crate::Result<()> {
+    self.0.run_mobile_plugin("syncWidget", payload).map_err(Into::into)
+  }
 }

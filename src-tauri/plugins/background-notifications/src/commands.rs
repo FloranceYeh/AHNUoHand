@@ -44,3 +44,14 @@ pub(crate) async fn sync_icon<R: Runtime>(
     #[cfg(desktop)]
     { let _ = (app, payload); Ok(()) }
 }
+
+#[command]
+pub(crate) async fn sync_widget<R: Runtime>(
+    app: AppHandle<R>,
+    payload: SyncWidgetRequest,
+) -> Result<()> {
+    #[cfg(mobile)]
+    { app.background_notifications().sync_widget(payload) }
+    #[cfg(desktop)]
+    { let _ = (app, payload); Ok(()) }
+}

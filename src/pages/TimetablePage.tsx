@@ -40,6 +40,7 @@ import {
   type GridResult,
 } from "../lib/timetableSession";
 import { rememberReturnTo } from "../lib/classroom";
+import { syncTimetableWidget } from "../lib/timetableWidget";
 
 type Phase = "idle" | "waiting" | "reading" | "ready" | "error";
 type WeekendMode = "auto" | "show" | "hide";
@@ -382,6 +383,13 @@ export function TimetablePage({
     if (phase !== "ready") return;
     onSemesterChange?.({ startDate: startKey, maxWeek });
   }, [phase, startKey, maxWeek, onSemesterChange]);
+
+  useEffect(() => {
+    if (phase !== "ready" || !grid) return;
+    void syncTimetableWidget(grid, maxWeek, nowWeek, startKey).catch((cause) => {
+      console.warn("timetable widget sync failed", cause);
+    });
+  }, [phase, grid, maxWeek, nowWeek, startKey]);
 
   // 打开设置时把当前生效值填入草稿
   const openSettings = () => {

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="widget_background">#103E37</color>
+    <color name="widget_course_background">#1C554B</color>
+    <color name="widget_primary_text">#F5FFFC</color>
+    <color name="widget_secondary_text">#B7D8D0</color>
+    <color name="widget_muted_text">#8EBBB0</color>
+</resources>

@@ -355,10 +355,22 @@
           "markdownDescription": "Denies the sync_icon command without any pre-configured scope."
         },
         {
-          "description": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-configure`\n- `allow-notify`\n- `allow-schedule`\n- `allow-sync-icon`",
+          "description": "Enables the sync_widget command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-sync-widget",
+          "markdownDescription": "Enables the sync_widget command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the sync_widget command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-sync-widget",
+          "markdownDescription": "Denies the sync_widget command without any pre-configured scope."
+        },
+        {
+          "description": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-configure`\n- `allow-notify`\n- `allow-schedule`\n- `allow-sync-icon`\n- `allow-sync-widget`",
           "type": "string",
           "const": "default",
-          "markdownDescription": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-configure`\n- `allow-notify`\n- `allow-schedule`\n- `allow-sync-icon`"
+          "markdownDescription": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-configure`\n- `allow-notify`\n- `allow-schedule`\n- `allow-sync-icon`\n- `allow-sync-widget`"
         }
       ]
     }

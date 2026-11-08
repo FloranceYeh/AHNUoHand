@@ -27,3 +27,9 @@ pub struct SyncIconRequest {
   pub accent: String,
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SyncWidgetRequest {
+  pub data: String,
+}
+

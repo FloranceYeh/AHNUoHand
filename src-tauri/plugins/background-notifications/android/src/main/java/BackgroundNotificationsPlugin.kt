@@ -32,6 +32,8 @@ private const val PREFS = "ahnu_notification_poll"
 private const val ICON_PREFS = "ahnu_application_icon"
 private const val ICON_ACCENT = "accent"
 private const val ICON_CLEANUP_PENDING = "cleanupPending"
+const val WIDGET_PREFS = "ahnu_timetable_widget"
+const val WIDGET_DATA = "data"
 
 @InvokeArg
 class ConfigureArgs {
@@ -54,6 +56,11 @@ class ScheduleArgs {
 @InvokeArg
 class SyncIconArgs {
   lateinit var accent: String
+}
+
+@InvokeArg
+class SyncWidgetArgs {
+  lateinit var data: String
 }
 
 @TauriPlugin
@@ -191,6 +198,22 @@ class BackgroundNotificationsPlugin(private val activity: Activity) : Plugin(act
       invoke.resolve()
     } catch (error: Exception) {
       invoke.reject(error.message ?: "应用图标同步失败")
+    }
+  }
+
+  @Command
+  fun syncWidget(invoke: Invoke) {
+    try {
+      val args = invoke.parseArgs(SyncWidgetArgs::class.java)
+      org.json.JSONObject(args.data)
+      activity.getSharedPreferences(WIDGET_PREFS, Context.MODE_PRIVATE)
+        .edit()
+        .putString(WIDGET_DATA, args.data)
+        .apply()
+      TimetableWidgetProvider.updateAll(activity)
+      invoke.resolve()
+    } catch (error: Exception) {
+      invoke.reject(error.message ?: "课表小组件同步失败")
     }
   }
 
