@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.plugin.background_notifications"
-    compileSdk = 37
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 21
