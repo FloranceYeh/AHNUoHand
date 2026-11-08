@@ -11,6 +11,7 @@ import { parseCellText } from "./timetable";
 import { isMobile } from "./classroom";
 import { fetchElectricity, getSavedOperator, writeCache } from "./electricity";
 import { currentSchoolCardMonth, querySchoolCardSilently } from "./schoolcard";
+import { isLoggedIn } from "./authManager";
 
 const SETTINGS_KEY = "ahnu.notifications.settings.v1";
 const REMINDER_ID_START = 730000;
@@ -299,7 +300,7 @@ export async function pollNotificationSources(
       }
     }
   }
-  if (settings.schoolCardAlert && isMobile()) {
+  if (settings.schoolCardAlert && isMobile() && isLoggedIn("schoolcard")) {
     const previous = Number(
       localStorage.getItem("ahnu.notifications.poll.schoolcard") || 0,
     );

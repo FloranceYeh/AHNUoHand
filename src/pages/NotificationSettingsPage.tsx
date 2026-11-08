@@ -8,12 +8,15 @@ import {
   TextArea,
 } from "antd-mobile";
 import { Icon } from "../components/Icon";
+import { isLoggedIn } from "../lib/authManager";
+import { getSavedOperator } from "../lib/electricity";
 import {
   DEFAULT_NOTIFICATION_ICONS,
   ensureNotificationPermission,
   notify,
   type NotificationSettings,
 } from "../lib/notifications";
+import { CACHE_KEY } from "../lib/timetableSession";
 
 export function NotificationSettingsPage({
   settings,
@@ -48,6 +51,35 @@ export function NotificationSettingsPage({
     value: boolean | number | string,
   ) => {
     const next = { ...settings, [key]: value };
+    if (value === true) {
+      if (key === "classReminder") {
+        try {
+          const grid = JSON.parse(localStorage.getItem(CACHE_KEY) || "null");
+          if (!Array.isArray(grid?.cells) || grid.cells.length === 0) {
+            setPermissionError("请先读取课表，再开启课前提醒。");
+            return;
+          }
+        } catch {
+          setPermissionError("请先读取课表，再开启课前提醒。");
+          return;
+        }
+      }
+      if (
+        key === "electricityAlert" &&
+        !/^\d{8,20}$/.test(getSavedOperator())
+      ) {
+        setPermissionError(
+          "请先在登录管理中绑定后勤服务学号，再开启电费预警。",
+        );
+        return;
+      }
+      if (key === "schoolCardAlert" && !isLoggedIn("schoolcard")) {
+        setPermissionError(
+          "请先在登录管理中验证完美校园，再开启一卡通余额预警。",
+        );
+        return;
+      }
+    }
     if (value === true && !(await ensureNotificationPermission())) {
       setPermissionError("未获得系统通知权限，请在系统设置中允许通知。");
       return;
