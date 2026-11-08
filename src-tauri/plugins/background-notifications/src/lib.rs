@@ -35,7 +35,7 @@ impl<R: Runtime, T: Manager<R>> crate::BackgroundNotificationsExt<R> for T {
 /// Initializes the plugin.
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
   Builder::new("background-notifications")
-    .invoke_handler(tauri::generate_handler![commands::configure, commands::notify, commands::schedule])
+    .invoke_handler(tauri::generate_handler![commands::configure, commands::notify, commands::schedule, commands::sync_icon])
     .setup(|app, api| {
       #[cfg(mobile)]
       let background_notifications = mobile::init(app, api)?;

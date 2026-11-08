@@ -38,4 +38,8 @@ impl<R: Runtime> BackgroundNotifications<R> {
   pub fn schedule(&self, payload: ScheduleRequest) -> crate::Result<()> {
     self.0.run_mobile_plugin("schedule", payload).map_err(Into::into)
   }
+
+  pub fn sync_icon(&self, payload: SyncIconRequest) -> crate::Result<()> {
+    self.0.run_mobile_plugin("syncIcon", payload).map_err(Into::into)
+  }
 }

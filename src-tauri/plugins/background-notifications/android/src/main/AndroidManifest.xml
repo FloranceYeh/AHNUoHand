@@ -2,6 +2,21 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <application>
+        <activity-alias android:name="${applicationId}.ThemeIconTeal" android:targetActivity="${applicationId}.MainActivity" android:icon="@mipmap/icon_theme_teal" android:enabled="true" android:exported="true">
+            <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
+        </activity-alias>
+        <activity-alias android:name="${applicationId}.ThemeIconBlue" android:targetActivity="${applicationId}.MainActivity" android:icon="@mipmap/icon_theme_blue" android:enabled="false" android:exported="true">
+            <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
+        </activity-alias>
+        <activity-alias android:name="${applicationId}.ThemeIconViolet" android:targetActivity="${applicationId}.MainActivity" android:icon="@mipmap/icon_theme_violet" android:enabled="false" android:exported="true">
+            <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
+        </activity-alias>
+        <activity-alias android:name="${applicationId}.ThemeIconAmber" android:targetActivity="${applicationId}.MainActivity" android:icon="@mipmap/icon_theme_amber" android:enabled="false" android:exported="true">
+            <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
+        </activity-alias>
+        <activity-alias android:name="${applicationId}.ThemeIconRose" android:targetActivity="${applicationId}.MainActivity" android:icon="@mipmap/icon_theme_rose" android:enabled="false" android:exported="true">
+            <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
+        </activity-alias>
         <service
             android:name=".BackgroundNotificationJob"
             android:permission="android.permission.BIND_JOB_SERVICE"

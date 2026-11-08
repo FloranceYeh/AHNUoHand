@@ -21,3 +21,9 @@ pub struct ScheduleRequest {
   pub jobs: String,
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SyncIconRequest {
+  pub accent: String,
+}
+

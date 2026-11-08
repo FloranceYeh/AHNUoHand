@@ -28,6 +28,7 @@ import {
   saveThemeSettings,
   type ThemeSettings,
 } from "./lib/theme";
+import { syncApplicationIcon } from "./lib/appIcon";
 import {
   hasPendingTimetableLogin,
   resumeMobileTimetableLogin,
@@ -206,6 +207,12 @@ export default function App() {
   useEffect(() => {
     saveThemeSettings(themeSettings);
   }, [themeSettings]);
+  useEffect(() => {
+    if (!themeSettings.appIconSync) return;
+    void syncApplicationIcon(themeSettings.accent).catch((error) => {
+      console.error("automatic application icon sync failed", error);
+    });
+  }, [themeSettings.appIconSync, themeSettings.accent]);
   useEffect(() => {
     saveNotificationSettings(notificationSettings);
     const syncBackground = () =>

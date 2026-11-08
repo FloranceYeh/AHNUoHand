@@ -1581,6 +1581,17 @@ textarea:focus-visible {
 .appearance-accent-option i.rose {
   background: var(--accent-swatch-rose);
 }
+.appearance-icon-control {
+  align-items: center;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.appearance-icon-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+  min-width: 0;
+}
 :root[data-content-mode="simple"] {
   --size-service-card: 108px;
   --size-service-item: 88px;

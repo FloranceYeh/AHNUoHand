@@ -1,4 +1,4 @@
-import { Selector } from "antd-mobile";
+import { Selector, Switch } from "antd-mobile";
 import { Icon } from "../components/Icon";
 import { BrandIcon } from "../components/BrandIcon";
 import { navigationItems } from "../data/navigation";
@@ -80,7 +80,6 @@ export function AppearancePage({
   onBack: () => void;
 }) {
   const update = onChange;
-
   return (
     <div className="page feature-page appearance-page">
       <button className="back-button" onClick={onBack}>
@@ -197,6 +196,18 @@ export function AppearancePage({
             }
             showCheckMark={false}
           />
+        </div>
+        <div className="appearance-control appearance-icon-control">
+          <div className="appearance-label">
+            <strong>自动同步应用图标</strong>
+            <small>跟随当前主题色更新 Android 桌面启动器图标</small>
+          </div>
+          <div className="appearance-icon-action">
+            <Switch
+              checked={settings.appIconSync}
+              onChange={(checked) => update({ appIconSync: checked })}
+            />
+          </div>
         </div>
       </section>
     </div>

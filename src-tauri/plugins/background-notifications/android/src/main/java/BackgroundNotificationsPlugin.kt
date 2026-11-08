@@ -46,6 +46,11 @@ class ScheduleArgs {
   lateinit var jobs: String
 }
 
+@InvokeArg
+class SyncIconArgs {
+  lateinit var accent: String
+}
+
 @TauriPlugin
 class BackgroundNotificationsPlugin(private val activity: Activity) : Plugin(activity) {
   @Command
@@ -134,6 +139,56 @@ class BackgroundNotificationsPlugin(private val activity: Activity) : Plugin(act
       invoke.resolve()
     } catch (error: Exception) {
       invoke.reject(error.message ?: "无法配置通知后台任务")
+    }
+  }
+
+  @Command
+  fun syncIcon(invoke: Invoke) {
+    try {
+      val args = invoke.parseArgs(SyncIconArgs::class.java)
+      val aliases = mapOf(
+        "teal" to "ThemeIconTeal",
+        "blue" to "ThemeIconBlue",
+        "violet" to "ThemeIconViolet",
+        "amber" to "ThemeIconAmber",
+        "rose" to "ThemeIconRose",
+      )
+      val selected = aliases[args.accent]
+        ?: throw IllegalArgumentException("不支持的应用主题色")
+      val packageManager = activity.packageManager
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        // Android 13+ supports one transaction, avoiding a launcher frame with
+        // both aliases enabled (or with no launcher icon enabled).
+        val settings = aliases.values.map { alias ->
+          PackageManager.ComponentEnabledSetting(
+            ComponentName(activity.packageName, "${activity.packageName}.$alias"),
+            if (alias == selected) {
+              PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+            } else {
+              PackageManager.COMPONENT_ENABLED_STATE_DISABLED
+            },
+            PackageManager.DONT_KILL_APP,
+          )
+        }
+        packageManager.setComponentEnabledSettings(settings)
+      } else {
+        // This API was added in Android 13. Keep the same behavior on older
+        // releases with the legacy per-component API.
+        aliases.values.forEach { alias ->
+          packageManager.setComponentEnabledSetting(
+            ComponentName(activity.packageName, "${activity.packageName}.$alias"),
+            if (alias == selected) {
+              PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+            } else {
+              PackageManager.COMPONENT_ENABLED_STATE_DISABLED
+            },
+            PackageManager.DONT_KILL_APP,
+          )
+        }
+      }
+      invoke.resolve()
+    } catch (error: Exception) {
+      invoke.reject(error.message ?: "应用图标同步失败")
     }
   }
 

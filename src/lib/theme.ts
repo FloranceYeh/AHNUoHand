@@ -11,6 +11,7 @@ export const DEFAULT_HOME_EMOJI = "👋";
 export interface ThemeSettings {
   mode: ThemeMode;
   accent: AccentColor;
+  appIconSync: boolean;
   navigationDisplay: NavigationDisplay;
   contentMode: ContentMode;
   homeServices: CampusServiceId[];
@@ -24,6 +25,7 @@ const STORAGE_KEY = "ahnuhand-theme";
 const DEFAULT_SETTINGS: ThemeSettings = {
   mode: "system",
   accent: "teal",
+  appIconSync: false,
   navigationDisplay: "icon-label",
   contentMode: "normal",
   homeServices: ["schedule", "classroom", "electricity", "schoolcard"],
@@ -96,6 +98,7 @@ export function readThemeSettings(): ThemeSettings {
     ) as {
       mode?: unknown;
       accent?: unknown;
+      appIconSync?: unknown;
       navigationDisplay?: unknown;
       contentMode?: unknown;
       homeServices?: unknown;
@@ -115,6 +118,10 @@ export function readThemeSettings(): ThemeSettings {
       accent: isAccentColor(parsed?.accent)
         ? parsed.accent
         : DEFAULT_SETTINGS.accent,
+      appIconSync:
+        typeof parsed?.appIconSync === "boolean"
+          ? parsed.appIconSync
+          : DEFAULT_SETTINGS.appIconSync,
       navigationDisplay: isNavigationDisplay(parsed?.navigationDisplay)
         ? parsed.navigationDisplay
         : DEFAULT_SETTINGS.navigationDisplay,
