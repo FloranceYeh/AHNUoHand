@@ -10,9 +10,10 @@ internal data class WidgetSettings(
   val showTeacher: Boolean = true,
   val showWeekend: Boolean = true,
   val weekCellHeight: Int = DEFAULT_WEEK_CELL_HEIGHT,
+  val themeMode: WidgetThemeMode = WidgetThemeMode.DEFAULT,
   val accent: WidgetAccent = WidgetAccent.DEFAULT,
 ) {
-  val palette: WidgetPalette get() = WidgetPalette.of(accent)
+  val palette: WidgetPalette get() = WidgetPalette.of(accent, themeMode)
 
   /** Clamps values so a malformed payload can never break the layout. */
   fun sanitized(): WidgetSettings = copy(
@@ -25,6 +26,7 @@ internal data class WidgetSettings(
     .put("showTeacher", showTeacher)
     .put("showWeekend", showWeekend)
     .put("weekCellHeight", weekCellHeight)
+    .put("themeMode", themeMode.id)
     .put("accent", accent.id)
     .toString()
 
@@ -41,6 +43,7 @@ internal data class WidgetSettings(
         showTeacher = json.optBoolean("showTeacher", defaults.showTeacher),
         showWeekend = json.optBoolean("showWeekend", defaults.showWeekend),
         weekCellHeight = json.optInt("weekCellHeight", defaults.weekCellHeight),
+        themeMode = WidgetThemeMode.fromId(json.optString("themeMode")),
         accent = WidgetAccent.fromId(json.optString("accent")),
       ).sanitized()
     }
@@ -63,14 +66,14 @@ internal data class WidgetCourse(
   val lastPeriod: Int get() = period + span - 1
   val displayName: String get() = name.ifBlank { "未命名课程" }
 
-  /** `800-935` → `08:00–09:35`, matching the in-app timetable. */
+  /** `800-935` → `08:00-09:35`, matching the in-app timetable. */
   val displayTime: String
     get() {
       val parts = timeRange.split(TIME_RANGE_SEPARATOR)
       if (parts.size != 2) return ""
       val start = formatClock(parts[0]) ?: return ""
       val end = formatClock(parts[1]) ?: return ""
-      return "$start–$end"
+      return "$start-$end"
     }
 
   fun isActiveIn(week: Int): Boolean = weeks.isEmpty() || week in weeks

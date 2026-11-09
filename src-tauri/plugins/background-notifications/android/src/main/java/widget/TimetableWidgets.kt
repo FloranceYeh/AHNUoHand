@@ -89,7 +89,11 @@ abstract class TimetableWidgetReceiver : GlanceAppWidgetReceiver() {
   }
 
   private companion object {
-    val CLOCK_CHANGE_ACTIONS = setOf(Intent.ACTION_TIME_CHANGED, Intent.ACTION_TIMEZONE_CHANGED)
+    val CLOCK_CHANGE_ACTIONS = setOf(
+      Intent.ACTION_TIME_CHANGED,
+      Intent.ACTION_TIMEZONE_CHANGED,
+      Intent.ACTION_CONFIGURATION_CHANGED,
+    )
   }
 }
 

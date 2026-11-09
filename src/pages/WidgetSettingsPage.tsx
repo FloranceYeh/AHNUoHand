@@ -1,6 +1,6 @@
 import { Selector, Stepper, Switch } from "antd-mobile";
 import { Icon } from "../components/Icon";
-import type { AccentColor } from "../lib/theme";
+import type { AccentColor, ThemeMode } from "../lib/theme";
 import {
   WIDGET_WEEK_CELL_HEIGHT,
   type TimetableWidgetSettings,
@@ -13,6 +13,11 @@ const ACCENT_OPTIONS: { value: AccentColor; label: string }[] = [
   { value: "violet", label: "柔紫" },
   { value: "amber", label: "琥珀" },
   { value: "rose", label: "玫红" },
+];
+const THEME_MODE_OPTIONS: { value: ThemeMode; label: string }[] = [
+  { value: "system", label: "跟随系统" },
+  { value: "light", label: "浅色" },
+  { value: "dark", label: "深色" },
 ];
 
 type Settings = TimetableWidgetSettings;
@@ -114,9 +119,12 @@ function previewSummary(settings: Settings, appAccent: AccentColor): string {
   const accentLabel = settings.followAppAccent
     ? `跟随应用（${accent?.label ?? ""}）`
     : (accent?.label ?? "");
+  const themeMode = THEME_MODE_OPTIONS.find(
+    (option) => option.value === settings.themeMode,
+  )?.label;
   return `${content} | ${
     settings.showWeekend ? "含周末" : "仅工作日"
-  } | ${accentLabel} `;
+  } | ${accentLabel} | ${themeMode ?? "自动"}`;
 }
 
 export function WidgetSettingsPage({
@@ -227,6 +235,27 @@ export function WidgetSettingsPage({
             </div>
           )}
         </div>
+      </section>
+
+      <section
+        className="customization-section"
+        aria-labelledby="widget-settings-theme-mode"
+      >
+        <div className="customization-heading">
+          <h2 id="widget-settings-theme-mode">显示模式</h2>
+          <span>全部小组件</span>
+        </div>
+        <Selector
+          className="appearance-selector"
+          columns={3}
+          options={THEME_MODE_OPTIONS}
+          value={[settings.themeMode]}
+          showCheckMark={false}
+          onChange={(value) => {
+            const [themeMode] = value as ThemeMode[];
+            if (themeMode) onChange({ themeMode });
+          }}
+        />
       </section>
 
       {GROUPS.map((group) => (

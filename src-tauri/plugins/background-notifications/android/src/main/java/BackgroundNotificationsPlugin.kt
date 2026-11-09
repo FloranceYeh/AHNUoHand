@@ -79,6 +79,7 @@ class WidgetSettingsArgs {
   var showTeacher: Boolean = true
   var showWeekend: Boolean = true
   var weekCellHeight: Int = WidgetSettings.DEFAULT_WEEK_CELL_HEIGHT
+  var themeMode: String = WidgetThemeMode.DEFAULT.id
   var accent: String = WidgetAccent.DEFAULT.id
 
   internal fun toSettings() = WidgetSettings(
@@ -87,6 +88,7 @@ class WidgetSettingsArgs {
     showTeacher,
     showWeekend,
     weekCellHeight,
+    WidgetThemeMode.fromId(themeMode),
     WidgetAccent.fromId(accent),
   )
 }

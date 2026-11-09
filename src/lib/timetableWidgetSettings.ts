@@ -1,4 +1,4 @@
-import { ACCENT_COLORS, type AccentColor } from "./theme";
+import { ACCENT_COLORS, type AccentColor, type ThemeMode } from "./theme";
 
 export interface TimetableWidgetSettings {
   showTime: boolean;
@@ -6,6 +6,8 @@ export interface TimetableWidgetSettings {
   showTeacher: boolean;
   showWeekend: boolean;
   weekCellHeight: number;
+  /** 小组件的亮暗模式。 */
+  themeMode: ThemeMode;
   /** 是否跟随应用外观设置中的主题色。 */
   followAppAccent: boolean;
   /** 小组件配色，取值与外观设置里的主题色一致。 */
@@ -18,6 +20,7 @@ export const DEFAULT_TIMETABLE_WIDGET_SETTINGS: TimetableWidgetSettings = {
   showTeacher: true,
   showWeekend: true,
   weekCellHeight: 40,
+  themeMode: "system",
   followAppAccent: true,
   accent: "teal",
 };
@@ -66,6 +69,13 @@ export function normalizeTimetableWidgetSettings(
   const accent = source.accent;
   if (ACCENT_COLORS.includes(accent as AccentColor)) {
     settings.accent = accent as AccentColor;
+  }
+  if (
+    source.themeMode === "system" ||
+    source.themeMode === "light" ||
+    source.themeMode === "dark"
+  ) {
+    settings.themeMode = source.themeMode;
   }
   settings.weekCellHeight = clampStep(
     source.weekCellHeight,

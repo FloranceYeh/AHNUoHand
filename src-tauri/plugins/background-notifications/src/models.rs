@@ -37,6 +37,8 @@ pub struct TimetableWidgetSettings {
   pub show_teacher: bool,
   pub show_weekend: bool,
   pub week_cell_height: u32,
+  /// Widget appearance mode: system, light, or dark.
+  pub theme_mode: String,
   /// Accent id matching the app's appearance setting, e.g. `teal`.
   pub accent: String,
 }
