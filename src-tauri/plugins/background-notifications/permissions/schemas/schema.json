@@ -367,10 +367,22 @@
           "markdownDescription": "Denies the sync_widget command without any pre-configured scope."
         },
         {
-          "description": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-configure`\n- `allow-notify`\n- `allow-schedule`\n- `allow-sync-icon`\n- `allow-sync-widget`",
+          "description": "Enables the take_widget_launch_route command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-take-widget-launch-route",
+          "markdownDescription": "Enables the take_widget_launch_route command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the take_widget_launch_route command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-take-widget-launch-route",
+          "markdownDescription": "Denies the take_widget_launch_route command without any pre-configured scope."
+        },
+        {
+          "description": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-configure`\n- `allow-notify`\n- `allow-schedule`\n- `allow-sync-icon`\n- `allow-sync-widget`\n- `allow-take-widget-launch-route`",
           "type": "string",
           "const": "default",
-          "markdownDescription": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-configure`\n- `allow-notify`\n- `allow-schedule`\n- `allow-sync-icon`\n- `allow-sync-widget`"
+          "markdownDescription": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-configure`\n- `allow-notify`\n- `allow-schedule`\n- `allow-sync-icon`\n- `allow-sync-widget`\n- `allow-take-widget-launch-route`"
         }
       ]
     }

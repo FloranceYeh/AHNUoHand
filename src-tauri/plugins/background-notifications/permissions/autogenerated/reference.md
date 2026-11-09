@@ -9,6 +9,7 @@ Default permissions for the plugin
 - `allow-schedule`
 - `allow-sync-icon`
 - `allow-sync-widget`
+- `allow-take-widget-launch-route`
 
 ## Permission Table
 
@@ -171,6 +172,32 @@ Enables the sync_widget command without any pre-configured scope.
 <td>
 
 Denies the sync_widget command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`background-notifications:allow-take-widget-launch-route`
+
+</td>
+<td>
+
+Enables the take_widget_launch_route command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`background-notifications:deny-take-widget-launch-route`
+
+</td>
+<td>
+
+Denies the take_widget_launch_route command without any pre-configured scope.
 
 </td>
 </tr>

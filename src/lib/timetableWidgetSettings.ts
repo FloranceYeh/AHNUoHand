@@ -1,9 +1,13 @@
+import { ACCENT_COLORS, type AccentColor } from "./theme";
+
 export interface TimetableWidgetSettings {
   showTime: boolean;
   showPlace: boolean;
   showTeacher: boolean;
   showWeekend: boolean;
   weekCellHeight: number;
+  /** 小组件配色，取值与外观设置里的主题色一致。 */
+  accent: AccentColor;
 }
 
 export const DEFAULT_TIMETABLE_WIDGET_SETTINGS: TimetableWidgetSettings = {
@@ -12,6 +16,7 @@ export const DEFAULT_TIMETABLE_WIDGET_SETTINGS: TimetableWidgetSettings = {
   showTeacher: true,
   showWeekend: true,
   weekCellHeight: 40,
+  accent: "teal",
 };
 
 export const WIDGET_WEEK_CELL_HEIGHT = { min: 28, max: 64, step: 2 } as const;
@@ -53,6 +58,10 @@ export function normalizeTimetableWidgetSettings(
   for (const key of BOOLEAN_KEYS) {
     const value = source[key];
     if (typeof value === "boolean") settings[key] = value;
+  }
+  const accent = source.accent;
+  if (ACCENT_COLORS.includes(accent as AccentColor)) {
+    settings.accent = accent as AccentColor;
   }
   settings.weekCellHeight = clampStep(
     source.weekCellHeight,

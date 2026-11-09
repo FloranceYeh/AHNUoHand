@@ -31,7 +31,7 @@ internal abstract class TimetableWidget : GlanceAppWidget() {
       val state by store.state.collectAsState(initial)
       val snapshot = state.snapshot
       if (snapshot == null) {
-        EmptyWidget("请先在应用内读取课表")
+        EmptyWidget("请先在应用内读取课表", state.settings)
       } else {
         Content(TimetableSchedule(snapshot, CalendarDay.today()), snapshot, state.settings)
       }

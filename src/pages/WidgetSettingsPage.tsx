@@ -1,9 +1,19 @@
-import { Stepper, Switch } from "antd-mobile";
+import { Selector, Stepper, Switch } from "antd-mobile";
 import { Icon } from "../components/Icon";
+import type { AccentColor } from "../lib/theme";
 import {
   WIDGET_WEEK_CELL_HEIGHT,
   type TimetableWidgetSettings,
 } from "../lib/timetableWidgetSettings";
+
+/** 与外观设置页的主题色保持同一套名称和顺序。 */
+const ACCENT_OPTIONS: { value: AccentColor; label: string }[] = [
+  { value: "teal", label: "青绿" },
+  { value: "blue", label: "海蓝" },
+  { value: "violet", label: "柔紫" },
+  { value: "amber", label: "琥珀" },
+  { value: "rose", label: "玫红" },
+];
 
 type Settings = TimetableWidgetSettings;
 type BooleanKey = {
@@ -97,7 +107,12 @@ function previewSummary(settings: Settings): string {
     settings.showTeacher && "教师",
   ].filter(Boolean);
   const content = details.length ? `显示${details.join("、")}` : "仅显示课程名";
-  return `${content} · ${settings.showWeekend ? "含周末" : "仅工作日"}`;
+  const accent = ACCENT_OPTIONS.find(
+    (option) => option.value === settings.accent,
+  );
+  return `${accent?.label ?? ""} · ${content} · ${
+    settings.showWeekend ? "含周末" : "仅工作日"
+  }`;
 }
 
 export function WidgetSettingsPage({
@@ -158,6 +173,35 @@ export function WidgetSettingsPage({
           <strong>课表小组件</strong>
           <p>{previewSummary(settings)}</p>
         </div>
+      </section>
+
+      <section
+        className="customization-section"
+        aria-labelledby="widget-settings-accent"
+      >
+        <div className="customization-heading">
+          <h2 id="widget-settings-accent">主题色</h2>
+          <span>全部小组件</span>
+        </div>
+        <Selector
+          className="appearance-selector accent-selector"
+          columns={3}
+          options={ACCENT_OPTIONS.map((option) => ({
+            value: option.value,
+            label: (
+              <span className="appearance-accent-option">
+                <i className={option.value} />
+                <span>{option.label}</span>
+              </span>
+            ),
+          }))}
+          value={[settings.accent]}
+          showCheckMark={false}
+          onChange={(value) => {
+            const [accent] = value as AccentColor[];
+            if (accent) onChange({ accent });
+          }}
+        />
       </section>
 
       {GROUPS.map((group) => (

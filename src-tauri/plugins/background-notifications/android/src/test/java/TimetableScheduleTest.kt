@@ -14,6 +14,16 @@ class TimetableScheduleTest {
     TimetableSnapshot(CalendarDay.parse(startDate), maxWeek, syncedWeek, courses, emptyList())
 
   @Test
+  fun unknownAccentFallsBackToDefault() {
+    assertEquals(WidgetAccent.ROSE, WidgetSettings.fromJson("""{"accent":"rose"}""").accent)
+    assertEquals(WidgetAccent.DEFAULT, WidgetSettings.fromJson("""{"accent":"chartreuse"}""").accent)
+    assertEquals(WidgetAccent.DEFAULT, WidgetSettings.fromJson("{}").accent)
+    // Round-tripping keeps every field, including the accent.
+    val settings = WidgetSettings(showTime = false, weekCellHeight = 52, accent = WidgetAccent.AMBER)
+    assertEquals(settings, WidgetSettings.fromJson(settings.toJson()))
+  }
+
+  @Test
   fun parsesAndRejectsDates() {
     assertEquals(1, day("2026-11-09").weekday)
     assertEquals(7, day("2026-11-15").weekday)

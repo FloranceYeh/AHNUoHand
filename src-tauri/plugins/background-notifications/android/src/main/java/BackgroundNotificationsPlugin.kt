@@ -31,6 +31,7 @@ import app.tauri.annotation.Command
 import app.tauri.annotation.InvokeArg
 import app.tauri.annotation.TauriPlugin
 import app.tauri.plugin.Invoke
+import app.tauri.plugin.JSObject
 import app.tauri.plugin.Plugin
 import org.json.JSONObject
 
@@ -78,8 +79,16 @@ class WidgetSettingsArgs {
   var showTeacher: Boolean = true
   var showWeekend: Boolean = true
   var weekCellHeight: Int = WidgetSettings.DEFAULT_WEEK_CELL_HEIGHT
+  var accent: String = WidgetAccent.DEFAULT.id
 
-  internal fun toSettings() = WidgetSettings(showTime, showPlace, showTeacher, showWeekend, weekCellHeight)
+  internal fun toSettings() = WidgetSettings(
+    showTime,
+    showPlace,
+    showTeacher,
+    showWeekend,
+    weekCellHeight,
+    WidgetAccent.fromId(accent),
+  )
 }
 
 @TauriPlugin
@@ -110,6 +119,8 @@ class BackgroundNotificationsPlugin(private val activity: Activity) : Plugin(act
 
   init {
     activity.application.registerActivityLifecycleCallbacks(activityLifecycleCallbacks)
+    // 冷启动：小组件的 Intent 已经在 Activity 上了。
+    WidgetLaunchRoute.remember(activity.intent)
   }
 
   @Command
@@ -249,6 +260,18 @@ class BackgroundNotificationsPlugin(private val activity: Activity) : Plugin(act
         invoke.reject(error.message ?: "课表小组件同步失败")
       }
     }
+  }
+
+  /** 返回小组件点击要打开的页面，没有则返回空字符串。 */
+  @Command
+  fun takeWidgetLaunchRoute(invoke: Invoke) {
+    val result = JSObject()
+    result.put("route", WidgetLaunchRoute.take() ?: "")
+    invoke.resolve(result)
+  }
+
+  override fun onNewIntent(intent: Intent) {
+    WidgetLaunchRoute.remember(intent)
   }
 
   override fun onDestroy(activity: AppCompatActivity) {

@@ -1,4 +1,4 @@
-const COMMANDS: &[&str] = &["configure", "notify", "schedule", "sync_icon", "sync_widget"];
+const COMMANDS: &[&str] = &["configure", "notify", "schedule", "sync_icon", "sync_widget", "take_widget_launch_route"];
 
 fn main() {
   tauri_plugin::Builder::new(COMMANDS)

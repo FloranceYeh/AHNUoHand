@@ -1,7 +1,15 @@
 import type { CampusServiceId, NavigationItemId } from "../types";
 
 export type ThemeMode = "system" | "light" | "dark";
-export type AccentColor = "teal" | "blue" | "violet" | "amber" | "rose";
+export const ACCENT_COLORS = [
+  "teal",
+  "blue",
+  "violet",
+  "amber",
+  "rose",
+] as const;
+
+export type AccentColor = (typeof ACCENT_COLORS)[number];
 export type NavigationDisplay = "icon-label" | "icon-only";
 export type ContentMode = "normal" | "simple";
 
@@ -56,13 +64,7 @@ function isThemeMode(value: unknown): value is ThemeMode {
 }
 
 function isAccentColor(value: unknown): value is AccentColor {
-  return (
-    value === "teal" ||
-    value === "blue" ||
-    value === "violet" ||
-    value === "amber" ||
-    value === "rose"
-  );
+  return ACCENT_COLORS.includes(value as AccentColor);
 }
 
 function isNavigationDisplay(value: unknown): value is NavigationDisplay {

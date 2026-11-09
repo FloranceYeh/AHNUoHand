@@ -47,4 +47,10 @@ impl<R: Runtime> BackgroundNotifications<R> {
     self.0.run_mobile_plugin("syncWidget", payload).map_err(Into::into)
   }
 
+  pub fn take_widget_launch_route(&self) -> crate::Result<LaunchRouteResponse> {
+    self
+      .0.run_mobile_plugin("takeWidgetLaunchRoute", ())
+      .map_err(Into::into)
+  }
+
 }

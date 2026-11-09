@@ -54,3 +54,13 @@ pub(crate) async fn sync_widget<R: Runtime>(
     { let _ = (app, payload); Ok(()) }
 }
 
+
+#[command]
+pub(crate) async fn take_widget_launch_route<R: Runtime>(
+    app: AppHandle<R>,
+) -> Result<LaunchRouteResponse> {
+    #[cfg(mobile)]
+    { app.background_notifications().take_widget_launch_route() }
+    #[cfg(desktop)]
+    { let _ = app; Ok(LaunchRouteResponse { route: String::new() }) }
+}

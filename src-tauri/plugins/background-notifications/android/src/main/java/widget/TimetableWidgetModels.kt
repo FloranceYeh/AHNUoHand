@@ -10,7 +10,10 @@ internal data class WidgetSettings(
   val showTeacher: Boolean = true,
   val showWeekend: Boolean = true,
   val weekCellHeight: Int = DEFAULT_WEEK_CELL_HEIGHT,
+  val accent: WidgetAccent = WidgetAccent.DEFAULT,
 ) {
+  val palette: WidgetPalette get() = WidgetPalette.of(accent)
+
   /** Clamps values so a malformed payload can never break the layout. */
   fun sanitized(): WidgetSettings = copy(
     weekCellHeight = weekCellHeight.coerceIn(WEEK_CELL_HEIGHT_RANGE),
@@ -22,6 +25,7 @@ internal data class WidgetSettings(
     .put("showTeacher", showTeacher)
     .put("showWeekend", showWeekend)
     .put("weekCellHeight", weekCellHeight)
+    .put("accent", accent.id)
     .toString()
 
   companion object {
@@ -37,6 +41,7 @@ internal data class WidgetSettings(
         showTeacher = json.optBoolean("showTeacher", defaults.showTeacher),
         showWeekend = json.optBoolean("showWeekend", defaults.showWeekend),
         weekCellHeight = json.optInt("weekCellHeight", defaults.weekCellHeight),
+        accent = WidgetAccent.fromId(json.optString("accent")),
       ).sanitized()
     }
   }

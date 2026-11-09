@@ -65,6 +65,7 @@ import {
   type TimetableWidgetSettings,
 } from "./lib/timetableWidgetSettings";
 import { syncTimetableWidgetSettings } from "./lib/timetableWidget";
+import { takeWidgetLaunchRoute } from "./lib/widgetLaunch";
 import "./styles/tokens.css";
 import "./App.css";
 
@@ -115,8 +116,9 @@ export default function App() {
     useState<PersonalInfo>(readPersonalInfo);
   const [notificationSettings, setNotificationSettings] =
     useState<NotificationSettings>(readNotificationSettings);
-  const [widgetSettings, setWidgetSettings] =
-    useState<TimetableWidgetSettings>(readTimetableWidgetSettings);
+  const [widgetSettings, setWidgetSettings] = useState<TimetableWidgetSettings>(
+    readTimetableWidgetSettings,
+  );
   const lastHomeBackRef = useRef(0);
   const exitPromptTimerRef = useRef<number | null>(null);
   const [exitPromptVisible, setExitPromptVisible] = useState(false);
@@ -311,6 +313,23 @@ export default function App() {
   const openFeature = (id: FeatureId) => {
     pushRoute({ type: "feature", id });
   };
+
+  // 桌面小组件点击后要打开课程表。冷启动时原生侧已经记下了页面，
+  // 从后台唤回时 Intent 到达得更晚，所以每次回到前台都再取一次。
+  useEffect(() => {
+    if (restoring) return;
+    const consume = () =>
+      void takeWidgetLaunchRoute().then((route) => {
+        if (route === "timetable")
+          setRootRoute({ type: "feature", id: "schedule" });
+      });
+    consume();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") consume();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [restoring, setRootRoute]);
 
   useEffect(() => {
     const onAppBack = () => goBack();

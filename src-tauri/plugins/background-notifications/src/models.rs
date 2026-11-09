@@ -37,6 +37,14 @@ pub struct TimetableWidgetSettings {
   pub show_teacher: bool,
   pub show_weekend: bool,
   pub week_cell_height: u32,
+  /// Accent id matching the app's appearance setting, e.g. `teal`.
+  pub accent: String,
+}
+
+/// Page the user reached by tapping a home screen widget, empty when none.
+#[derive(Debug, Deserialize, Serialize)]
+pub struct LaunchRouteResponse {
+  pub route: String,
 }
 
 /// Either field may be omitted to keep the value already stored on the device.
