@@ -127,63 +127,65 @@ export function HomeNavigationPage({
         <h1>主页与导航</h1>
         <p>定制欢迎语、常用服务与底部菜单，按你的习惯安排主页。</p>
       </div>
-      <HomeWelcomeSettings settings={settings} onChange={onChange} />
-      <section
-        className="customization-section"
-        aria-labelledby="home-services-title"
-      >
-        <div className="customization-heading">
-          <h2 id="home-services-title">主页常用服务</h2>
-          <span>{settings.homeServices.length} 项</span>
-          <Button
-            size="small"
-            fill="outline"
-            className="customization-add-button"
-            disabled={settings.homeServices.length === campusServices.length}
-            onClick={() => openPicker("home")}
-          >
-            <Icon name="plus" size={16} />
-            添加
-          </Button>
-        </div>
-        <SortableServiceList
-          values={settings.homeServices}
-          onChange={updateHomeServices}
-          allowEmpty
-          label="主页常用服务排序"
-        />
-        {settings.homeServices.length === 0 && (
-          <p className="customization-empty">还没有添加常用服务</p>
-        )}
-      </section>
-      <section
-        className="customization-section"
-        aria-labelledby="navigation-items-title"
-      >
-        <div className="customization-heading">
-          <h2 id="navigation-items-title">底部菜单栏</h2>
-          <span>{settings.navigationTabs.length} / 5 项</span>
-          <Button
-            size="small"
-            fill="outline"
-            className="customization-add-button"
-            disabled={settings.navigationTabs.length >= 5}
-            onClick={() => openPicker("navigation")}
-          >
-            <Icon name="plus" size={16} />
-            添加
-          </Button>
-        </div>
-        <SortableServiceList
-          values={settings.navigationTabs}
-          onChange={updateNavigation}
-          defaultNavigation={settings.defaultNavigation}
-          onSetDefaultNavigation={setDefaultNavigation}
-          label="底部菜单排序"
-        />
-        <p className="customization-hint">
-          长按上方列表中的项目可设为首页，打开应用时默认显示。
-        </p>
+      <section className="customization-page">
+        <HomeWelcomeSettings settings={settings} onChange={onChange} />
+        <section
+          className="customization-section"
+          aria-labelledby="home-services-title"
+        >
+          <div className="customization-heading">
+            <h2 id="home-services-title">主页常用服务</h2>
+            <span>{settings.homeServices.length} 项</span>
+            <Button
+              size="small"
+              fill="outline"
+              className="customization-add-button"
+              disabled={settings.homeServices.length === campusServices.length}
+              onClick={() => openPicker("home")}
+            >
+              <Icon name="plus" size={16} />
+              添加
+            </Button>
+          </div>
+          <SortableServiceList
+            values={settings.homeServices}
+            onChange={updateHomeServices}
+            allowEmpty
+            label="主页常用服务排序"
+          />
+          {settings.homeServices.length === 0 && (
+            <p className="customization-empty">还没有添加常用服务</p>
+          )}
+        </section>
+        <section
+          className="customization-section"
+          aria-labelledby="navigation-items-title"
+        >
+          <div className="customization-heading">
+            <h2 id="navigation-items-title">底部菜单栏</h2>
+            <span>{settings.navigationTabs.length} / 5 项</span>
+            <Button
+              size="small"
+              fill="outline"
+              className="customization-add-button"
+              disabled={settings.navigationTabs.length >= 5}
+              onClick={() => openPicker("navigation")}
+            >
+              <Icon name="plus" size={16} />
+              添加
+            </Button>
+          </div>
+          <SortableServiceList
+            values={settings.navigationTabs}
+            onChange={updateNavigation}
+            defaultNavigation={settings.defaultNavigation}
+            onSetDefaultNavigation={setDefaultNavigation}
+            label="底部菜单排序"
+          />
+          <p className="customization-hint">
+            长按上方列表中的项目可设为首页，打开应用时默认显示。
+          </p>
+        </section>
       </section>
       <Popup
         visible={picker !== null}
