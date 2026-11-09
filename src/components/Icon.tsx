@@ -81,7 +81,7 @@ const icons = {
   globe: Globe2,
   externalLink: ExternalLink,
   palette: Palette,
-  widget: LayoutGridCircles
+  widget: LayoutGridCircles,
 };
 
 interface IconProps {

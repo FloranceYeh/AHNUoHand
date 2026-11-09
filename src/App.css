@@ -1052,31 +1052,31 @@ textarea:focus-visible {
   box-shadow: var(--shadow-card);
 }
 .widget-settings-label {
-    display: flex;
-    flex-direction: column;
-    padding: var(--space-2xl);
-    gap: var(--space-2xs);
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-2xl);
+  gap: var(--space-2xs);
 }
 .widget-settings-label small {
-    display: block;
-    color: var(--color-muted);
-    font-size: var(--text-micro);
+  display: block;
+  color: var(--color-muted);
+  font-size: var(--text-micro);
 }
 .widget-settings-heading {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-md);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
 }
 .widget-settings-heading strong {
-    display: block;
-    color: var(--color-ink);
-    font-size: var(--text-caption);
+  display: block;
+  color: var(--color-ink);
+  font-size: var(--text-caption);
 }
 .widget-settings-heading span {
-    color: var(--color-muted);
-    font-size: var(--text-micro);
-    white-space: nowrap;
+  color: var(--color-muted);
+  font-size: var(--text-micro);
+  white-space: nowrap;
 }
 .widget-settings-rows {
   display: flex;
@@ -1099,13 +1099,13 @@ textarea:focus-visible {
   flex: 0 0 auto;
 }
 .widget-settings-selector {
-    --gap: var(--space-xs);
-    --checked-color: var(--color-primary-soft);
-    --checked-text-color: var(--color-primary-strong);
-    --checked-border: 1px solid var(--color-primary);
-    min-width: 0;
-    padding: var(--space-2xl);
-    border-top: 1px solid var(--color-line)
+  --gap: var(--space-xs);
+  --checked-color: var(--color-primary-soft);
+  --checked-text-color: var(--color-primary-strong);
+  --checked-border: 1px solid var(--color-primary);
+  min-width: 0;
+  padding: var(--space-2xl);
+  border-top: 1px solid var(--color-line);
 }
 .personal-info-page .page-heading {
   margin-bottom: var(--space-2xl);
@@ -1745,7 +1745,7 @@ textarea:focus-visible {
 :root[data-content-mode="simple"] .notification-setting-note,
 :root[data-content-mode="simple"] .brand-light,
 :root[data-content-mode="simple"] .settings-copy small,
-:root[data-content-mode="simple"] .widget-settings-label small{
+:root[data-content-mode="simple"] .widget-settings-label small {
   display: none;
 }
 :root[data-content-mode="simple"] .service-title {

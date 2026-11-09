@@ -386,9 +386,11 @@ export function TimetablePage({
 
   useEffect(() => {
     if (phase !== "ready" || !grid) return;
-    void syncTimetableWidget(grid, maxWeek, nowWeek, startKey).catch((cause) => {
-      console.warn("timetable widget sync failed", cause);
-    });
+    void syncTimetableWidget(grid, maxWeek, nowWeek, startKey).catch(
+      (cause) => {
+        console.warn("timetable widget sync failed", cause);
+      },
+    );
   }, [phase, grid, maxWeek, nowWeek, startKey]);
 
   // 打开设置时把当前生效值填入草稿

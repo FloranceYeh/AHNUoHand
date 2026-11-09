@@ -112,9 +112,7 @@ function previewSummary(settings: Settings): string {
     settings.showTeacher && "教师",
   ].filter(Boolean);
   const content = details.length ? `${details.join(" · ")}` : "仅显示课程名";
-  return `${content} | ${
-    settings.showWeekend ? "含周末" : "仅工作日"
-  }`;
+  return `${content} | ${settings.showWeekend ? "含周末" : "仅工作日"}`;
 }
 
 export function WidgetSettingsPage({
@@ -231,25 +229,26 @@ export function WidgetSettingsPage({
           className="widget-settings-item"
           aria-labelledby="widget-settings-theme-mode"
         >
-        <div className="widget-settings-item">
-          <div className="widget-settings-label">
-            <div className="widget-settings-heading">
-              <strong>显示模式</strong><span>全部小组件</span>
+          <div className="widget-settings-item">
+            <div className="widget-settings-label">
+              <div className="widget-settings-heading">
+                <strong>显示模式</strong>
+                <span>全部小组件</span>
+              </div>
+              <small>跟随系统或手动选择明暗</small>
             </div>
-            <small>跟随系统或手动选择明暗</small>
-          </div>
-          <Selector
-            className="widget-settings-selector"
-            columns={3}
-            options={THEME_MODE_OPTIONS}
-            value={[settings.themeMode]}
-            onChange={(value) => {
+            <Selector
+              className="widget-settings-selector"
+              columns={3}
+              options={THEME_MODE_OPTIONS}
+              value={[settings.themeMode]}
+              onChange={(value) => {
                 const [themeMode] = value as ThemeMode[];
                 if (themeMode) onChange({ themeMode });
               }}
-            showCheckMark={false}
-          />
-        </div>
+              showCheckMark={false}
+            />
+          </div>
         </section>
 
         {GROUPS.map((group) => (
@@ -261,7 +260,9 @@ export function WidgetSettingsPage({
             <div className="widget-settings-item">
               <div className="widget-settings-label">
                 <div className="widget-settings-heading">
-                  <strong id={`widget-settings-${group.id}`}>{group.title}</strong>
+                  <strong id={`widget-settings-${group.id}`}>
+                    {group.title}
+                  </strong>
                   <span>{group.scope}</span>
                 </div>
               </div>
