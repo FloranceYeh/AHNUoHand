@@ -37,7 +37,6 @@ pub struct TimetableWidgetSettings {
   pub show_teacher: bool,
   pub show_weekend: bool,
   pub week_cell_height: u32,
-  pub max_courses: u32,
 }
 
 /// Either field may be omitted to keep the value already stored on the device.

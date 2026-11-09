@@ -1,7 +1,6 @@
 import { Stepper, Switch } from "antd-mobile";
 import { Icon } from "../components/Icon";
 import {
-  WIDGET_MAX_COURSES,
   WIDGET_WEEK_CELL_HEIGHT,
   type TimetableWidgetSettings,
 } from "../lib/timetableWidgetSettings";
@@ -38,9 +37,6 @@ interface SettingGroup {
   rows: SettingRow[];
 }
 
-/** 近日课程小组件每天固定三格，课程上限只能调小。 */
-const UPCOMING_PER_DAY = 3;
-
 const GROUPS: SettingGroup[] = [
   {
     id: "content",
@@ -67,21 +63,6 @@ const GROUPS: SettingGroup[] = [
         icon: "person",
         title: "显示教师",
         hint: "在课程卡片中显示授课教师",
-      },
-    ],
-  },
-  {
-    id: "list",
-    title: "课程列表",
-    scope: "今日 / 近日课程",
-    rows: [
-      {
-        kind: "stepper",
-        key: "maxCourses",
-        icon: "layoutGrid",
-        title: "最多显示课程",
-        hint: `今日课程最多 ${WIDGET_MAX_COURSES.max} 节，近日课程每天最多 ${UPCOMING_PER_DAY} 节`,
-        range: WIDGET_MAX_COURSES,
       },
     ],
   },
@@ -116,9 +97,7 @@ function previewSummary(settings: Settings): string {
     settings.showTeacher && "教师",
   ].filter(Boolean);
   const content = details.length ? `显示${details.join("、")}` : "仅显示课程名";
-  return `${content} · 最多 ${settings.maxCourses} 节课 · ${
-    settings.showWeekend ? "含周末" : "仅工作日"
-  }`;
+  return `${content} · ${settings.showWeekend ? "含周末" : "仅工作日"}`;
 }
 
 export function WidgetSettingsPage({

@@ -10,12 +10,10 @@ internal data class WidgetSettings(
   val showTeacher: Boolean = true,
   val showWeekend: Boolean = true,
   val weekCellHeight: Int = DEFAULT_WEEK_CELL_HEIGHT,
-  val maxCourses: Int = DEFAULT_MAX_COURSES,
 ) {
   /** Clamps values so a malformed payload can never break the layout. */
   fun sanitized(): WidgetSettings = copy(
     weekCellHeight = weekCellHeight.coerceIn(WEEK_CELL_HEIGHT_RANGE),
-    maxCourses = maxCourses.coerceIn(MAX_COURSES_RANGE),
   )
 
   fun toJson(): String = JSONObject()
@@ -24,14 +22,11 @@ internal data class WidgetSettings(
     .put("showTeacher", showTeacher)
     .put("showWeekend", showWeekend)
     .put("weekCellHeight", weekCellHeight)
-    .put("maxCourses", maxCourses)
     .toString()
 
   companion object {
     const val DEFAULT_WEEK_CELL_HEIGHT = 40
-    const val DEFAULT_MAX_COURSES = 4
     val WEEK_CELL_HEIGHT_RANGE = 28..64
-    val MAX_COURSES_RANGE = 1..8
 
     fun fromJson(raw: String?): WidgetSettings {
       val json = raw?.let { runCatching { JSONObject(it) }.getOrNull() } ?: return WidgetSettings()
@@ -42,7 +37,6 @@ internal data class WidgetSettings(
         showTeacher = json.optBoolean("showTeacher", defaults.showTeacher),
         showWeekend = json.optBoolean("showWeekend", defaults.showWeekend),
         weekCellHeight = json.optInt("weekCellHeight", defaults.weekCellHeight),
-        maxCourses = json.optInt("maxCourses", defaults.maxCourses),
       ).sanitized()
     }
   }

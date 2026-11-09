@@ -78,9 +78,8 @@ class WidgetSettingsArgs {
   var showTeacher: Boolean = true
   var showWeekend: Boolean = true
   var weekCellHeight: Int = WidgetSettings.DEFAULT_WEEK_CELL_HEIGHT
-  var maxCourses: Int = WidgetSettings.DEFAULT_MAX_COURSES
 
-  internal fun toSettings() = WidgetSettings(showTime, showPlace, showTeacher, showWeekend, weekCellHeight, maxCourses)
+  internal fun toSettings() = WidgetSettings(showTime, showPlace, showTeacher, showWeekend, weekCellHeight)
 }
 
 @TauriPlugin

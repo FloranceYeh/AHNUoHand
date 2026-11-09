@@ -4,7 +4,6 @@ export interface TimetableWidgetSettings {
   showTeacher: boolean;
   showWeekend: boolean;
   weekCellHeight: number;
-  maxCourses: number;
 }
 
 export const DEFAULT_TIMETABLE_WIDGET_SETTINGS: TimetableWidgetSettings = {
@@ -13,11 +12,8 @@ export const DEFAULT_TIMETABLE_WIDGET_SETTINGS: TimetableWidgetSettings = {
   showTeacher: true,
   showWeekend: true,
   weekCellHeight: 40,
-  maxCourses: 4,
 };
 
-/** 取值范围，与 Android 端 `WidgetSettings` 的夹取保持一致。 */
-export const WIDGET_MAX_COURSES = { min: 1, max: 8, step: 1 } as const;
 export const WIDGET_WEEK_CELL_HEIGHT = { min: 28, max: 64, step: 2 } as const;
 
 const STORAGE_KEY = "ahnu.timetable.widget.settings.v1";
@@ -58,11 +54,6 @@ export function normalizeTimetableWidgetSettings(
     const value = source[key];
     if (typeof value === "boolean") settings[key] = value;
   }
-  settings.maxCourses = clampStep(
-    source.maxCourses,
-    WIDGET_MAX_COURSES,
-    defaults.maxCourses,
-  );
   settings.weekCellHeight = clampStep(
     source.weekCellHeight,
     WIDGET_WEEK_CELL_HEIGHT,

@@ -53,13 +53,13 @@ private val COURSE_BACKGROUNDS = listOf(
 
 @Composable
 internal fun TodayWidgetContent(schedule: TimetableSchedule, settings: WidgetSettings) {
-  val courses = schedule.coursesOn(schedule.today).take(settings.maxCourses)
+  val courses = schedule.coursesOn(schedule.today)
   WidgetFrame(title = "今日课程", subtitle = daySubtitle(schedule)) {
     if (courses.isEmpty()) {
       CenteredMessage("今日没有课程")
     } else {
       LazyColumn(GlanceModifier.fillMaxSize()) {
-        items(courses) { course -> CourseCard(course, settings) }
+        items(courses) { course -> CourseTile(course, settings) }
       }
     }
   }
@@ -67,9 +67,8 @@ internal fun TodayWidgetContent(schedule: TimetableSchedule, settings: WidgetSet
 
 @Composable
 internal fun UpcomingWidgetContent(schedule: TimetableSchedule, settings: WidgetSettings) {
-  // The widget is a fixed 4 x 2 layout with room for three tiles per day; the
-  // user's limit can only lower that.
-  val perDay = settings.maxCourses.coerceAtMost(UPCOMING_MAX_PER_DAY)
+  // The widget is a fixed 4 x 2 layout with room for three tiles per day.
+  val perDay = UPCOMING_MAX_PER_DAY
   val today = schedule.today
   val tomorrow = today.plusDays(1)
   WidgetFrame(title = "近日课程", subtitle = daySubtitle(schedule)) {
@@ -142,27 +141,9 @@ private fun courseBackground(course: WidgetCourse): ImageProvider {
   return ImageProvider(COURSE_BACKGROUNDS[hash % COURSE_BACKGROUNDS.size])
 }
 
-private fun joinDetails(vararg parts: String): String = parts.filter { it.isNotBlank() }.joinToString(" · ")
+private fun joinDetails(vararg parts: String): String = parts.filter { it.isNotBlank() }.joinToString("·")
 
 // ---- Course list (today / upcoming) ---------------------------------------
-
-@Composable
-private fun CourseCard(course: WidgetCourse, settings: WidgetSettings) {
-  val title = listOf(if (settings.showTime) course.displayTime else "", course.displayName)
-    .filter { it.isNotBlank() }
-    .joinToString("  ")
-  val detail = joinDetails(
-    if (settings.showPlace) course.place else "",
-    if (settings.showTeacher) course.teacher else "",
-  )
-  // Outer padding is the gap between cards; the inner one is inside the card.
-  Box(GlanceModifier.fillMaxWidth().padding(bottom = 5.dp)) {
-    Column(GlanceModifier.fillMaxWidth().background(courseBackground(course)).padding(7.dp)) {
-      Text(title, style = textStyle(12.sp, bold = true), maxLines = 1)
-      if (detail.isNotBlank()) Text(detail, style = textStyle(10.sp), maxLines = 1)
-    }
-  }
-}
 
 @Composable
 private fun UpcomingDay(
@@ -184,13 +165,13 @@ private fun UpcomingDay(
         Text("无课程", style = textStyle(11.sp, WidgetColors.secondary))
       }
     } else {
-      visible.forEach { course -> UpcomingCourseTile(course, settings) }
+      visible.forEach { course -> CourseTile(course, settings) }
     }
   }
 }
 
 @Composable
-private fun UpcomingCourseTile(course: WidgetCourse, settings: WidgetSettings) {
+private fun CourseTile(course: WidgetCourse, settings: WidgetSettings) {
   val detail = joinDetails(
     if (settings.showTime) course.displayTime else "",
     if (settings.showPlace) course.place else "",
@@ -201,7 +182,7 @@ private fun UpcomingCourseTile(course: WidgetCourse, settings: WidgetSettings) {
       GlanceModifier.fillMaxWidth().background(courseBackground(course)).padding(horizontal = 7.dp, vertical = 6.dp),
     ) {
       Text(course.displayName, style = textStyle(11.sp, bold = true), maxLines = 1)
-      Text(detail.ifBlank { "第 ${course.period} 节" }, style = textStyle(9.sp), maxLines = 1)
+      Text(detail.ifBlank { "第 ${course.period} 节" }, style = textStyle(9.sp), maxLines = 2)
     }
   }
 }
