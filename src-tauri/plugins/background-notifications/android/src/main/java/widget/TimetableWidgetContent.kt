@@ -161,26 +161,6 @@ private fun joinDetails(vararg parts: String): String = parts.filter { it.isNotB
 // ---- Course list (today / upcoming) ---------------------------------------
 
 @Composable
-private fun CourseCard(course: WidgetCourse, settings: WidgetSettings) {
-  val title = listOf(if (settings.showTime) course.displayTime else "", course.displayName)
-    .filter { it.isNotBlank() }
-    .joinToString("  ")
-  val detail = joinDetails(
-    if (settings.showPlace) course.place else "",
-    if (settings.showTeacher) course.teacher else "",
-  )
-  // Outer padding is the gap between cards; the inner one is inside the card.
-  Box(
-    GlanceModifier.fillMaxWidth().padding(bottom = 5.dp).clickable(openTimetableAction()),
-  ) {
-    Column(GlanceModifier.fillMaxWidth().background(courseBackground(course)).padding(7.dp)) {
-      Text(title, style = courseTextStyle(12.sp, bold = true), maxLines = 1)
-      if (detail.isNotBlank()) Text(detail, style = courseTextStyle(10.sp), maxLines = 1)
-    }
-  }
-}
-
-@Composable
 private fun UpcomingDay(
   label: String,
   courses: List<WidgetCourse>,
