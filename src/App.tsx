@@ -221,11 +221,26 @@ export default function App() {
   useEffect(() => {
     saveThemeSettings(themeSettings);
   }, [themeSettings]);
+  const lastSyncedIconAccentRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!themeSettings.appIconSync) return;
-    void syncApplicationIcon(themeSettings.accent).catch((error) => {
-      console.error("automatic application icon sync failed", error);
-    });
+    if (!themeSettings.appIconSync) {
+      lastSyncedIconAccentRef.current = null;
+      return;
+    }
+    const accent = themeSettings.accent;
+    const timer = window.setTimeout(async () => {
+      // Skip if we already synced this accent in the current session.
+      // The native side also guards against redundant PackageManager calls,
+      // but skipping here avoids the plugin round-trip entirely on startup.
+      if (lastSyncedIconAccentRef.current === accent) return;
+      try {
+        await syncApplicationIcon(accent);
+        lastSyncedIconAccentRef.current = accent;
+      } catch (error) {
+        console.error("automatic application icon sync failed", error);
+      }
+    }, 400);
+    return () => window.clearTimeout(timer);
   }, [themeSettings.appIconSync, themeSettings.accent]);
   useEffect(() => {
     saveNotificationSettings(notificationSettings);
