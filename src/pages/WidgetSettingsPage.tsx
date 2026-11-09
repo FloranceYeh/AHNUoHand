@@ -1,16 +1,164 @@
 import { Stepper, Switch } from "antd-mobile";
 import { Icon } from "../components/Icon";
-import type { TimetableWidgetSettings } from "../lib/timetableWidgetSettings";
+import {
+  WIDGET_MAX_COURSES,
+  WIDGET_WEEK_CELL_HEIGHT,
+  type TimetableWidgetSettings,
+} from "../lib/timetableWidgetSettings";
+
+type Settings = TimetableWidgetSettings;
+type BooleanKey = {
+  [K in keyof Settings]: Settings[K] extends boolean ? K : never;
+}[keyof Settings];
+type NumberKey = {
+  [K in keyof Settings]: Settings[K] extends number ? K : never;
+}[keyof Settings];
+
+type SettingRow =
+  | {
+      kind: "switch";
+      key: BooleanKey;
+      icon: string;
+      title: string;
+      hint: string;
+    }
+  | {
+      kind: "stepper";
+      key: NumberKey;
+      icon: string;
+      title: string;
+      hint: string;
+      range: { min: number; max: number; step: number };
+    };
+
+interface SettingGroup {
+  id: string;
+  title: string;
+  scope: string;
+  rows: SettingRow[];
+}
+
+/** 近日课程小组件每天固定三格，课程上限只能调小。 */
+const UPCOMING_PER_DAY = 3;
+
+const GROUPS: SettingGroup[] = [
+  {
+    id: "content",
+    title: "显示内容",
+    scope: "全部小组件",
+    rows: [
+      {
+        kind: "switch",
+        key: "showTime",
+        icon: "clock",
+        title: "显示时间",
+        hint: "在课程卡片中显示上课时段",
+      },
+      {
+        kind: "switch",
+        key: "showPlace",
+        icon: "location",
+        title: "显示教室",
+        hint: "在课程卡片中显示上课地点",
+      },
+      {
+        kind: "switch",
+        key: "showTeacher",
+        icon: "person",
+        title: "显示教师",
+        hint: "在课程卡片中显示授课教师",
+      },
+    ],
+  },
+  {
+    id: "list",
+    title: "课程列表",
+    scope: "今日 / 近日课程",
+    rows: [
+      {
+        kind: "stepper",
+        key: "maxCourses",
+        icon: "layoutGrid",
+        title: "最多显示课程",
+        hint: `今日课程最多 ${WIDGET_MAX_COURSES.max} 节，近日课程每天最多 ${UPCOMING_PER_DAY} 节`,
+        range: WIDGET_MAX_COURSES,
+      },
+    ],
+  },
+  {
+    id: "week",
+    title: "课程表",
+    scope: "一周课程",
+    rows: [
+      {
+        kind: "switch",
+        key: "showWeekend",
+        icon: "calendar",
+        title: "显示周末",
+        hint: "显示周六和周日两列",
+      },
+      {
+        kind: "stepper",
+        key: "weekCellHeight",
+        icon: "layoutGrid",
+        title: "每格高度",
+        hint: "调整每一节课所占的高度",
+        range: WIDGET_WEEK_CELL_HEIGHT,
+      },
+    ],
+  },
+];
+
+function previewSummary(settings: Settings): string {
+  const details = [
+    settings.showTime && "时间",
+    settings.showPlace && "教室",
+    settings.showTeacher && "教师",
+  ].filter(Boolean);
+  const content = details.length ? `显示${details.join("、")}` : "仅显示课程名";
+  return `${content} · 最多 ${settings.maxCourses} 节课 · ${
+    settings.showWeekend ? "含周末" : "仅工作日"
+  }`;
+}
 
 export function WidgetSettingsPage({
   settings,
   onChange,
   onBack,
 }: {
-  settings: TimetableWidgetSettings;
-  onChange: (changes: Partial<TimetableWidgetSettings>) => void;
+  settings: Settings;
+  onChange: (changes: Partial<Settings>) => void;
   onBack: () => void;
 }) {
+  const renderRow = (row: SettingRow) => (
+    <div
+      key={row.key}
+      className={`settings-row widget-settings-row${
+        row.kind === "stepper" ? " widget-settings-stepper-row" : ""
+      }`}
+    >
+      <span className="settings-icon">
+        <Icon name={row.icon} size={20} />
+      </span>
+      <span className="settings-copy">
+        <strong>{row.title}</strong>
+        <small>{row.hint}</small>
+      </span>
+      {row.kind === "switch" ? (
+        <Switch
+          checked={settings[row.key]}
+          onChange={(checked) => onChange({ [row.key]: checked })}
+        />
+      ) : (
+        <Stepper
+          {...row.range}
+          value={settings[row.key]}
+          onChange={(value) => onChange({ [row.key]: value })}
+        />
+      )}
+    </div>
+  );
+
   return (
     <div className="page feature-page widget-settings-page">
       <button className="back-button" onClick={onBack}>
@@ -20,109 +168,34 @@ export function WidgetSettingsPage({
       <div className="page-heading">
         <p className="eyebrow">HOME SCREEN WIDGETS</p>
         <h1>小组件设置</h1>
-        <p>选择桌面课表小组件显示的内容和课程数量。</p>
+        <p>修改后桌面上的课表小组件会立即更新。</p>
       </div>
 
-      <section className="widget-settings-preview" aria-label="小组件预览">
+      <section className="widget-settings-preview" aria-label="当前设置">
         <div className="widget-settings-preview-icon">
           <Icon name="calendar" size={22} />
         </div>
         <div>
           <strong>课表小组件</strong>
-          <p>
-            {settings.showTime ? "时间" : ""}
-            {settings.showPlace ? "、教室" : ""}
-            {settings.showTeacher ? "、教师" : ""} · 最多 {settings.maxCourses} 节课
-          </p>
+          <p>{previewSummary(settings)}</p>
         </div>
       </section>
 
-      <section className="settings-list widget-settings-list">
-        <div className="settings-row widget-settings-row">
-          <span className="settings-icon">
-            <Icon name="clock" size={20} />
-          </span>
-          <span className="settings-copy">
-            <strong>显示时间</strong>
-            <small>在课程标题中显示上课时段</small>
-          </span>
-          <Switch
-            checked={settings.showTime}
-            onChange={(checked) => onChange({ showTime: checked })}
-          />
-        </div>
-        <div className="settings-row widget-settings-row">
-          <span className="settings-icon">
-            <Icon name="location" size={20} />
-          </span>
-          <span className="settings-copy">
-            <strong>显示教室</strong>
-            <small>在课程详情中显示上课地点</small>
-          </span>
-          <Switch
-            checked={settings.showPlace}
-            onChange={(checked) => onChange({ showPlace: checked })}
-          />
-        </div>
-        <div className="settings-row widget-settings-row">
-          <span className="settings-icon">
-            <Icon name="person" size={20} />
-          </span>
-          <span className="settings-copy">
-            <strong>显示教师</strong>
-            <small>在课程详情中显示授课教师</small>
-          </span>
-          <Switch
-            checked={settings.showTeacher}
-            onChange={(checked) => onChange({ showTeacher: checked })}
-          />
-        </div>
-        <div className="settings-row widget-settings-row">
-          <span className="settings-icon">
-            <Icon name="calendar" size={20} />
-          </span>
-          <span className="settings-copy">
-            <strong>显示周末</strong>
-            <small>一周课程小组件显示周六和周日</small>
-          </span>
-          <Switch
-            checked={settings.showWeekend}
-            onChange={(checked) => onChange({ showWeekend: checked })}
-          />
-        </div>
-        <div className="settings-row widget-settings-row widget-settings-stepper-row">
-          <span className="settings-icon">
-            <Icon name="layoutGrid" size={20} />
-          </span>
-          <span className="settings-copy">
-            <strong>最多显示课程</strong>
-            <small>小组件空间有限，最多显示 8 节课</small>
-          </span>
-          <Stepper
-            min={1}
-            max={8}
-            step={1}
-            value={settings.maxCourses}
-            onChange={(value) => onChange({ maxCourses: value })}
-          />
-        </div>
-        <div className="settings-row widget-settings-row widget-settings-stepper-row">
-          <span className="settings-icon">
-            <Icon name="layoutGrid" size={20} />
-          </span>
-          <span className="settings-copy">
-            <strong>每格高度</strong>
-            <small>调整一周课程小组件的节次高度</small>
-          </span>
-          <Stepper
-            min={28}
-            max={64}
-            step={2}
-            value={settings.weekCellHeight}
-            onChange={(value) => onChange({ weekCellHeight: value })}
-          />
-        </div>
-      </section>
+      {GROUPS.map((group) => (
+        <section
+          key={group.id}
+          className="customization-section"
+          aria-labelledby={`widget-settings-${group.id}`}
+        >
+          <div className="customization-heading">
+            <h2 id={`widget-settings-${group.id}`}>{group.title}</h2>
+            <span>{group.scope}</span>
+          </div>
+          <div className="settings-list widget-settings-list">
+            {group.rows.map(renderRow)}
+          </div>
+        </section>
+      ))}
     </div>
   );
 }

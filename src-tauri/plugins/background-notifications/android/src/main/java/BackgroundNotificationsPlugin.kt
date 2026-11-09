@@ -19,8 +19,14 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.Manifest
 import android.content.pm.PackageManager
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import androidx.glance.appwidget.updateAll
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import app.tauri.annotation.Command
 import app.tauri.annotation.InvokeArg
 import app.tauri.annotation.TauriPlugin
@@ -33,9 +39,6 @@ private const val PREFS = "ahnu_notification_poll"
 private const val ICON_PREFS = "ahnu_application_icon"
 private const val ICON_ACCENT = "accent"
 private const val ICON_CLEANUP_PENDING = "cleanupPending"
-const val WIDGET_PREFS = "ahnu_timetable_widget"
-const val WIDGET_DATA = "data"
-const val WIDGET_SETTINGS = "settings"
 
 @InvokeArg
 class ConfigureArgs {
@@ -62,12 +65,29 @@ class SyncIconArgs {
 
 @InvokeArg
 class SyncWidgetArgs {
-  var data: String = ""
-  var settings: String = ""
+  /** Timetable payload as a JSON string; null keeps the stored timetable. */
+  var data: String? = null
+  /** Null keeps the stored settings. */
+  var settings: WidgetSettingsArgs? = null
+}
+
+@InvokeArg
+class WidgetSettingsArgs {
+  var showTime: Boolean = true
+  var showPlace: Boolean = true
+  var showTeacher: Boolean = true
+  var showWeekend: Boolean = true
+  var weekCellHeight: Int = WidgetSettings.DEFAULT_WEEK_CELL_HEIGHT
+  var maxCourses: Int = WidgetSettings.DEFAULT_MAX_COURSES
+
+  internal fun toSettings() = WidgetSettings(showTime, showPlace, showTeacher, showWeekend, weekCellHeight, maxCourses)
 }
 
 @TauriPlugin
 class BackgroundNotificationsPlugin(private val activity: Activity) : Plugin(activity) {
+  private val widgetScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+  private val widgetStore = TimetableWidgetStore(activity)
+
   private val iconAliases = linkedMapOf(
     "teal" to "ThemeIconTeal",
     "blue" to "ThemeIconBlue",
@@ -206,33 +226,35 @@ class BackgroundNotificationsPlugin(private val activity: Activity) : Plugin(act
 
   @Command
   fun syncWidget(invoke: Invoke) {
-    try {
-      val args = invoke.parseArgs(SyncWidgetArgs::class.java)
-      val editor = activity.getSharedPreferences(WIDGET_PREFS, Context.MODE_PRIVATE).edit()
-      if (args.data.isNotBlank()) {
-        org.json.JSONObject(args.data)
-        editor.putString(WIDGET_DATA, args.data)
-      }
-      if (args.settings.isNotBlank()) {
-        val settings = org.json.JSONObject(args.settings)
-        val maxCourses = settings.optInt("maxCourses", 4).coerceIn(1, 8)
-        settings.put("maxCourses", maxCourses)
-        editor.putString(WIDGET_SETTINGS, settings.toString())
-      }
-      // The widget renderer reads SharedPreferences immediately. Commit here
-      // so a settings-only change can never render the previous snapshot.
-      if (!editor.commit()) throw IllegalStateException("课表小组件设置保存失败")
-      // Glance owns the RemoteViews translation and updates only widgets that
-      // are actually pinned on the launcher.
-      kotlinx.coroutines.runBlocking {
-        GlanceTodayTimetableWidget().updateAll(activity)
-        GlanceUpcomingTimetableWidget().updateAll(activity)
-        GlanceWeeklyTimetableWidget().updateAll(activity)
-      }
-      invoke.resolve()
+    val args = try {
+      invoke.parseArgs(SyncWidgetArgs::class.java)
     } catch (error: Exception) {
-      invoke.reject(error.message ?: "课表小组件同步失败")
+      invoke.reject(error.message ?: "课表小组件参数无效")
+      return
     }
+    val data = args.data?.takeIf { it.isNotBlank() }
+    if (data != null && TimetableSnapshot.fromJson(data) == null) {
+      invoke.reject("课表小组件数据格式无效")
+      return
+    }
+    // Saving and re-rendering are suspending; run them off the bridge thread
+    // and settle the invoke once the widgets have been asked to update.
+    widgetScope.launch {
+      try {
+        widgetStore.save(data, args.settings?.toSettings())
+        refreshTimetableWidgets(activity.applicationContext)
+        invoke.resolve()
+      } catch (error: CancellationException) {
+        throw error
+      } catch (error: Exception) {
+        invoke.reject(error.message ?: "课表小组件同步失败")
+      }
+    }
+  }
+
+  override fun onDestroy(activity: AppCompatActivity) {
+    // DataStore writes are atomic, so cancelling an in-flight sync is safe.
+    widgetScope.cancel()
   }
 
   private fun currentlyEnabledAliases(): Set<String> {
