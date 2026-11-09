@@ -1012,7 +1012,6 @@ textarea:focus-visible {
   display: flex;
   align-items: center;
   gap: var(--space-lg);
-  margin-bottom: var(--space-2xl);
   padding: var(--space-xl);
   border: 1px solid var(--color-line);
   border-radius: var(--radius-lg);
@@ -1039,31 +1038,74 @@ textarea:focus-visible {
   font-size: var(--text-micro);
   line-height: var(--leading-snug);
 }
-.widget-settings-list {
-  overflow: hidden;
+.widget-settings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3xl);
+}
+.widget-settings-item {
+  display: grid;
+  min-width: 0;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+.widget-settings-label {
+    display: flex;
+    flex-direction: column;
+    padding: var(--space-2xl);
+    gap: var(--space-2xs);
+}
+.widget-settings-label small {
+    display: block;
+    color: var(--color-muted);
+    font-size: var(--text-micro);
+}
+.widget-settings-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+}
+.widget-settings-heading strong {
+    display: block;
+    color: var(--color-ink);
+    font-size: var(--text-caption);
+}
+.widget-settings-heading span {
+    color: var(--color-muted);
+    font-size: var(--text-micro);
+    white-space: nowrap;
+}
+.widget-settings-rows {
+  display: flex;
+  flex-direction: column;
 }
 .widget-settings-row {
+  display: flex;
+  align-items: center;
   min-height: var(--size-service-item);
+  border-top: 1px solid var(--color-line);
+  gap: var(--space-lg);
+  text-align: left;
+  cursor: pointer;
+  padding: var(--space-2xl);
 }
 .widget-settings-row .adm-switch {
   flex: 0 0 auto;
 }
-.widget-settings-apprance {
-  padding: var(--space-2xl);
-  background-color: var(--color-surface-subtle);
-}
-.widget-settings-stepper-row {
-  background: var(--color-surface-subtle);
-}
 .widget-settings-stepper-row .adm-stepper {
   flex: 0 0 auto;
 }
-:root[data-content-mode="simple"] .widget-settings-preview p {
-  display: none;
-}
-:root[data-content-mode="simple"] .widget-settings-preview {
-  margin-bottom: var(--space-xl);
-  padding: var(--space-lg);
+.widget-settings-selector {
+    --gap: var(--space-xs);
+    --checked-color: var(--color-primary-soft);
+    --checked-text-color: var(--color-primary-strong);
+    --checked-border: 1px solid var(--color-primary);
+    min-width: 0;
+    padding: var(--space-2xl);
+    border-top: 1px solid var(--color-line)
 }
 .personal-info-page .page-heading {
   margin-bottom: var(--space-2xl);
@@ -1470,7 +1512,7 @@ textarea:focus-visible {
   font-size: var(--text-body);
 }
 .appearance-preview {
-  margin: -8px 0 var(--space-3xl);
+  margin-bottom: var(--space-3xl);
   padding: var(--space-lg);
   border: 1px solid var(--color-line);
   border-radius: var(--radius-lg);
@@ -1695,7 +1737,9 @@ textarea:focus-visible {
 :root[data-content-mode="simple"] .cls-scroll-hint span,
 :root[data-content-mode="simple"] .notification-setting-copy small,
 :root[data-content-mode="simple"] .notification-setting-note,
-:root[data-content-mode="simple"] .brand-light {
+:root[data-content-mode="simple"] .brand-light,
+:root[data-content-mode="simple"] .settings-copy small,
+:root[data-content-mode="simple"] .widget-settings-label small{
   display: none;
 }
 :root[data-content-mode="simple"] .service-title {

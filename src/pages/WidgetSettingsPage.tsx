@@ -105,31 +105,20 @@ const GROUPS: SettingGroup[] = [
   },
 ];
 
-function previewSummary(settings: Settings, appAccent: AccentColor): string {
+function previewSummary(settings: Settings): string {
   const details = [
     settings.showTime && "时间",
     settings.showPlace && "教室",
     settings.showTeacher && "教师",
   ].filter(Boolean);
   const content = details.length ? `${details.join(" · ")}` : "仅显示课程名";
-  const accent = ACCENT_OPTIONS.find(
-    (option) =>
-      option.value === (settings.followAppAccent ? appAccent : settings.accent),
-  );
-  const accentLabel = settings.followAppAccent
-    ? `跟随应用（${accent?.label ?? ""}）`
-    : (accent?.label ?? "");
-  const themeMode = THEME_MODE_OPTIONS.find(
-    (option) => option.value === settings.themeMode,
-  )?.label;
   return `${content} | ${
     settings.showWeekend ? "含周末" : "仅工作日"
-  } | ${accentLabel} | ${themeMode ?? "自动"}`;
+  }`;
 }
 
 export function WidgetSettingsPage({
   settings,
-  appAccent,
   onChange,
   onBack,
 }: {
@@ -141,7 +130,7 @@ export function WidgetSettingsPage({
   const renderRow = (row: SettingRow) => (
     <div
       key={row.key}
-      className={`settings-row widget-settings-row${
+      className={`widget-settings-row${
         row.kind === "stepper" ? " widget-settings-stepper-row" : ""
       }`}
     >
@@ -179,100 +168,110 @@ export function WidgetSettingsPage({
         <p>修改后桌面上的课表小组件会立即更新。</p>
       </div>
 
-      <section className="widget-settings-preview" aria-label="当前设置">
-        <div className="widget-settings-preview-icon">
-          <Icon name="widget" size={22} />
-        </div>
-        <div>
-          <strong>课表小组件</strong>
-          <p>{previewSummary(settings, appAccent)}</p>
-        </div>
-      </section>
-
-      <section
-        className="customization-section"
-        aria-labelledby="widget-settings-accent"
-      >
-        <div className="customization-heading">
-          <h2 id="widget-settings-accent">主题色</h2>
-          <span>全部小组件</span>
-        </div>
-        <div className="settings-list widget-settings-list">
-          <div className="settings-row widget-settings-row">
-            <span className="settings-icon">
-              <Icon name="palette" size={20} />
-            </span>
-            <span className="settings-copy">
-              <strong>跟随应用主题色</strong>
-              <small>应用主题色变化时同步更新小组件</small>
-            </span>
-            <Switch
-              checked={settings.followAppAccent}
-              onChange={(checked) => onChange({ followAppAccent: checked })}
-            />
+      <section className="widget-settings">
+        <section className="widget-settings-preview" aria-label="当前设置">
+          <div className="widget-settings-preview-icon">
+            <Icon name="widget" size={22} />
           </div>
-          {!settings.followAppAccent && (
-            <div className="widget-settings-apprance">
-              <Selector
-                className="appearance-selector accent-selector"
-                columns={3}
-                options={ACCENT_OPTIONS.map((option) => ({
-                  value: option.value,
-                  label: (
-                    <span className="appearance-accent-option">
-                      <i className={option.value} />
-                      <span>{option.label}</span>
-                    </span>
-                  ),
-                }))}
-                value={[settings.accent]}
-                showCheckMark={false}
-                onChange={(value) => {
-                  const [accent] = value as AccentColor[];
-                  if (accent) onChange({ accent });
-                }}
-              />
-            </div>
-          )}
-        </div>
-      </section>
-
-      <section
-        className="customization-section"
-        aria-labelledby="widget-settings-theme-mode"
-      >
-        <div className="customization-heading">
-          <h2 id="widget-settings-theme-mode">显示模式</h2>
-          <span>全部小组件</span>
-        </div>
-        <Selector
-          className="appearance-selector"
-          columns={3}
-          options={THEME_MODE_OPTIONS}
-          value={[settings.themeMode]}
-          showCheckMark={false}
-          onChange={(value) => {
-            const [themeMode] = value as ThemeMode[];
-            if (themeMode) onChange({ themeMode });
-          }}
-        />
-      </section>
-
-      {GROUPS.map((group) => (
-        <section
-          key={group.id}
-          className="customization-section"
-          aria-labelledby={`widget-settings-${group.id}`}
-        >
-          <div className="customization-heading">
-            <h2 id={`widget-settings-${group.id}`}>{group.title}</h2>
-            <span>{group.scope}</span>
-          </div>
-          <div className="settings-list widget-settings-list">
-            {group.rows.map(renderRow)}
+          <div>
+            <strong>课表小组件</strong>
+            <p>{previewSummary(settings)}</p>
           </div>
         </section>
-      ))}
+
+        <section
+          className="widget-settings-item"
+          aria-labelledby="widget-settings-accent"
+        >
+          <div className="widget-settings-label">
+            <div className="widget-settings-heading">
+              <strong>主题色</strong>
+              <span>全部小组件</span>
+            </div>
+          </div>
+          <div className="widget-settings-rows">
+            <div className="widget-settings-row">
+              <span className="settings-icon">
+                <Icon name="palette" size={20} />
+              </span>
+              <span className="settings-copy">
+                <strong>跟随应用主题色</strong>
+                <small>应用主题色变化时同步更新小组件</small>
+              </span>
+              <Switch
+                checked={settings.followAppAccent}
+                onChange={(checked) => onChange({ followAppAccent: checked })}
+              />
+            </div>
+          </div>
+          {!settings.followAppAccent && (
+            <Selector
+              className="appearance-selector accent-selector"
+              columns={3}
+              options={ACCENT_OPTIONS.map((option) => ({
+                value: option.value,
+                label: (
+                  <span className="appearance-accent-option">
+                    <i className={option.value} />
+                    <span>{option.label}</span>
+                  </span>
+                ),
+              }))}
+              value={[settings.accent]}
+              showCheckMark={false}
+              onChange={(value) => {
+                const [accent] = value as AccentColor[];
+                if (accent) onChange({ accent });
+              }}
+            />
+          )}
+        </section>
+
+        <section
+          className="widget-settings-item"
+          aria-labelledby="widget-settings-theme-mode"
+        >
+        <div className="widget-settings-item">
+          <div className="widget-settings-label">
+            <div className="widget-settings-heading">
+              <strong>显示模式</strong><span>全部小组件</span>
+            </div>
+            <small>跟随系统或手动选择明暗</small>
+          </div>
+          <Selector
+            className="widget-settings-selector"
+            columns={3}
+            options={THEME_MODE_OPTIONS}
+            value={[settings.themeMode]}
+            onChange={(value) => {
+                const [themeMode] = value as ThemeMode[];
+                if (themeMode) onChange({ themeMode });
+              }}
+            showCheckMark={false}
+          />
+        </div>
+        </section>
+
+        {GROUPS.map((group) => (
+          <section
+            key={group.id}
+            className="widget-settings-section"
+            aria-labelledby={`widget-settings-${group.id}`}
+          >
+            <div className="widget-settings-item">
+              <div className="widget-settings-label">
+                <div className="widget-settings-heading">
+                  <strong id={`widget-settings-${group.id}`}>{group.title}</strong>
+                  <span>{group.scope}</span>
+                </div>
+              </div>
+              <div className="widget-settings-rows">
+                {group.rows.map(renderRow)}
+              </div>
+            </div>
+          </section>
+        ))}
+      </section>
     </div>
   );
 }
