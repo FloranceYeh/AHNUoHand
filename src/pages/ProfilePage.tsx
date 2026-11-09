@@ -90,7 +90,7 @@ export function ProfilePage({
         </button>
         <button className="settings-row" onClick={onOpenWidgetSettings}>
           <span className="settings-icon">
-            <Icon name="calendar" size={20} />
+            <Icon name="widget" size={20} />
           </span>
           <span className="settings-copy">
             <strong>小组件设置</strong>

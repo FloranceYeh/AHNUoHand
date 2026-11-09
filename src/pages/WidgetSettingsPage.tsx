@@ -100,27 +100,33 @@ const GROUPS: SettingGroup[] = [
   },
 ];
 
-function previewSummary(settings: Settings): string {
+function previewSummary(settings: Settings, appAccent: AccentColor): string {
   const details = [
     settings.showTime && "时间",
     settings.showPlace && "教室",
     settings.showTeacher && "教师",
   ].filter(Boolean);
-  const content = details.length ? `显示${details.join("、")}` : "仅显示课程名";
+  const content = details.length ? `${details.join(" · ")}` : "仅显示课程名";
   const accent = ACCENT_OPTIONS.find(
-    (option) => option.value === settings.accent,
+    (option) =>
+      option.value === (settings.followAppAccent ? appAccent : settings.accent),
   );
-  return `${accent?.label ?? ""} · ${content} · ${
+  const accentLabel = settings.followAppAccent
+    ? `跟随应用（${accent?.label ?? ""}）`
+    : (accent?.label ?? "");
+  return `${content} | ${
     settings.showWeekend ? "含周末" : "仅工作日"
-  }`;
+  } | ${accentLabel} `;
 }
 
 export function WidgetSettingsPage({
   settings,
+  appAccent,
   onChange,
   onBack,
 }: {
   settings: Settings;
+  appAccent: AccentColor;
   onChange: (changes: Partial<Settings>) => void;
   onBack: () => void;
 }) {
@@ -167,11 +173,11 @@ export function WidgetSettingsPage({
 
       <section className="widget-settings-preview" aria-label="当前设置">
         <div className="widget-settings-preview-icon">
-          <Icon name="calendar" size={22} />
+          <Icon name="widget" size={22} />
         </div>
         <div>
           <strong>课表小组件</strong>
-          <p>{previewSummary(settings)}</p>
+          <p>{previewSummary(settings, appAccent)}</p>
         </div>
       </section>
 
@@ -183,25 +189,44 @@ export function WidgetSettingsPage({
           <h2 id="widget-settings-accent">主题色</h2>
           <span>全部小组件</span>
         </div>
-        <Selector
-          className="appearance-selector accent-selector"
-          columns={3}
-          options={ACCENT_OPTIONS.map((option) => ({
-            value: option.value,
-            label: (
-              <span className="appearance-accent-option">
-                <i className={option.value} />
-                <span>{option.label}</span>
-              </span>
-            ),
-          }))}
-          value={[settings.accent]}
-          showCheckMark={false}
-          onChange={(value) => {
-            const [accent] = value as AccentColor[];
-            if (accent) onChange({ accent });
-          }}
-        />
+        <div className="settings-list widget-settings-list">
+          <div className="settings-row widget-settings-row">
+            <span className="settings-icon">
+              <Icon name="palette" size={20} />
+            </span>
+            <span className="settings-copy">
+              <strong>跟随应用主题色</strong>
+              <small>应用主题色变化时同步更新小组件</small>
+            </span>
+            <Switch
+              checked={settings.followAppAccent}
+              onChange={(checked) => onChange({ followAppAccent: checked })}
+            />
+          </div>
+          {!settings.followAppAccent && (
+            <div className="widget-settings-apprance">
+              <Selector
+                className="appearance-selector accent-selector"
+                columns={3}
+                options={ACCENT_OPTIONS.map((option) => ({
+                  value: option.value,
+                  label: (
+                    <span className="appearance-accent-option">
+                      <i className={option.value} />
+                      <span>{option.label}</span>
+                    </span>
+                  ),
+                }))}
+                value={[settings.accent]}
+                showCheckMark={false}
+                onChange={(value) => {
+                  const [accent] = value as AccentColor[];
+                  if (accent) onChange({ accent });
+                }}
+              />
+            </div>
+          )}
+        </div>
       </section>
 
       {GROUPS.map((group) => (

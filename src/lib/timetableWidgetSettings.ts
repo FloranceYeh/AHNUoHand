@@ -6,6 +6,8 @@ export interface TimetableWidgetSettings {
   showTeacher: boolean;
   showWeekend: boolean;
   weekCellHeight: number;
+  /** 是否跟随应用外观设置中的主题色。 */
+  followAppAccent: boolean;
   /** 小组件配色，取值与外观设置里的主题色一致。 */
   accent: AccentColor;
 }
@@ -16,6 +18,7 @@ export const DEFAULT_TIMETABLE_WIDGET_SETTINGS: TimetableWidgetSettings = {
   showTeacher: true,
   showWeekend: true,
   weekCellHeight: 40,
+  followAppAccent: true,
   accent: "teal",
 };
 
@@ -34,6 +37,7 @@ const BOOLEAN_KEYS: BooleanKey[] = [
   "showPlace",
   "showTeacher",
   "showWeekend",
+  "followAppAccent",
 ];
 
 function clampStep(

@@ -263,10 +263,13 @@ export default function App() {
   }, [notificationSettings]);
   useEffect(() => {
     saveTimetableWidgetSettings(widgetSettings);
-    void syncTimetableWidgetSettings(widgetSettings).catch((error) => {
+    const syncSettings = widgetSettings.followAppAccent
+      ? { ...widgetSettings, accent: themeSettings.accent }
+      : widgetSettings;
+    void syncTimetableWidgetSettings(syncSettings).catch((error) => {
       console.error("timetable widget settings sync failed", error);
     });
-  }, [widgetSettings]);
+  }, [themeSettings.accent, widgetSettings]);
   const changePersonalInfo = (info: PersonalInfo) => {
     savePersonalInfo(info);
     setPersonalInfo(info);
@@ -456,6 +459,7 @@ export default function App() {
   ) : currentRoute.type === "widget-settings" ? (
     <WidgetSettingsPage
       settings={widgetSettings}
+      appAccent={themeSettings.accent}
       onChange={(changes) =>
         setWidgetSettings((current) => ({ ...current, ...changes }))
       }

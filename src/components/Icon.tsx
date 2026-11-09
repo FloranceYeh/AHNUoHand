@@ -37,6 +37,8 @@ import {
   Globe2,
   ExternalLink,
   MessageCircle,
+  Palette,
+  LayoutGridCircles,
 } from "lucide-react";
 
 const icons = {
@@ -78,6 +80,8 @@ const icons = {
   gitBranch: GitBranch,
   globe: Globe2,
   externalLink: ExternalLink,
+  palette: Palette,
+  widget: LayoutGridCircles
 };
 
 interface IconProps {
