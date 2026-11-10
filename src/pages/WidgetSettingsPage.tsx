@@ -204,7 +204,7 @@ export function WidgetSettingsPage({
           </div>
           {!settings.followAppAccent && (
             <Selector
-              className="appearance-selector accent-selector"
+              className="appearance-selector accent-selector widget-settings-selector"
               columns={3}
               options={ACCENT_OPTIONS.map((option) => ({
                 value: option.value,
@@ -229,26 +229,24 @@ export function WidgetSettingsPage({
           className="widget-settings-item"
           aria-labelledby="widget-settings-theme-mode"
         >
-          <div className="widget-settings-item">
-            <div className="widget-settings-label">
-              <div className="widget-settings-heading">
-                <strong>显示模式</strong>
-                <span>全部小组件</span>
-              </div>
-              <small>跟随系统或手动选择明暗</small>
+          <div className="widget-settings-label">
+            <div className="widget-settings-heading">
+              <strong>显示模式</strong>
+              <span>全部小组件</span>
             </div>
-            <Selector
-              className="widget-settings-selector"
-              columns={3}
-              options={THEME_MODE_OPTIONS}
-              value={[settings.themeMode]}
-              onChange={(value) => {
-                const [themeMode] = value as ThemeMode[];
-                if (themeMode) onChange({ themeMode });
-              }}
-              showCheckMark={false}
-            />
+            <small>跟随系统或手动选择明暗</small>
           </div>
+          <Selector
+            className="widget-settings-selector"
+            columns={3}
+            options={THEME_MODE_OPTIONS}
+            value={[settings.themeMode]}
+            onChange={(value) => {
+              const [themeMode] = value as ThemeMode[];
+              if (themeMode) onChange({ themeMode });
+            }}
+            showCheckMark={false}
+          />
         </section>
 
         {GROUPS.map((group) => (

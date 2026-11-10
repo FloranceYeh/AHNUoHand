@@ -372,9 +372,13 @@ textarea:focus-visible {
   --adm-color-text: var(--color-ink);
   --adm-color-weak: var(--color-muted-strong);
   --adm-color-border: var(--color-line);
-  padding: var(--space-sm) var(--space-lg);
-  background: var(--color-surface-subtle);
   overflow: hidden;
+}
+.notification-test .notification-editor {
+  --adm-color-background: var(--color-surface-subtle);
+}
+.notification-test .notification-editor .adm-selector-item {
+  background: var(--color-surface-muted);
 }
 .notification-editor .adm-list-body {
   border: 1px solid var(--color-line);
@@ -385,8 +389,8 @@ textarea:focus-visible {
 }
 .notification-editor .adm-list-item {
   min-height: var(--size-4xl);
-  padding-left: var(--space-md);
-  font-size: var(--text-body);
+  padding: 0;
+  font-size: var(--text-caption);
   background: transparent;
 }
 .notification-copy-fields {
@@ -446,8 +450,12 @@ textarea:focus-visible {
   --checked-color: var(--color-primary-soft);
   --checked-border: 1px solid var(--color-primary);
 }
-.notification-editor .adm-list-item-content-main {
-  padding: var(--space-md) 0;
+.adm-list-item-content {
+  display: flex;
+  align-items: var(--align-items);
+  justify-content: flex-start;
+  border-top: var(--border-inner);
+  padding: 0 var(--space-md);
 }
 .notification-setting-note,
 .notification-permission-error {

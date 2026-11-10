@@ -308,9 +308,7 @@ export function NotificationSettingsPage({
           <Icon name={DEFAULT_NOTIFICATION_ICONS.test} size={17} />
           {testSending ? "正在发送…" : "发送测试通知"}
         </button>
-        <div className="settings-list notification-test-icon">
-          {notificationEditor("testIcon", "testTitle", "testBody")}
-        </div>
+        {notificationEditor("testIcon", "testTitle", "testBody")}
         {testStatus && (
           <p className="notification-test-status" role="status">
             {testStatus}
