@@ -65,3 +65,8 @@ pnpm icons
 ### 更新说明
 
 版本变更记录见 [CHANGELOG.md](CHANGELOG.md)。
+
+## 许可证
+
+本项目采用 GNU 通用公共许可证第 3 版（GPL-3.0-only）授权，详见
+[LICENSE](LICENSE)。
