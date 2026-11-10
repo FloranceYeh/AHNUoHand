@@ -373,6 +373,11 @@ textarea:focus-visible {
   --adm-color-weak: var(--color-muted-strong);
   --adm-color-border: var(--color-line);
   overflow: hidden;
+  width: 100%;
+}
+.notification-editor-row {
+  min-height: var(--size-8xl);
+  background: var(--color-surface-subtle);
 }
 .notification-test .notification-editor {
   --adm-color-background: var(--color-surface-subtle);

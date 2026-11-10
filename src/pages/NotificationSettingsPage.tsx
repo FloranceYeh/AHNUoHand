@@ -204,7 +204,9 @@ export function NotificationSettingsPage({
                 onChange={(value) => void update("reminderMinutes", value)}
               />
             </div>
-            {notificationEditor("classIcon", "classTitle", "classBody")}
+            <div className="notification-setting-row notification-editor-row">
+              {notificationEditor("classIcon", "classTitle", "classBody")}
+            </div>
           </>
         )}
         {toggleRow(
@@ -244,11 +246,9 @@ export function NotificationSettingsPage({
                 onChange={(value) => void update("electricityBalance", value)}
               />
             </div>
-            {notificationEditor(
-              "electricityIcon",
-              "electricityTitle",
-              "electricityBody",
-            )}
+            <div className="notification-setting-row notification-editor-row">
+              {notificationEditor("electricityIcon", "electricityTitle", "electricityBody")}
+            </div>
           </>
         )}
         {toggleRow(
@@ -288,11 +288,9 @@ export function NotificationSettingsPage({
                 onChange={(value) => void update("schoolCardBalance", value)}
               />
             </div>
-            {notificationEditor(
-              "schoolCardIcon",
-              "schoolCardTitle",
-              "schoolCardBody",
-            )}
+            <div className="notification-setting-row notification-editor-row">
+              {notificationEditor("schoolCardIcon", "schoolCardTitle", "schoolCardBody")}
+            </div>
           </>
         )}
       </section>
